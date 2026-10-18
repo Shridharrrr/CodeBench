@@ -1,0 +1,152 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT_DIR"
+
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+generate_secret() {
+    if command_exists openssl; then
+        openssl rand -hex 32
+    else
+        head -c 32 /dev/urandom | xxd -p -c 32 || date +%s | sha256sum | head -c 64
+    fi
+}
+
+init_env() {
+    if [ ! -f .env ]; then
+        echo "Creating .env from .env.example with secure random secrets..."
+        cp .env.example .env
+        SECRET=$(generate_secret)
+        NATS_TOKEN=$(generate_secret)
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s/change-this-to-a-secure-random-32-byte-hex-string/$SECRET/" .env
+            sed -i '' "s/codebench-nats-internal-token-change-me/$NATS_TOKEN/" .env
+        else
+            sed -i "s/change-this-to-a-secure-random-32-byte-hex-string/$SECRET/" .env
+            sed -i "s/codebench-nats-internal-token-change-me/$NATS_TOKEN/" .env
+        fi
+        echo "Generated secrets in .env successfully."
+    fi
+}
+
+cmd_doctor() {
+    echo "==========================================="
+    echo "      Codebench System Doctor & Preflight  "
+    echo "==========================================="
+
+    # Check Docker
+    if ! command_exists docker; then
+        echo "[FAIL] Docker is not installed or not in PATH."
+        echo "       Fix: Install Docker from https://docs.docker.com/engine/install/"
+        return 1
+    else
+        echo "[OK] Docker is installed ($(docker --version))"
+    fi
+
+    # Check Docker Daemon
+    if ! docker info >/dev/null 2>&1; then
+        echo "[FAIL] Docker daemon is not running or current user lacks permissions."
+        echo "       Fix: Start Docker Desktop or run 'sudo systemctl start docker'"
+        return 1
+    else
+        echo "[OK] Docker daemon is running."
+    fi
+
+    # Check Docker Compose
+    if docker compose version >/dev/null 2>&1; then
+        echo "[OK] Docker Compose plugin is available ($(docker compose version --short))"
+    else
+        echo "[FAIL] Docker Compose is not available."
+        echo "       Fix: Install Docker Compose plugin (https://docs.docker.com/compose/install/)"
+        return 1
+    fi
+
+    # Check Ports
+    for port in 8080 5432 4222; do
+        if command_exists nc && nc -z localhost "$port" 2>/dev/null; then
+            echo "[WARN] Port $port is already in use by another process."
+        else
+            echo "[OK] Port $port is available."
+        fi
+    done
+
+    # Timing Grade Evaluation
+    OS="$(uname -s)"
+    echo ""
+    echo "Evaluating Timing-Quality Grade:"
+    if [ "$OS" = "Linux" ]; then
+        if grep -q "microsoft" /proc/version 2>/dev/null; then
+            echo ">> Host environment: WSL2 / Docker Desktop on Windows"
+            echo ">> TIMING GRADE: Grade C (Development & Practice)"
+            echo "   Warning: Hypervisor virtualization adds timing jitter; not recommended for strict contests."
+        elif [ -f /.dockerenv ] || [ -f /run/.containerenv ]; then
+            echo ">> Host environment: Containerized Linux"
+            echo ">> TIMING GRADE: Grade B (Default Linux Scheduling)"
+        elif [ -d /sys/fs/cgroup ]; then
+            echo ">> Host environment: Native Linux Bare-Metal/VM"
+            echo ">> TIMING GRADE: Grade B (Default Linux Scheduling)"
+            echo "   Tip: Run './codebench tune' on dedicated bare-metal to achieve Grade A."
+        fi
+    elif [ "$OS" = "Darwin" ]; then
+        echo ">> Host environment: macOS (Docker Desktop)"
+        echo ">> TIMING GRADE: Grade C (Development & Practice)"
+        echo "   Warning: VM virtualization adds timing jitter; not recommended for strict contests."
+    else
+        echo ">> Host environment: $OS"
+        echo ">> TIMING GRADE: Grade C"
+    fi
+    echo ""
+    echo "Doctor check complete."
+}
+
+cmd_up() {
+    init_env
+    cmd_doctor
+    echo ""
+    echo "Starting Codebench services with Docker Compose..."
+    docker compose up -d --build
+    echo ""
+    echo "Waiting for Codebench API and PostgreSQL readiness..."
+    sleep 3
+    echo ""
+    echo "=========================================================="
+    echo " Codebench is running!"
+    echo " Web UI & API:        http://localhost:8080"
+    echo " Default Admin User:  admin@codebench.local"
+    echo " Default Password:    codebench123"
+    echo "=========================================================="
+}
+
+cmd_dev() {
+    init_env
+    echo "Starting Codebench development stack..."
+    docker compose -f compose.yaml -f compose.dev.yaml up --build
+}
+
+cmd_down() {
+    echo "Stopping Codebench services..."
+    docker compose down
+}
+
+case "${1:-up}" in
+    up)
+        cmd_up
+        ;;
+    doctor)
+        cmd_doctor
+        ;;
+    dev)
+        cmd_dev
+        ;;
+    down)
+        cmd_down
+        ;;
+    *)
+        echo "Usage: ./codebench {up|doctor|dev|down}"
+        exit 1
+        ;;
+esac

@@ -1,0 +1,23 @@
+# Binaries and build artifacts
+*.exe
+bin/
+target/
+dist/
+*.log
+
+# Environment and secrets
+.env
+
+# Data storage
+data/
+postgres_data/
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# IDE and OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

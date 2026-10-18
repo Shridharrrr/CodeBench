@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  test-api:
+    name: Test Go API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache-dependency-path: api/go.sum
+
+      - name: Run Go tests
+        run: |
+          cd api
+          go test -v -race ./...
+
+      - name: Run Go vet
+        run: |
+          cd api
+          go vet ./...
+
+  test-judge:
+    name: Test Rust Judge
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Run Cargo check & test
+        run: |
+          cd judge
+          cargo check
+          cargo test
+
+  test-web:
+    name: Test Web Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install & Build Frontend
+        run: |
+          cd web
+          npm ci || npm install
+          npm run build

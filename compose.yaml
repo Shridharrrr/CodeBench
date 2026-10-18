@@ -1,0 +1,78 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: codebench-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-codebench}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-codebench_secret}
+      POSTGRES_DB: ${DB_NAME:-codebench}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-codebench} -d ${DB_NAME:-codebench}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: deploy/api.Dockerfile
+    container_name: codebench-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${CODEBENCH_PORT:-8080}:8080"
+      - "${NATS_PORT:-4222}:4222"
+    environment:
+      CODEBENCH_ENV: ${CODEBENCH_ENV:-production}
+      CODEBENCH_PORT: 8080
+      CODEBENCH_HOST: 0.0.0.0
+      DATABASE_URL: postgres://${DB_USER:-codebench}:${DB_PASSWORD:-codebench_secret}@postgres:5432/${DB_NAME:-codebench}?sslmode=disable
+      NATS_EMBEDDED: "true"
+      NATS_PORT: 4222
+      NATS_STORE_DIR: /data/nats
+      NATS_TOKEN: ${NATS_TOKEN:-codebench-internal-nats-token}
+      USE_FAKE_JUDGE: ${USE_FAKE_JUDGE:-false}
+      ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD:-codebench123}
+    volumes:
+      - nats_data:/data/nats
+      - problems_data:/data/problems
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/healthz || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  judge:
+    build:
+      context: .
+      dockerfile: deploy/judge.Dockerfile
+    container_name: codebench-judge
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    cgroup: host
+    cap_add:
+      - SYS_ADMIN
+      - SYS_RESOURCE
+      - SYS_PTRACE
+    environment:
+      NATS_URL: nats://${NATS_TOKEN:-codebench-internal-nats-token}@api:4222
+      JUDGE_CONCURRENCY: ${JUDGE_CONCURRENCY:-2}
+      RUST_LOG: info
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - judge_cache:/var/cache/codebench
+
+volumes:
+  postgres_data:
+  nats_data:
+  problems_data:
+  judge_cache:

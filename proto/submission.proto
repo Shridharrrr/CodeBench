@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+package codebench.v1;
+
+option go_package = "github.com/codebench/codebench/api/proto/v1;codebenchv1";
+
+enum SubmissionStatus {
+  SUBMISSION_STATUS_UNSPECIFIED = 0;
+  SUBMISSION_STATUS_QUEUED = 1;
+  SUBMISSION_STATUS_COMPILING = 2;
+  SUBMISSION_STATUS_RUNNING = 3;
+  SUBMISSION_STATUS_JUDGING = 4;
+  SUBMISSION_STATUS_DONE = 5;
+}
+
+enum Verdict {
+  VERDICT_UNSPECIFIED = 0;
+  VERDICT_AC = 1;               // Accepted
+  VERDICT_WA = 2;               // Wrong Answer
+  VERDICT_TLE = 3;              // Time Limit Exceeded
+  VERDICT_MLE = 4;              // Memory Limit Exceeded
+  VERDICT_OLE = 5;              // Output Limit Exceeded
+  VERDICT_RE = 6;               // Runtime Error
+  VERDICT_CE = 7;               // Compilation Error
+  VERDICT_SE = 8;               // System Error (never blamed on participant)
+  VERDICT_COMPLEXITY_FAIL = 9;  // Algorithmic complexity budget violated
+}
+
+enum PriorityLane {
+  PRIORITY_LANE_UNSPECIFIED = 0;
+  PRIORITY_LANE_RUN = 1;        // Interactive / sample run
+  PRIORITY_LANE_CONTEST = 2;    // Active live contest
+  PRIORITY_LANE_PRACTICE = 3;   // Practice submissions
+  PRIORITY_LANE_REJUDGE = 4;    // Bulk rejudges
+}
+
+message TestCase {
+  string test_case_id = 1;
+  int32 ordinal = 2;
+  string group = 3;             // e.g. "sample", "small", "max", "anti-naive"
+  string input_data = 4;        // inline or path reference
+  string expected_output = 5;
+  bool is_sample = 6;
+}
+
+message SubmissionJob {
+  string submission_id = 1;
+  string attempt_id = 2;
+  string user_id = 3;
+  string problem_id = 4;
+  string problem_version_id = 5;
+  string language = 6;          // "cpp23-gcc", "cpp23-clang", "c23-gcc", "c23-clang"
+  string source_code = 7;
+  int64 time_limit_ms = 8;
+  int64 memory_limit_kb = 9;
+  PriorityLane priority = 10;
+  repeated TestCase test_cases = 11;
+  string checker_type = 12;     // "token", "float", "special", "interactive"
+  string complexity_policy = 13; // JSON configuration
+}
+
+message TestResult {
+  string test_case_id = 1;
+  int32 ordinal = 2;
+  string group = 3;
+  Verdict verdict = 4;
+  int64 time_ms = 5;
+  int64 memory_kb = 6;
+  int64 instructions = 7;
+  string diagnostic = 8;        // Bounded stderr/checker output
+}
+
+message SubmissionVerdict {
+  string submission_id = 1;
+  string attempt_id = 2;
+  SubmissionStatus status = 3;
+  Verdict verdict = 4;
+  int64 total_time_ms = 5;
+  int64 peak_memory_kb = 6;
+  int64 total_instructions = 7;
+  int32 failed_test_ordinal = 8;
+  string failed_group = 9;
+  string compile_output = 10;
+  string complexity_report = 11;
+  string judge_host = 12;
+  repeated TestResult test_results = 13;
+}

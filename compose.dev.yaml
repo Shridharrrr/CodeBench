@@ -1,0 +1,15 @@
+services:
+  api:
+    environment:
+      CODEBENCH_ENV: development
+      USE_FAKE_JUDGE: "true"
+    volumes:
+      - ./api:/app/api
+      - ./problems:/data/problems
+    ports:
+      - "8080:8080"
+      - "4222:4222"
+
+  judge:
+    environment:
+      RUST_LOG: debug
