@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -77,6 +79,25 @@ func (s *Server) setupRoutes() {
 		r.Get("/submissions/{id}", s.handleGetSubmission)
 		r.Get("/submissions/{id}/events", s.handleSubmissionEvents)
 	})
+
+	// Static SPA serving
+	distPath := "./web/dist"
+	if _, err := os.Stat(distPath); err == nil {
+		fileServer := http.FileServer(http.Dir(distPath))
+		r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+			path := filepath.Join(distPath, filepath.Clean(r.URL.Path))
+			if info, err := os.Stat(path); os.IsNotExist(err) || info.IsDir() {
+				http.ServeFile(w, r, filepath.Join(distPath, "index.html"))
+				return
+			}
+			fileServer.ServeHTTP(w, r)
+		})
+	} else {
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"status":"ok","name":"Codebench API","version":"0.1.0"}`))
+		})
+	}
 }
 
 func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
