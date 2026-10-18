@@ -1,7 +1,9 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
+#[cfg(target_os = "linux")]
+use anyhow::Context;
+#[cfg(target_os = "linux")]
 use std::fs;
 use std::path::{Path, PathBuf};
-use tracing::{debug, error, info};
 
 pub struct CgroupV2Slot {
     pub slot_id: usize,
@@ -21,7 +23,7 @@ impl CgroupV2Slot {
     }
 
     /// Setup the cgroup directory and enable controllers
-    pub fn initialize(&self, core_id: Option<usize>) -> Result<()> {
+    pub fn initialize(&self, _core_id: Option<usize>) -> Result<()> {
         #[cfg(target_os = "linux")]
         {
             if !self.path.exists() {
@@ -30,7 +32,7 @@ impl CgroupV2Slot {
             }
 
             // Pin to core if specified
-            if let Some(core) = core_id {
+            if let Some(core) = _core_id {
                 let cpuset_file = self.path.join("cpuset.cpus");
                 if cpuset_file.exists() {
                     let _ = fs::write(cpuset_file, format!("{}", core));
@@ -41,13 +43,13 @@ impl CgroupV2Slot {
     }
 
     /// Set resource limits before process execution
-    pub fn apply_limits(&self, memory_bytes: u64, max_pids: u32) -> Result<()> {
+    pub fn apply_limits(&self, _memory_bytes: u64, _max_pids: u32) -> Result<()> {
         #[cfg(target_os = "linux")]
         {
             // 1. memory.max
             let mem_max = self.path.join("memory.max");
             if mem_max.exists() {
-                fs::write(&mem_max, format!("{}", memory_bytes))
+                fs::write(&mem_max, format!("{}", _memory_bytes))
                     .with_context(|| format!("Failed to write memory.max: {:?}", mem_max))?;
             }
 
@@ -60,7 +62,7 @@ impl CgroupV2Slot {
             // 3. pids.max
             let pids_max = self.path.join("pids.max");
             if pids_max.exists() {
-                fs::write(&pids_max, format!("{}", max_pids))
+                fs::write(&pids_max, format!("{}", _max_pids))
                     .with_context(|| format!("Failed to write pids.max: {:?}", pids_max))?;
             }
         }
@@ -68,12 +70,12 @@ impl CgroupV2Slot {
     }
 
     /// Add a process PID into the cgroup (cgroup.procs)
-    pub fn attach_pid(&self, pid: u32) -> Result<()> {
+    pub fn attach_pid(&self, _pid: u32) -> Result<()> {
         #[cfg(target_os = "linux")]
         {
             let procs_file = self.path.join("cgroup.procs");
-            fs::write(&procs_file, format!("{}", pid))
-                .with_context(|| format!("Failed to attach PID {} to cgroup", pid))?;
+            fs::write(&procs_file, format!("{}", _pid))
+                .with_context(|| format!("Failed to attach PID {} to cgroup", _pid))?;
         }
         Ok(())
     }
@@ -92,6 +94,7 @@ impl CgroupV2Slot {
 
     /// Read usage statistics (CPU time and peak memory)
     pub fn read_stats(&self) -> Result<CgroupStats> {
+        #[allow(unused_mut)]
         let mut stats = CgroupStats::default();
 
         #[cfg(target_os = "linux")]

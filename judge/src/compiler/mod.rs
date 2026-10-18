@@ -3,12 +3,12 @@ pub mod profiles;
 
 use anyhow::{Context, Result};
 use cache::CompileCache;
-use profiles::{CompilerProfile, CompilerRegistry};
+use profiles::CompilerRegistry;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Command;
 use std::time::Instant;
-use tracing::{debug, error, info};
+use tracing::info;
 
 pub struct Compiler {
     registry: CompilerRegistry,
@@ -72,7 +72,7 @@ impl Compiler {
 
         let output = match cmd.output() {
             Ok(out) => out,
-            Err(e) => {
+            Err(_e) => {
                 let _ = fs::remove_file(&source_file);
                 // Fallback / mock when native compiler binary is absent on host
                 if source_code.contains("// CE") {

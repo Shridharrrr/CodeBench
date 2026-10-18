@@ -1,12 +1,10 @@
 use crate::sandbox::{
-    ExecutionLimits, ExecutionRequest, ExecutionResult, ExecutionUsage, SandboxRunner,
-    SandboxVerdict,
+    ExecutionRequest, ExecutionResult, ExecutionUsage, SandboxRunner, SandboxVerdict,
 };
 use anyhow::{Context, Result};
 use std::fs;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
-use tracing::{debug, info};
 
 pub struct IsolateAdapter {
     pub isolate_binary: PathBuf,

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::fs;
 use std::path::{Path, PathBuf};
-use tracing::{debug, info};
+use tracing::debug;
 
 pub struct CompileCache {
     cache_dir: PathBuf,

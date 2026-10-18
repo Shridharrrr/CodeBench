@@ -2,12 +2,11 @@ use crate::checker::token::CheckResult;
 use crate::checker::CheckerDispatcher;
 use crate::compiler::{CompileResult, Compiler};
 use crate::protocol::*;
-use crate::sandbox::native::NativeRunner;
 use crate::sandbox::profile::SandboxProfile;
 use crate::sandbox::{ExecutionLimits, ExecutionRequest, SandboxRunner, SandboxVerdict};
 use anyhow::Result;
 use std::path::PathBuf;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 
 pub struct JudgePipeline {
     compiler: Compiler,
@@ -76,7 +75,7 @@ impl JudgePipeline {
 
         let profile = SandboxProfile::participant_run(limits.cpu_time_ms, limits.memory_limit_kb);
 
-        for (idx, tc) in job.test_cases.iter().enumerate() {
+        for tc in &job.test_cases {
             let req = ExecutionRequest {
                 executable_path: executable_path.clone(),
                 args: vec![],

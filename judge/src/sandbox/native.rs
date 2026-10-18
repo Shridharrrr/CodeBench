@@ -1,14 +1,13 @@
+#[cfg(target_os = "linux")]
 use crate::sandbox::cgroup::CgroupV2Slot;
 use crate::sandbox::{
-    ExecutionLimits, ExecutionRequest, ExecutionResult, ExecutionUsage, SandboxRunner,
-    SandboxVerdict,
+    ExecutionRequest, ExecutionResult, ExecutionUsage, SandboxRunner, SandboxVerdict,
 };
 use anyhow::{Context, Result};
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
-use tracing::{debug, error, info, warn};
 
 pub struct NativeRunner {
     pub cgroup_base: PathBuf,
