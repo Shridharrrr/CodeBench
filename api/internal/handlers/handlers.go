@@ -157,6 +157,11 @@ func (s *Server) setupRoutes() {
 
 	// Static SPA serving
 	distPath := "./web/dist"
+	if _, err := os.Stat(distPath); err != nil {
+		if _, err := os.Stat("/app/web/dist"); err == nil {
+			distPath = "/app/web/dist"
+		}
+	}
 	if _, err := os.Stat(distPath); err == nil {
 		fileServer := http.FileServer(http.Dir(distPath))
 		r.Get("/*", func(w http.ResponseWriter, r *http.Request) {

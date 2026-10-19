@@ -37,6 +37,15 @@ func New(ctx context.Context, cfg *config.Config) (*NATSManager, error) {
 
 		if cfg.NATSToken != "" {
 			opts.Authorization = cfg.NATSToken
+			opts.Users = []*server.User{
+				{
+					Username: cfg.NATSToken,
+					Permissions: &server.Permissions{
+						Publish:   &server.SubjectPermission{Allow: []string{">"}},
+						Subscribe: &server.SubjectPermission{Allow: []string{">"}},
+					},
+				},
+			}
 		}
 
 		ns, err := server.NewServer(opts)

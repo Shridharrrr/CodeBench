@@ -6,7 +6,7 @@ RUN npm install
 COPY web/ ./
 RUN npm run build
 
-FROM golang:1.24-alpine AS api-builder
+FROM golang:alpine AS api-builder
 WORKDIR /app
 RUN apk add --no-cache git gcc musl-dev
 COPY go.mod go.sum* ./
@@ -26,6 +26,8 @@ RUN apk add --no-cache ca-certificates tzdata wget \
     && mkdir -p /data/problems /data/nats \
     && chown -R 10001:10001 /app /data
 COPY --from=api-builder --chown=10001:10001 /app/codebench-api /app/codebench-api
+COPY --from=web-builder --chown=10001:10001 /app/web/dist /app/web/dist
+COPY --chown=10001:10001 problems/ /app/problems/
 COPY --chown=10001:10001 problems/ /data/problems/
 USER 10001:10001
 EXPOSE 8080 4222

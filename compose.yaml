@@ -40,6 +40,7 @@ services:
       NATS_TOKEN: ${NATS_TOKEN:-codebench-internal-nats-token}
       USE_FAKE_JUDGE: ${USE_FAKE_JUDGE:-false}
       ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD:-codebench123}
+      PROBLEMS_DIR: /app/problems
     volumes:
       - nats_data:/data/nats
       - problems_data:/data/problems

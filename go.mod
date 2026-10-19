@@ -1,6 +1,6 @@
 module github.com/codebench/codebench
 
-go 1.26.6
+go 1.26.0
 
 require (
 	github.com/go-chi/chi/v5 v5.5.0
@@ -10,6 +10,7 @@ require (
 	github.com/nats-io/nats-server/v2 v2.15.1
 	github.com/nats-io/nats.go v1.54.0
 	golang.org/x/crypto v0.58.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -27,5 +28,4 @@ require (
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/time v0.16.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

@@ -65,7 +65,22 @@ async fn main() -> Result<()> {
         "Connecting to NATS JetStream..."
     );
 
-    let client = match async_nats::connect(&nats_url).await {
+    let nats_token = env::var("NATS_TOKEN").ok();
+    let connect_res = if let Some(ref token) = nats_token {
+        async_nats::ConnectOptions::with_token(token.clone()).connect(&nats_url).await
+    } else if let Some(at_idx) = nats_url.find('@') {
+        if let Some(proto_end) = nats_url.find("://") {
+            let token = &nats_url[proto_end + 3..at_idx];
+            let clean_url = format!("nats://{}", &nats_url[at_idx + 1..]);
+            async_nats::ConnectOptions::with_token(token.to_string()).connect(&clean_url).await
+        } else {
+            async_nats::connect(&nats_url).await
+        }
+    } else {
+        async_nats::connect(&nats_url).await
+    };
+
+    let client = match connect_res {
         Ok(c) => c,
         Err(e) => {
             error!(error = %e, "Could not connect to NATS, exiting");
