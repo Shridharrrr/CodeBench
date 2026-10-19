@@ -1,13 +1,21 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/codebench/codebench/pkg/problems"
 )
 
 func main() {
@@ -25,10 +33,175 @@ func main() {
 		runDev()
 	case "down":
 		runDown()
+	case "problems":
+		runProblemsCommand()
 	default:
-		fmt.Printf("Usage: codebench {up|doctor|dev|down}\n")
+		fmt.Printf("Usage: codebench {up|doctor|dev|down|problems {validate|import} <path>}\n")
 		os.Exit(1)
 	}
+}
+
+func runProblemsCommand() {
+	if len(os.Args) < 3 {
+		fmt.Println("Usage: codebench problems {validate|import} <path>")
+		os.Exit(1)
+	}
+
+	subCmd := os.Args[2]
+	targetPath := "./problems"
+	if len(os.Args) > 3 {
+		targetPath = os.Args[3]
+	}
+
+	switch subCmd {
+	case "validate":
+		runProblemsValidate(targetPath)
+	case "import":
+		runProblemsImport(targetPath)
+	default:
+		fmt.Printf("Unknown problems command %q. Usage: codebench problems {validate|import} <path>\n", subCmd)
+		os.Exit(1)
+	}
+}
+
+func runProblemsValidate(targetPath string) {
+	fmt.Println("==========================================================")
+	fmt.Println("       Codebench Problem Package Validator")
+	fmt.Println("==========================================================")
+
+	fi, err := os.Stat(targetPath)
+	if err != nil {
+		fmt.Printf("[FAIL] Target path not found: %s\n", targetPath)
+		os.Exit(1)
+	}
+
+	var dirsToValidate []string
+	if fi.IsDir() {
+		// Check if target is a single problem dir or a collection
+		if _, err := os.Stat(filepath.Join(targetPath, "problem.yaml")); err == nil {
+			dirsToValidate = append(dirsToValidate, targetPath)
+		} else {
+			entries, _ := os.ReadDir(targetPath)
+			for _, e := range entries {
+				if e.IsDir() {
+					p := filepath.Join(targetPath, e.Name())
+					if _, err := os.Stat(filepath.Join(p, "problem.yaml")); err == nil {
+						dirsToValidate = append(dirsToValidate, p)
+					}
+				}
+			}
+		}
+	} else {
+		fmt.Printf("[FAIL] Target must be a directory: %s\n", targetPath)
+		os.Exit(1)
+	}
+
+	if len(dirsToValidate) == 0 {
+		fmt.Printf("[FAIL] No valid problem packages (containing problem.yaml) found in %s\n", targetPath)
+		os.Exit(1)
+	}
+
+	allPassed := true
+	ctx := context.Background()
+
+	for _, dir := range dirsToValidate {
+		fmt.Printf("\n--- Validating: %s ---\n", dir)
+		pkg, err := problems.LoadPackage(dir)
+		if err != nil {
+			fmt.Printf("[FAIL] Failed to load package: %v\n", err)
+			allPassed = false
+			continue
+		}
+
+		fmt.Printf("  Slug:        %s (version %d)\n", pkg.Manifest.Slug, pkg.Manifest.Version)
+		fmt.Printf("  Title:       %s\n", pkg.Manifest.Title)
+		fmt.Printf("  Difficulty:  %s | Checker: %s\n", pkg.Manifest.Difficulty, pkg.Manifest.Checker.Type)
+		fmt.Printf("  Limits:      %d ms / %d MB\n", pkg.Manifest.Limits.TimeLimitMS, pkg.Manifest.Limits.MemoryLimitMB)
+		fmt.Printf("  PackageHash: %s...\n", pkg.CanonicalHash[:16])
+		fmt.Printf("  Test cases:  %d total\n", len(pkg.TestCases))
+
+		report, err := problems.ValidatePackage(ctx, pkg)
+		if err != nil {
+			fmt.Printf("[FAIL] Validation execution error: %v\n", err)
+			allPassed = false
+			continue
+		}
+
+		if report.Passed {
+			fmt.Printf("[OK] Reference solution verified (AC on all tests)\n")
+			for _, ws := range report.WrongSolutions {
+				fmt.Printf("[OK] Wrong solution %q correctly failed (%s -> %s)\n", ws.Filename, ws.ExpectedVerdict, ws.ObservedVerdict)
+			}
+			fmt.Printf(">> RESULT: PASSED (completed in %v)\n", report.Duration.Round(time.Millisecond))
+		} else {
+			allPassed = false
+			fmt.Printf("[FAIL] Validation failed with errors:\n")
+			for _, e := range report.Errors {
+				fmt.Printf("       - %s\n", e)
+			}
+		}
+	}
+
+	fmt.Println("\n==========================================================")
+	if allPassed {
+		fmt.Printf(" All %d problem package(s) passed validation successfully!\n", len(dirsToValidate))
+		fmt.Println("==========================================================")
+	} else {
+		fmt.Println(" Some problem package(s) failed validation.")
+		fmt.Println("==========================================================")
+		os.Exit(1)
+	}
+}
+
+func runProblemsImport(targetPath string) {
+	fmt.Println("==========================================================")
+	fmt.Println("       Codebench Problem Package Importer")
+	fmt.Println("==========================================================")
+
+	apiURL := os.Getenv("CODEBENCH_API_URL")
+	if apiURL == "" {
+		apiURL = "http://localhost:8080"
+	}
+
+	reqBody, _ := json.Marshal(map[string]string{"path": targetPath})
+	resp, err := http.Post(apiURL+"/api/problems/import", "application/json", bytes.NewReader(reqBody))
+	if err != nil {
+		fmt.Printf("[FAIL] Could not connect to Codebench API at %s: %v\n", apiURL, err)
+		fmt.Println("       Make sure Codebench services are running (run './codebench up').")
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		fmt.Printf("[FAIL] Import failed with HTTP %d: %s\n", resp.StatusCode, string(bodyBytes))
+		os.Exit(1)
+	}
+
+	bodyBytes, _ := io.ReadAll(resp.Body)
+	var singleResult struct {
+		Slug        string `json:"slug"`
+		Version     int    `json:"version"`
+		TestCount   int    `json:"test_count"`
+		PackageHash string `json:"package_hash"`
+	}
+	if err := json.Unmarshal(bodyBytes, &singleResult); err == nil && singleResult.Slug != "" {
+		fmt.Printf("[OK] Imported problem %q (version %d) with %d test cases [hash: %s...]\n",
+			singleResult.Slug, singleResult.Version, singleResult.TestCount, singleResult.PackageHash[:12])
+	} else {
+		var multiResults []struct {
+			Slug        string `json:"slug"`
+			Version     int    `json:"version"`
+			TestCount   int    `json:"test_count"`
+			PackageHash string `json:"package_hash"`
+		}
+		_ = json.Unmarshal(bodyBytes, &multiResults)
+		for _, res := range multiResults {
+			fmt.Printf("[OK] Imported problem %q (version %d) with %d test cases [hash: %s...]\n",
+				res.Slug, res.Version, res.TestCount, res.PackageHash[:12])
+		}
+	}
+	fmt.Println("\nImport complete.")
 }
 
 func runDoctor() bool {

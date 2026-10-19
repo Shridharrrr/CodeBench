@@ -14,10 +14,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/codebench/codebench/api/internal/auth"
 	"github.com/codebench/codebench/api/internal/database"
 	"github.com/codebench/codebench/api/internal/events"
 	"github.com/codebench/codebench/api/internal/models"
 	"github.com/codebench/codebench/api/internal/queue"
+	"github.com/codebench/codebench/api/internal/runner"
+	"github.com/codebench/codebench/api/internal/seed"
+	"github.com/codebench/codebench/pkg/problems"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -25,18 +29,20 @@ import (
 )
 
 type Server struct {
-	router   *chi.Mux
-	db       *database.DB
-	queueMgr *queue.NATSManager
-	broker   *events.Broker
+	router      *chi.Mux
+	db          *database.DB
+	queueMgr    *queue.NATSManager
+	broker      *events.Broker
+	authHandler *auth.AuthHandler
 }
 
 func NewServer(db *database.DB, queueMgr *queue.NATSManager, broker *events.Broker) *Server {
 	s := &Server{
-		router:   chi.NewRouter(),
-		db:       db,
-		queueMgr: queueMgr,
-		broker:   broker,
+		router:      chi.NewRouter(),
+		db:          db,
+		queueMgr:    queueMgr,
+		broker:      broker,
+		authHandler: auth.NewAuthHandler(db),
 	}
 
 	s.setupRoutes()
@@ -66,6 +72,9 @@ func (s *Server) setupRoutes() {
 		MaxAge:           300,
 	}))
 
+	// Session authentication middleware
+	r.Use(auth.AuthMiddleware(s.db))
+
 	// Health and probe endpoints
 	r.Get("/healthz", s.handleHealthz)
 	r.Get("/readyz", s.handleReadyz)
@@ -73,9 +82,24 @@ func (s *Server) setupRoutes() {
 
 	// API routes
 	r.Route("/api", func(r chi.Router) {
+		// Auth routes
+		r.Route("/auth", func(r chi.Router) {
+			r.Post("/register", s.authHandler.HandleRegister)
+			r.Post("/login", s.authHandler.HandleLogin)
+			r.Post("/logout", s.authHandler.HandleLogout)
+			r.Get("/me", s.authHandler.HandleMe)
+		})
+
+		// Problems
 		r.Get("/problems", s.handleListProblems)
 		r.Get("/problems/{slug}", s.handleGetProblem)
+		r.Post("/problems/validate", s.handleValidateProblem)
+		r.Post("/problems/import", s.handleImportProblem)
+		r.Post("/problems/{slug}/run", s.handleRunSample)
 		r.Post("/problems/{slug}/submit", s.handleSubmit)
+
+		// Submissions
+		r.Get("/submissions", s.handleListSubmissions)
 		r.Get("/submissions/{id}", s.handleGetSubmission)
 		r.Get("/submissions/{id}/events", s.handleSubmissionEvents)
 	})
@@ -180,7 +204,63 @@ func (s *Server) handleGetProblem(w http.ResponseWriter, r *http.Request) {
 		"time_limit_ms": ver.TimeLimitMS,
 		"memory_mb":     ver.MemoryMB,
 		"checker_type":  ver.CheckerType,
+		"version":       ver.Version,
+		"package_hash":  ver.PackageHash,
+		"published_at":  ver.PublishedAt,
 		"sample_tests":  sampleTests,
+	}
+
+	writeJSON(w, http.StatusOK, resp)
+}
+
+func (s *Server) handleRunSample(w http.ResponseWriter, r *http.Request) {
+	slug := chi.URLParam(r, "slug")
+
+	var req models.RunRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(req.Source) == "" {
+		http.Error(w, `{"error":"source code cannot be empty"}`, http.StatusBadRequest)
+		return
+	}
+
+	if len(req.Source) > 64*1024 {
+		http.Error(w, `{"error":"source code exceeds maximum size of 64KB"}`, http.StatusBadRequest)
+		return
+	}
+
+	if req.Language == "" {
+		req.Language = "cpp23-gcc"
+	}
+
+	validLangs := map[string]bool{"cpp23-gcc": true, "cpp23-clang": true, "c23-gcc": true, "c23-clang": true}
+	if !validLangs[req.Language] {
+		http.Error(w, `{"error":"unsupported language"}`, http.StatusBadRequest)
+		return
+	}
+
+	_, ver, testCases, err := s.db.GetProblemBySlug(r.Context(), slug)
+	if err != nil {
+		http.Error(w, `{"error":"problem not found"}`, http.StatusNotFound)
+		return
+	}
+
+	// Strictly sample test cases only - HIDDEN TESTS ARE NEVER ACCESSED
+	var sampleCases []models.TestCase
+	for _, tc := range testCases {
+		if tc.IsSample {
+			sampleCases = append(sampleCases, tc)
+		}
+	}
+
+	resp, err := runner.RunSampleCases(r.Context(), req.Language, req.Source, sampleCases, req.CustomInput, ver.TimeLimitMS)
+	if err != nil {
+		slog.Error("Sample run failed", "error", err)
+		http.Error(w, fmt.Sprintf(`{"error":"execution error: %v"}`, err), http.StatusInternalServerError)
+		return
 	}
 
 	writeJSON(w, http.StatusOK, resp)
@@ -200,8 +280,19 @@ func (s *Server) handleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(req.Source) > 64*1024 {
+		http.Error(w, `{"error":"source code exceeds maximum size of 64KB"}`, http.StatusBadRequest)
+		return
+	}
+
 	if req.Language == "" {
 		req.Language = "cpp23-gcc"
+	}
+
+	validLangs := map[string]bool{"cpp23-gcc": true, "cpp23-clang": true, "c23-gcc": true, "c23-clang": true}
+	if !validLangs[req.Language] {
+		http.Error(w, `{"error":"unsupported language"}`, http.StatusBadRequest)
+		return
 	}
 
 	// 1. Fetch current problem version & tests
@@ -225,6 +316,11 @@ func (s *Server) handleSubmit(w http.ResponseWriter, r *http.Request) {
 		Status:           models.StatusQueued,
 		Verdict:          models.VerdictPending,
 		CreatedAt:        time.Now().UTC(),
+	}
+
+	// Link user if authenticated
+	if u := auth.UserFromContext(r.Context()); u != nil {
+		sub.UserID = &u.ID
 	}
 
 	// Build job payload for the judge work-queue
@@ -254,6 +350,48 @@ func (s *Server) handleSubmit(w http.ResponseWriter, r *http.Request) {
 		SubmissionID: submissionID.String(),
 		Status:       models.StatusQueued,
 	})
+}
+
+func (s *Server) handleListSubmissions(w http.ResponseWriter, r *http.Request) {
+	slug := r.URL.Query().Get("slug")
+	verdict := r.URL.Query().Get("verdict")
+	userIDStr := r.URL.Query().Get("user_id")
+	limitStr := r.URL.Query().Get("limit")
+	offsetStr := r.URL.Query().Get("offset")
+
+	var userID *uuid.UUID
+	if userIDStr != "" {
+		if uid, err := uuid.Parse(userIDStr); err == nil {
+			userID = &uid
+		}
+	} else if r.URL.Query().Get("me") == "true" {
+		if u := auth.UserFromContext(r.Context()); u != nil {
+			userID = &u.ID
+		}
+	}
+
+	limit := 50
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+
+	offset := 0
+	if offsetStr != "" {
+		if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
+			offset = o
+		}
+	}
+
+	submissions, err := s.db.ListSubmissions(r.Context(), slug, userID, verdict, limit, offset)
+	if err != nil {
+		slog.Error("Failed to list submissions", "error", err)
+		http.Error(w, `{"error":"failed to list submissions"}`, http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, submissions)
 }
 
 func (s *Server) handleGetSubmission(w http.ResponseWriter, r *http.Request) {
@@ -318,6 +456,66 @@ func (s *Server) handleSubmissionEvents(w http.ResponseWriter, r *http.Request) 
 	_ = s.broker.StreamSSE(r.Context(), id, lastEventID, sendFunc)
 }
 
+func (s *Server) handleValidateProblem(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Path string `json:"path"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || strings.TrimSpace(body.Path) == "" {
+		body.Path = "./problems"
+	}
+
+	pkg, err := problems.LoadPackage(body.Path)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"failed to load problem package: %v"}`, err), http.StatusBadRequest)
+		return
+	}
+
+	report, err := problems.ValidatePackage(r.Context(), pkg)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"validation execution error: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, report)
+}
+
+func (s *Server) handleImportProblem(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Path string `json:"path"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || strings.TrimSpace(body.Path) == "" {
+		body.Path = "./problems"
+	}
+
+	fi, err := os.Stat(body.Path)
+	if err != nil {
+		http.Error(w, `{"error":"path not found"}`, http.StatusBadRequest)
+		return
+	}
+
+	if _, err := os.Stat(filepath.Join(body.Path, "problem.yaml")); err == nil {
+		res, err := seed.ImportPackage(r.Context(), s.db, body.Path)
+		if err != nil {
+			http.Error(w, fmt.Sprintf(`{"error":"import failed: %v"}`, err), http.StatusBadRequest)
+			return
+		}
+		writeJSON(w, http.StatusOK, res)
+		return
+	}
+
+	if fi.IsDir() {
+		results, err := seed.ImportAll(r.Context(), s.db, body.Path)
+		if err != nil {
+			http.Error(w, fmt.Sprintf(`{"error":"batch import failed: %v"}`, err), http.StatusBadRequest)
+			return
+		}
+		writeJSON(w, http.StatusOK, results)
+		return
+	}
+
+	http.Error(w, `{"error":"invalid problem path"}`, http.StatusBadRequest)
+}
+
 func writeJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -327,3 +525,4 @@ func writeJSON(w http.ResponseWriter, status int, data any) {
 func contextWithTimeout(r *http.Request, d time.Duration) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(r.Context(), d)
 }
+

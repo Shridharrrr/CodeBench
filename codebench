@@ -145,8 +145,11 @@ case "${1:-up}" in
     down)
         cmd_down
         ;;
+    problems)
+        go run ./cli/main.go "$@"
+        ;;
     *)
-        echo "Usage: ./codebench {up|doctor|dev|down}"
+        echo "Usage: ./codebench {up|doctor|dev|down|problems {validate|import} <path>}"
         exit 1
         ;;
 esac

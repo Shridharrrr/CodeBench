@@ -1,0 +1,29 @@
+slug: lru-cache
+version: 1
+title: LRU Cache
+difficulty: Medium
+tags:
+  - hash-table
+  - linked-list
+  - design
+languages:
+  - cpp23-gcc
+  - cpp23-clang
+  - c23-gcc
+  - c23-clang
+limits:
+  time_limit_ms: 1000
+  memory_limit_mb: 256
+checker:
+  type: token
+complexity:
+  policy: query_or_scaling
+  time_complexity: "O(1)"
+  space_complexity: "O(C)"
+test_groups:
+  - name: sample
+    weight: 0
+  - name: small
+    weight: 30
+  - name: max-size
+    weight: 70

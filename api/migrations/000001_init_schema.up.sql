@@ -12,6 +12,18 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Sessions
+CREATE TABLE IF NOT EXISTS sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash VARCHAR(64) UNIQUE NOT NULL,
+    csrf_token VARCHAR(64) NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    user_agent TEXT,
+    ip_address VARCHAR(45)
+);
+
 -- Problems
 CREATE TABLE IF NOT EXISTS problems (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -149,3 +161,6 @@ CREATE INDEX IF NOT EXISTS idx_submissions_contest_user ON submissions(contest_i
 CREATE INDEX IF NOT EXISTS idx_submissions_status_created ON submissions(status, created_at);
 CREATE INDEX IF NOT EXISTS idx_outbox_unpublished ON outbox(published_at, created_at) WHERE published_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_test_cases_version ON test_cases(problem_version_id, ordinal);
+CREATE INDEX IF NOT EXISTS idx_sessions_token_hash ON sessions(token_hash);
+CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);

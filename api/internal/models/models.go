@@ -167,3 +167,68 @@ type SubmitResponse struct {
 	SubmissionID string           `json:"submission_id"`
 	Status       SubmissionStatus `json:"status"`
 }
+
+// Session represents an active authenticated user session
+type Session struct {
+	ID        uuid.UUID `json:"id"`
+	UserID    uuid.UUID `json:"user_id"`
+	TokenHash string    `json:"-"`
+	CSRFToken string    `json:"csrf_token"`
+	ExpiresAt time.Time `json:"expires_at"`
+	CreatedAt time.Time `json:"created_at"`
+	UserAgent string    `json:"user_agent,omitempty"`
+	IPAddress string    `json:"ip_address,omitempty"`
+}
+
+// Auth requests and responses
+type RegisterRequest struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type UserProfile struct {
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Role      string    `json:"role"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type AuthResponse struct {
+	User      UserProfile `json:"user"`
+	CSRFToken string      `json:"csrf_token"`
+}
+
+// Sample / Custom Run models
+type RunRequest struct {
+	Language    string `json:"language"`
+	Source      string `json:"source"`
+	CustomInput string `json:"custom_input,omitempty"`
+}
+
+type RunSampleResult struct {
+	Ordinal    int    `json:"ordinal"`
+	GroupName  string `json:"group_name"`
+	Verdict    string `json:"verdict"`
+	TimeMS     int64  `json:"time_ms"`
+	MemoryKB   int64  `json:"memory_kb"`
+	Input      string `json:"input"`
+	Expected   string `json:"expected"`
+	Actual     string `json:"actual"`
+	Diagnostic string `json:"diagnostic,omitempty"`
+}
+
+type RunResponse struct {
+	Status        string            `json:"status"`
+	Verdict       string            `json:"verdict"`
+	CompileOutput string            `json:"compile_output,omitempty"`
+	TimeMS        int64             `json:"time_ms"`
+	MemoryKB      int64             `json:"memory_kb"`
+	SampleResults []RunSampleResult `json:"sample_results,omitempty"`
+}

@@ -8,8 +8,14 @@
 
 param (
     [Parameter(Position=0)]
-    [ValidateSet("up", "doctor", "dev", "down")]
-    [string]$Command = "up"
+    [ValidateSet("up", "doctor", "dev", "down", "problems")]
+    [string]$Command = "up",
+
+    [Parameter(Position=1)]
+    [string]$SubCommand = "",
+
+    [Parameter(Position=2)]
+    [string]$Path = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -164,8 +170,11 @@ function Invoke-Down {
 }
 
 switch ($Command) {
-    "up"     { Invoke-Up }
-    "doctor" { Invoke-Doctor }
-    "dev"    { Invoke-Dev }
-    "down"   { Invoke-Down }
+    "up"       { Invoke-Up }
+    "doctor"   { Invoke-Doctor }
+    "dev"      { Invoke-Dev }
+    "down"     { Invoke-Down }
+    "problems" {
+        & go run ./cli/main.go problems $SubCommand $Path
+    }
 }

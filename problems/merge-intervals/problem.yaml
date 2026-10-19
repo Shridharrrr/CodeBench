@@ -1,0 +1,28 @@
+slug: merge-intervals
+version: 1
+title: Merge Intervals
+difficulty: Medium
+tags:
+  - array
+  - sorting
+languages:
+  - cpp23-gcc
+  - cpp23-clang
+  - c23-gcc
+  - c23-clang
+limits:
+  time_limit_ms: 1000
+  memory_limit_mb: 256
+checker:
+  type: token
+complexity:
+  policy: query_or_scaling
+  time_complexity: "O(N log N)"
+  space_complexity: "O(N)"
+test_groups:
+  - name: sample
+    weight: 0
+  - name: small
+    weight: 40
+  - name: max-size
+    weight: 60

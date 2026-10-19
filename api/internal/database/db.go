@@ -345,7 +345,7 @@ func (db *DB) GetProblemBySlug(ctx context.Context, slug string) (*models.Proble
 	return &p, &pv, testCases, nil
 }
 
-func (db *DB) UpsertProblem(ctx context.Context, slug, title, statementMD, difficulty string, tags []string, timeLimitMS, memoryMB int, checkerType, packageHash string, testCases []models.TestCase) (*models.Problem, *models.ProblemVersion, error) {
+func (db *DB) UpsertProblem(ctx context.Context, slug, title, statementMD, difficulty string, tags []string, timeLimitMS, memoryMB int, checkerType, packageHash string, complexityPolicy map[string]any, testCases []models.TestCase) (*models.Problem, *models.ProblemVersion, error) {
 	tx, err := db.pool.Begin(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -362,19 +362,46 @@ func (db *DB) UpsertProblem(ctx context.Context, slug, title, statementMD, diffi
 		return nil, nil, err
 	}
 
-	var latestVersion int
-	_ = tx.QueryRow(ctx, "SELECT COALESCE(MAX(version), 0) FROM problem_versions WHERE problem_id = $1", problemID).Scan(&latestVersion)
-	newVersion := latestVersion + 1
+	// Check if latest version already has identical package_hash
+	var existingVersion int
+	var existingHash string
+	var existingPVID uuid.UUID
+	checkErr := tx.QueryRow(ctx, "SELECT id, version, package_hash FROM problem_versions WHERE problem_id = $1 ORDER BY version DESC LIMIT 1", problemID).
+		Scan(&existingPVID, &existingVersion, &existingHash)
+	if checkErr == nil && existingHash == packageHash {
+		// Already up to date with this exact content hash
+		return &models.Problem{ID: problemID, Slug: slug}, &models.ProblemVersion{
+			ID:               existingPVID,
+			ProblemID:        problemID,
+			Version:          existingVersion,
+			Title:            title,
+			StatementMD:      statementMD,
+			Difficulty:       difficulty,
+			Tags:             tags,
+			TimeLimitMS:      timeLimitMS,
+			MemoryMB:         memoryMB,
+			CheckerType:      checkerType,
+			ComplexityPolicy: complexityPolicy,
+			PackageHash:      packageHash,
+		}, nil
+	}
+
+	newVersion := existingVersion + 1
+
+	compJSON, _ := json.Marshal(complexityPolicy)
+	if compJSON == nil {
+		compJSON = []byte("{}")
+	}
 
 	var pvID uuid.UUID
 	err = tx.QueryRow(ctx, `
 		INSERT INTO problem_versions (
 			problem_id, version, title, statement_md, difficulty, tags,
-			time_limit_ms, memory_mb, checker_type, package_hash
+			time_limit_ms, memory_mb, checker_type, complexity_policy, package_hash
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 		) RETURNING id
-	`, problemID, newVersion, title, statementMD, difficulty, tags, timeLimitMS, memoryMB, checkerType, packageHash).Scan(&pvID)
+	`, problemID, newVersion, title, statementMD, difficulty, tags, timeLimitMS, memoryMB, checkerType, compJSON, packageHash).Scan(&pvID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -395,17 +422,18 @@ func (db *DB) UpsertProblem(ctx context.Context, slug, title, statementMD, diffi
 	}
 
 	return &models.Problem{ID: problemID, Slug: slug}, &models.ProblemVersion{
-		ID:          pvID,
-		ProblemID:   problemID,
-		Version:     newVersion,
-		Title:       title,
-		StatementMD: statementMD,
-		Difficulty:  difficulty,
-		Tags:        tags,
-		TimeLimitMS: timeLimitMS,
-		MemoryMB:    memoryMB,
-		CheckerType: checkerType,
-		PackageHash: packageHash,
+		ID:               pvID,
+		ProblemID:        problemID,
+		Version:          newVersion,
+		Title:            title,
+		StatementMD:      statementMD,
+		Difficulty:       difficulty,
+		Tags:             tags,
+		TimeLimitMS:      timeLimitMS,
+		MemoryMB:         memoryMB,
+		CheckerType:      checkerType,
+		ComplexityPolicy: complexityPolicy,
+		PackageHash:      packageHash,
 	}, nil
 }
 
@@ -450,4 +478,159 @@ func (db *DB) ListProblems(ctx context.Context) ([]map[string]any, error) {
 		}
 	}
 	return result, nil
+}
+
+// User & Authentication queries
+
+func (db *DB) CreateUser(ctx context.Context, name, email, passwordHash, role string) (*models.User, error) {
+	if role == "" {
+		role = "participant"
+	}
+	query := `
+		INSERT INTO users (name, email, password_hash, role)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, name, email, role, created_at
+	`
+	var u models.User
+	u.PasswordHash = passwordHash
+	err := db.pool.QueryRow(ctx, query, name, email, passwordHash, role).Scan(
+		&u.ID, &u.Name, &u.Email, &u.Role, &u.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+
+func (db *DB) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	query := `SELECT id, name, email, password_hash, role, created_at FROM users WHERE email = $1`
+	var u models.User
+	err := db.pool.QueryRow(ctx, query, email).Scan(
+		&u.ID, &u.Name, &u.Email, &u.PasswordHash, &u.Role, &u.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+
+func (db *DB) GetUserByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
+	query := `SELECT id, name, email, password_hash, role, created_at FROM users WHERE id = $1`
+	var u models.User
+	err := db.pool.QueryRow(ctx, query, id).Scan(
+		&u.ID, &u.Name, &u.Email, &u.PasswordHash, &u.Role, &u.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+
+// Session queries
+
+func (db *DB) CreateSession(ctx context.Context, s *models.Session) error {
+	query := `
+		INSERT INTO sessions (id, user_id, token_hash, csrf_token, expires_at, created_at, user_agent, ip_address)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	`
+	if s.ID == uuid.Nil {
+		s.ID = uuid.New()
+	}
+	if s.CreatedAt.IsZero() {
+		s.CreatedAt = time.Now().UTC()
+	}
+	_, err := db.pool.Exec(ctx, query, s.ID, s.UserID, s.TokenHash, s.CSRFToken, s.ExpiresAt, s.CreatedAt, s.UserAgent, s.IPAddress)
+	return err
+}
+
+func (db *DB) GetSessionByTokenHash(ctx context.Context, tokenHash string) (*models.Session, *models.User, error) {
+	query := `
+		SELECT s.id, s.user_id, s.token_hash, s.csrf_token, s.expires_at, s.created_at, s.user_agent, s.ip_address,
+		       u.id, u.name, u.email, u.password_hash, u.role, u.created_at
+		FROM sessions s
+		JOIN users u ON u.id = s.user_id
+		WHERE s.token_hash = $1 AND s.expires_at > NOW()
+	`
+	var sess models.Session
+	var u models.User
+	err := db.pool.QueryRow(ctx, query, tokenHash).Scan(
+		&sess.ID, &sess.UserID, &sess.TokenHash, &sess.CSRFToken, &sess.ExpiresAt, &sess.CreatedAt, &sess.UserAgent, &sess.IPAddress,
+		&u.ID, &u.Name, &u.Email, &u.PasswordHash, &u.Role, &u.CreatedAt,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &sess, &u, nil
+}
+
+func (db *DB) DeleteSession(ctx context.Context, tokenHash string) error {
+	query := `DELETE FROM sessions WHERE token_hash = $1`
+	_, err := db.pool.Exec(ctx, query, tokenHash)
+	return err
+}
+
+func (db *DB) DeleteUserSessions(ctx context.Context, userID uuid.UUID) error {
+	query := `DELETE FROM sessions WHERE user_id = $1`
+	_, err := db.pool.Exec(ctx, query, userID)
+	return err
+}
+
+// Submission queries
+
+func (db *DB) ListSubmissions(ctx context.Context, slug string, userID *uuid.UUID, verdict string, limit, offset int) ([]map[string]any, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	query := `
+		SELECT s.id, s.user_id, u.name, p.slug, pv.title, s.language, s.status, s.verdict,
+		       s.time_ms, s.memory_kb, s.instructions, s.created_at, s.judged_at
+		FROM submissions s
+		LEFT JOIN users u ON u.id = s.user_id
+		JOIN problem_versions pv ON pv.id = s.problem_version_id
+		JOIN problems p ON p.id = pv.problem_id
+		WHERE ($1 = '' OR p.slug = $1)
+		  AND ($2::uuid IS NULL OR s.user_id = $2)
+		  AND ($3 = '' OR s.verdict = $3)
+		ORDER BY s.created_at DESC
+		LIMIT $4 OFFSET $5
+	`
+	rows, err := db.pool.Query(ctx, query, slug, userID, verdict, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	list := make([]map[string]any, 0)
+	for rows.Next() {
+		var id uuid.UUID
+		var subUserID *uuid.UUID
+		var userName *string
+		var pSlug, title, lang, status, verd string
+		var timeMS, memKB, inst int64
+		var createdAt time.Time
+		var judgedAt *time.Time
+
+		if err := rows.Scan(&id, &subUserID, &userName, &pSlug, &title, &lang, &status, &verd, &timeMS, &memKB, &inst, &createdAt, &judgedAt); err == nil {
+			item := map[string]any{
+				"id":            id,
+				"user_id":       subUserID,
+				"user_name":     userName,
+				"problem_slug":  pSlug,
+				"problem_title": title,
+				"language":      lang,
+				"status":        status,
+				"verdict":       verd,
+				"time_ms":       timeMS,
+				"memory_kb":     memKB,
+				"instructions":  inst,
+				"created_at":    createdAt,
+				"judged_at":     judgedAt,
+			}
+			list = append(list, item)
+		}
+	}
+	return list, nil
 }
