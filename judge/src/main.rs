@@ -83,10 +83,11 @@ async fn main() -> Result<()> {
         }
     };
 
+    let job_filter = env::var("JOB_SUBJECT").unwrap_or_else(|_| "jobs.>".to_string());
     let consumer = stream
         .create_consumer(async_nats::jetstream::consumer::pull::Config {
             durable_name: Some("judge-pull-consumer".to_string()),
-            filter_subject: "jobs.*".to_string(),
+            filter_subject: job_filter,
             ..Default::default()
         })
         .await?;

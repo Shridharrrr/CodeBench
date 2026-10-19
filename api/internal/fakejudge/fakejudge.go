@@ -28,7 +28,7 @@ func NewFakeJudge(queueMgr *queue.NATSManager, broker *events.Broker) *FakeJudge
 func (fj *FakeJudge) Start(ctx context.Context) error {
 	js := fj.queueMgr.JetStream()
 
-	sub, err := js.QueueSubscribe("jobs.submissions", "fake-judge-workers", func(msg *nats.Msg) {
+	sub, err := js.QueueSubscribe("jobs.>", "fake-judge-workers", func(msg *nats.Msg) {
 		var job models.JudgeJobPayload
 		if err := json.Unmarshal(msg.Data, &job); err != nil {
 			slog.Error("Fake judge failed to unmarshal job payload", "error", err)
@@ -80,7 +80,7 @@ func (fj *FakeJudge) Start(ctx context.Context) error {
 		_ = sub.Unsubscribe()
 	}()
 
-	slog.Info("Fake judge started and listening on jobs.submissions")
+	slog.Info("Fake judge started and listening on jobs.>")
 	return nil
 }
 
@@ -155,6 +155,29 @@ func (fj *FakeJudge) evaluate(job models.JudgeJobPayload) models.JudgeVerdictPay
 			MemoryKB:   2048,
 			Diagnostic: "Runtime error: signal 11 (SIGSEGV)",
 		})
+		return vp
+	}
+
+	// COMPLEXITY_FAIL simulation (linear scan or query budget breach)
+	if strings.Contains(src, "// COMPLEXITY_FAIL") || strings.Contains(src, "// LINEAR_SCAN_ON_BS") {
+		vp.Verdict = models.VerdictAC
+		for idx, tc := range job.TestCases {
+			inst := int64(20000)
+			diag := ""
+			if strings.Contains(strings.ToLower(tc.GroupName), "max") || strings.Contains(strings.ToLower(tc.GroupName), "large") {
+				inst = 5000000 // 250x scaling
+				diag = "queries: 1000"
+			}
+			vp.TestResults = append(vp.TestResults, models.JudgeTestResultDetail{
+				Ordinal:      idx + 1,
+				GroupName:    tc.GroupName,
+				Verdict:      models.VerdictAC,
+				TimeMS:       25,
+				MemoryKB:     4096,
+				Instructions: inst,
+				Diagnostic:   diag,
+			})
+		}
 		return vp
 	}
 

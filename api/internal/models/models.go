@@ -297,3 +297,105 @@ type RunResponse struct {
 	MemoryKB      int64             `json:"memory_kb"`
 	SampleResults []RunSampleResult `json:"sample_results,omitempty"`
 }
+
+// Practice Mode (Mode B) models
+type PracticeGenerateRequest struct {
+	Count           int      `json:"count"`            // default 3, max 10
+	Difficulty      string   `json:"difficulty"`       // "EASY", "MEDIUM", "HARD", "ANY"
+	Tags            []string `json:"tags"`             // e.g. ["array"]
+	ExcludeSolved   bool     `json:"exclude_solved"`   // defaults to true
+	DurationMinutes int      `json:"duration_minutes"` // 0 or null for untimed
+	Seed            *int64   `json:"seed,omitempty"`   // deterministic random seed
+}
+
+type PracticeGenerateResponse struct {
+	ContestID       uuid.UUID               `json:"contest_id"`
+	Title           string                  `json:"title"`
+	Mode            string                  `json:"mode"`
+	StartsAt        time.Time               `json:"starts_at"`
+	EndsAt          time.Time               `json:"ends_at"`
+	DurationMinutes int                     `json:"duration_minutes"`
+	ProblemCount    int                     `json:"problem_count"`
+	Problems        []ContestProblemSummary `json:"problems"`
+}
+
+type ContestProblemSummary struct {
+	Label      string   `json:"label"`
+	Points     int      `json:"points"`
+	Title      string   `json:"title"`
+	Slug       string   `json:"slug"`
+	Difficulty string   `json:"difficulty"`
+	Tags       []string `json:"tags"`
+}
+
+// Complexity Policy and Report models
+type ComplexityPolicy struct {
+	Policy          string `json:"policy"`                     // e.g. "query_budget", "scaling", "query_or_scaling"
+	TimeComplexity  string `json:"time_complexity,omitempty"`  // e.g. "O(log N)", "O(1)", "O(N log N)"
+	SpaceComplexity string `json:"space_complexity,omitempty"` // e.g. "O(1)", "O(C)"
+	MaxQueries      int    `json:"max_queries,omitempty"`      // e.g. 25
+	BudgetFormula   string `json:"budget_formula,omitempty"`   // e.g. "ceil(log2(N)) + 5"
+}
+
+type ComplexityReport struct {
+	Policy           string `json:"policy"`
+	TargetComplexity string `json:"target_complexity"`
+	SpaceComplexity  string `json:"space_complexity,omitempty"`
+	MeasuredScaling  string `json:"measured_scaling,omitempty"`
+	QueryCount       int    `json:"query_count,omitempty"`
+	QueryLimit       int    `json:"query_limit,omitempty"`
+	Passed           bool   `json:"passed"`
+	Diagnostic       string `json:"diagnostic,omitempty"`
+}
+
+// Priority Lane Constants
+const (
+	LanePriority = "priority" // Interactive run & active contests
+	LaneStandard = "standard" // Practice mode submissions & background rejudges
+	LaneRejudge  = "rejudge"
+)
+
+// Rejudge Models
+type RejudgeScopeType string
+
+const (
+	RejudgeScopeSubmission     RejudgeScopeType = "submission"
+	RejudgeScopeProblemVersion RejudgeScopeType = "problem_version"
+	RejudgeScopeContest        RejudgeScopeType = "contest"
+)
+
+type RejudgeScope struct {
+	Type RejudgeScopeType `json:"type"`
+	ID   uuid.UUID        `json:"id"`
+}
+
+type RejudgeBatch struct {
+	ID          uuid.UUID    `json:"id"`
+	Scope       RejudgeScope `json:"scope"`
+	RequestedBy *uuid.UUID   `json:"requested_by"`
+	CreatedAt   time.Time    `json:"created_at"`
+}
+
+type RejudgeBatchRequest struct {
+	ScopeType RejudgeScopeType `json:"scope_type"`
+	ScopeID   string           `json:"scope_id"`
+}
+
+type RejudgeBatchResponse struct {
+	BatchID     string           `json:"batch_id"`
+	ScopeType   RejudgeScopeType `json:"scope_type"`
+	ScopeID     string           `json:"scope_id"`
+	QueuedCount int              `json:"queued_count"`
+	Status      string           `json:"status"`
+}
+
+type RejudgeBatchStatus struct {
+	BatchID   string    `json:"batch_id"`
+	ScopeType string    `json:"scope_type"`
+	ScopeID   string    `json:"scope_id"`
+	TotalJobs int       `json:"total_jobs"`
+	Completed int       `json:"completed"`
+	Pending   int       `json:"pending"`
+	CreatedAt time.Time `json:"created_at"`
+}
+

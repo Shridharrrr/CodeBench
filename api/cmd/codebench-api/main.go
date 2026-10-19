@@ -12,6 +12,7 @@ import (
 
 	"github.com/codebench/codebench/api/internal/config"
 	"github.com/codebench/codebench/api/internal/database"
+	"github.com/codebench/codebench/api/internal/canary"
 	"github.com/codebench/codebench/api/internal/events"
 	"github.com/codebench/codebench/api/internal/fakejudge"
 	"github.com/codebench/codebench/api/internal/handlers"
@@ -19,6 +20,7 @@ import (
 	"github.com/codebench/codebench/api/internal/queue"
 	"github.com/codebench/codebench/api/internal/seed"
 	"github.com/codebench/codebench/api/internal/standings"
+	"github.com/codebench/codebench/api/internal/sweeper"
 	"github.com/codebench/codebench/api/internal/verdict"
 )
 
@@ -67,7 +69,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	// 6. Start Fake Judge if configured (development/testing)
+	// 6. Start Stale-Job Sweeper
+	staleSweeper := sweeper.NewSweeper(db, eventBroker, 5*time.Minute, 30*time.Second)
+	go staleSweeper.Start(ctx)
+
+	// 7. Start Timing Calibration Canary
+	timingCanary := canary.NewCanary(60*time.Second, 0.15)
+	go timingCanary.Start(ctx)
+
+	// 8. Start Fake Judge if configured (development/testing)
 	if cfg.UseFakeJudge {
 		slog.Info("Starting internal Fake Judge worker for testing...")
 		fakeJudge := fakejudge.NewFakeJudge(queueMgr, eventBroker)
@@ -76,7 +86,7 @@ func main() {
 		}
 	}
 
-	// 7. Seed initial admin and demo problem
+	// 9. Seed initial admin and demo problem
 	if err := seed.SeedDatabase(ctx, db, cfg.ProblemsDir, cfg.AdminDefaultPassword); err != nil {
 		slog.Warn("Database seeding reported note", "error", err)
 	}
@@ -88,8 +98,9 @@ func main() {
 		}
 	}()
 
-	// 8. Start HTTP Server
+	// 10. Start HTTP Server
 	server := handlers.NewServer(db, queueMgr, eventBroker, standingsMgr)
+	server.SetCanary(timingCanary)
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 	httpServer := &http.Server{
 		Addr:         addr,

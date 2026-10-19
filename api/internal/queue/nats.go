@@ -90,28 +90,32 @@ func New(ctx context.Context, cfg *config.Config) (*NATSManager, error) {
 }
 
 func (m *NATSManager) initStreams() error {
-	// Jobs stream
-	_, err := m.js.AddStream(&nats.StreamConfig{
+	// Jobs stream: support priority lanes (jobs.submissions.priority, jobs.submissions.standard, jobs.submissions.rejudge)
+	cfg := &nats.StreamConfig{
 		Name:      "CODEBENCH_JOBS",
-		Subjects:  []string{"jobs.*"},
+		Subjects:  []string{"jobs.>"},
 		Storage:   nats.MemoryStorage, // memory storage for fast local testing or file for persistence
 		Retention: nats.WorkQueuePolicy,
 		MaxAge:    24 * time.Hour,
-	})
+	}
+	_, err := m.js.AddStream(cfg)
 	if err != nil {
-		slog.Debug("Stream CODEBENCH_JOBS might already exist, checking update...", "err", err)
+		slog.Debug("Stream CODEBENCH_JOBS might already exist, updating configuration...", "err", err)
+		_, _ = m.js.UpdateStream(cfg)
 	}
 
 	// Verdicts stream
-	_, err = m.js.AddStream(&nats.StreamConfig{
+	vcfg := &nats.StreamConfig{
 		Name:      "CODEBENCH_VERDICTS",
-		Subjects:  []string{"verdicts.*"},
+		Subjects:  []string{"verdicts.>"},
 		Storage:   nats.MemoryStorage,
 		Retention: nats.InterestPolicy,
 		MaxAge:    24 * time.Hour,
-	})
+	}
+	_, err = m.js.AddStream(vcfg)
 	if err != nil {
-		slog.Debug("Stream CODEBENCH_VERDICTS might already exist, checking update...", "err", err)
+		slog.Debug("Stream CODEBENCH_VERDICTS might already exist, updating configuration...", "err", err)
+		_, _ = m.js.UpdateStream(vcfg)
 	}
 
 	return nil

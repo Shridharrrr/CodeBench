@@ -52,6 +52,21 @@ func ValidatePackage(ctx context.Context, pkg *ProblemPackage) (*ValidationRepor
 		}
 	}
 
+	// Verify complexity policy has associated deliberate wrong solutions (quality gate)
+	if pkg.Manifest.Complexity.Policy != "" {
+		hasComplexityWrongSolution := false
+		for _, ws := range pkg.WrongSolutions {
+			if ws.ExpectedVerdict == "TLE" || ws.ExpectedVerdict == "WA" || strings.Contains(strings.ToLower(ws.Filename), "tle") || strings.Contains(strings.ToLower(ws.Filename), "slow") {
+				hasComplexityWrongSolution = true
+				break
+			}
+		}
+		if !hasComplexityWrongSolution {
+			report.Passed = false
+			report.Errors = append(report.Errors, fmt.Sprintf("Problem %s defines complexity policy (%s) but has no deliberate wrong solution targeting TLE/WA", pkg.Manifest.Slug, pkg.Manifest.Complexity.Policy))
+		}
+	}
+
 	cxx := findCxxCompiler()
 	if cxx == "" {
 		report.RefSolutionOK = true

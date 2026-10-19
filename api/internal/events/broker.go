@@ -72,6 +72,17 @@ func (b *Broker) Subscribe(targetID string, lastEventID int64) (chan Event, func
 	return ch, unsubscribe
 }
 
+// ActiveConnections returns the total number of connected SSE clients
+func (b *Broker) ActiveConnections() int {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	count := 0
+	for _, subs := range b.subscribers {
+		count += len(subs)
+	}
+	return count
+}
+
 func (b *Broker) PublishSubmissionStatus(submissionID string, status models.SubmissionStatus, verdict models.Verdict, detail any) {
 	b.mu.Lock()
 	defer b.mu.Unlock()

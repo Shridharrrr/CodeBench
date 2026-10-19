@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/codebench/codebench/api/internal/complexity"
 	"github.com/codebench/codebench/api/internal/database"
 	"github.com/codebench/codebench/api/internal/events"
 	"github.com/codebench/codebench/api/internal/models"
@@ -49,6 +50,27 @@ func (c *Consumer) Start(ctx context.Context) error {
 			"time_ms", vp.TotalTimeMS,
 			"judge_host", vp.JudgeHost,
 		)
+
+		// Complexity Enforcement Gate (Phase 6)
+		if subUUID, err := uuid.Parse(vp.SubmissionID); err == nil {
+			if sub, err := c.db.GetSubmission(ctx, subUUID); err == nil && sub != nil {
+				if pv, err := c.db.GetProblemVersionByID(ctx, sub.ProblemVersionID); err == nil && pv != nil && pv.ComplexityPolicy != nil {
+					var policy models.ComplexityPolicy
+					compBytes, _ := json.Marshal(pv.ComplexityPolicy)
+					if err := json.Unmarshal(compBytes, &policy); err == nil {
+						evaluator := complexity.NewEvaluator()
+						newVerdict, report := evaluator.Evaluate(&policy, vp.TestResults, vp.Verdict)
+						vp.Verdict = newVerdict
+						if report != nil {
+							var repMap map[string]any
+							rBytes, _ := json.Marshal(report)
+							_ = json.Unmarshal(rBytes, &repMap)
+							vp.ComplexityReport = repMap
+						}
+					}
+				}
+			}
+		}
 
 		// Persist idempotently
 		if err := c.db.SaveVerdictIdempotent(ctx, &vp); err != nil {

@@ -32,6 +32,14 @@ export interface ContestProblemSummary {
   difficulty?: string;
 }
 
+export interface ComplexityPolicy {
+  policy?: string;
+  time_complexity?: string;
+  space_complexity?: string;
+  max_queries?: number;
+  budget_formula?: string;
+}
+
 export interface ContestProblemDetail {
   label: string;
   points: number;
@@ -42,6 +50,7 @@ export interface ContestProblemDetail {
   time_limit_ms: number;
   memory_mb: number;
   checker_type: string;
+  complexity_policy?: ComplexityPolicy;
   sample_tests: Array<{
     ordinal: number;
     group_name: string;
@@ -116,6 +125,63 @@ export default function ContestArena(props: ContestArenaProps) {
   const [leaderboard, setLeaderboard] = createSignal<Leaderboard | null>(null);
   const [leaderboardFilter, setLeaderboardFilter] = createSignal('');
   const [isLeaderboardOpen, setIsLeaderboardOpen] = createSignal(false);
+
+  // Practice Set Generator State (Mode B)
+  const [isPracticeModalOpen, setIsPracticeModalOpen] = createSignal(false);
+  const [practiceCount, setPracticeCount] = createSignal(3);
+  const [practiceDifficulty, setPracticeDifficulty] = createSignal('ANY');
+  const [practiceDuration, setPracticeDuration] = createSignal(60);
+  const [practiceExcludeSolved, setPracticeExcludeSolved] = createSignal(true);
+  const [practiceSelectedTags, setPracticeSelectedTags] = createSignal<string[]>([]);
+  const [practiceGenerating, setPracticeGenerating] = createSignal(false);
+
+  const availableTags = [
+    'array', 'binary-search', 'two-pointers', 'sliding-window',
+    'dp', 'hash-table', 'linked-list', 'stack', 'design', 'graph', 'bfs',
+  ];
+
+  const handleGeneratePracticeSet = async () => {
+    setPracticeGenerating(true);
+    try {
+      const res = await fetch('/api/practice/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': props.csrfToken,
+        },
+        body: JSON.stringify({
+          count: practiceCount(),
+          difficulty: practiceDifficulty(),
+          duration_minutes: practiceDuration(),
+          exclude_solved: practiceExcludeSolved(),
+          tags: practiceSelectedTags(),
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        await fetchContests();
+        setSelectedContestId(data.contest_id);
+        setIsPracticeModalOpen(false);
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to generate practice set.');
+      }
+    } catch (e) {
+      console.error('Error generating practice set', e);
+      alert('Network error generating practice set.');
+    } finally {
+      setPracticeGenerating(false);
+    }
+  };
+
+  const toggleTag = (tag: string) => {
+    if (practiceSelectedTags().includes(tag)) {
+      setPracticeSelectedTags(practiceSelectedTags().filter((t) => t !== tag));
+    } else {
+      setPracticeSelectedTags([...practiceSelectedTags(), tag]);
+    }
+  };
 
   // SSE EventSource ref
   let eventSource: EventSource | null = null;
@@ -534,8 +600,12 @@ export default function ContestArena(props: ContestArenaProps) {
       <header class="h-14 border-b border-white/10 px-6 flex items-center justify-between bg-slate-950/70 backdrop-blur-md z-20">
         <div class="flex items-center space-x-4">
           <div class="flex items-center space-x-2">
-            <span class="text-xs font-bold uppercase tracking-wider text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-md">
-              Mode A
+            <span class={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+              activeContest()?.mode === 'practice'
+                ? 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20'
+                : 'text-purple-400 bg-purple-500/10 border-purple-500/20'
+            }`}>
+              {activeContest()?.mode === 'practice' ? 'Mode B' : 'Mode A'}
             </span>
             <select
               value={selectedContestId()}
@@ -602,8 +672,15 @@ export default function ContestArena(props: ContestArenaProps) {
           </Show>
         </div>
 
-        {/* Header Actions: Leaderboard & Registration */}
+        {/* Header Actions: Leaderboard, Practice Set & Registration */}
         <div class="flex items-center space-x-3">
+          <button
+            onClick={() => setIsPracticeModalOpen(true)}
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-md shadow-cyan-600/20 flex items-center space-x-1.5 transition-all"
+          >
+            <span>+ Practice Set</span>
+          </button>
+
           <button
             onClick={() => setIsLeaderboardOpen(!isLeaderboardOpen())}
             class={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all ${
@@ -723,12 +800,19 @@ export default function ContestArena(props: ContestArenaProps) {
                     </span>
                   </div>
 
-                  <div class="flex items-center space-x-4 text-xs text-slate-400">
+                  <div class="flex flex-wrap items-center gap-3 text-xs text-slate-400">
                     <span>Time Limit: <strong class="text-slate-200">{p().time_limit_ms} ms</strong></span>
                     <span>&bull;</span>
                     <span>Memory Limit: <strong class="text-slate-200">{p().memory_mb} MB</strong></span>
                     <span>&bull;</span>
                     <span>Checker: <strong class="text-slate-200">{p().checker_type}</strong></span>
+                    <Show when={p().complexity_policy?.time_complexity}>
+                      <span>&bull;</span>
+                      <span class="text-purple-300 font-semibold bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
+                        ⚡ Complexity: <strong>{p().complexity_policy?.time_complexity}</strong>
+                        {p().complexity_policy?.space_complexity ? ` / Space: ${p().complexity_policy?.space_complexity}` : ''}
+                      </span>
+                    </Show>
                   </div>
                 </div>
 
@@ -952,6 +1036,42 @@ export default function ContestArena(props: ContestArenaProps) {
                         </span>
                       </div>
 
+                      {/* Complexity Diagnostic Report */}
+                      <Show when={v().complexity_report}>
+                        {(cr) => (
+                          <div
+                            class={`p-3 rounded-lg border text-xs space-y-1 ${
+                              cr().passed
+                                ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-200'
+                                : 'bg-rose-950/40 border-rose-500/40 text-rose-200'
+                            }`}
+                          >
+                            <div class="flex items-center justify-between font-bold">
+                              <span>
+                                ⚡ Complexity Analysis: {cr().target_complexity || 'Enforced'}
+                              </span>
+                              <span
+                                class={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                  cr().passed
+                                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                    : 'bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse'
+                                }`}
+                              >
+                                {cr().passed ? 'Passed Policy' : 'Complexity Breach'}
+                              </span>
+                            </div>
+                            <div class="text-[11px] opacity-90 font-mono">
+                              {cr().diagnostic || cr().measured_scaling || 'Conforming to complexity policy.'}
+                            </div>
+                            <Show when={cr().query_limit > 0}>
+                              <div class="text-[10px] text-slate-400">
+                                Query Budget: {cr().query_count} / {cr().query_limit} accesses used
+                              </div>
+                            </Show>
+                          </div>
+                        )}
+                      </Show>
+
                       <Show when={v().compile_output}>
                         <pre class="bg-rose-950/40 p-2 rounded text-xs font-mono text-rose-300 border border-rose-500/20">
                           {v().compile_output}
@@ -1111,6 +1231,158 @@ export default function ContestArena(props: ContestArenaProps) {
                   </For>
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      </Show>
+
+      {/* 5. Custom Practice Generator Modal (Mode B) */}
+      <Show when={isPracticeModalOpen()}>
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg p-6 shadow-2xl flex flex-col space-y-5">
+            <div class="flex items-center justify-between border-b border-white/10 pb-4">
+              <div class="flex items-center space-x-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-md">
+                  Mode B
+                </span>
+                <h2 class="text-lg font-bold text-white">Generate Custom Practice Set</h2>
+              </div>
+              <button
+                onClick={() => setIsPracticeModalOpen(false)}
+                class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Problem Count Selector */}
+            <div class="space-y-2">
+              <div class="flex justify-between text-xs font-semibold text-slate-300">
+                <span>Number of Problems</span>
+                <span class="text-cyan-400 font-bold">{practiceCount()} Problems</span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="10"
+                value={practiceCount()}
+                onInput={(e) => setPracticeCount(parseInt(e.currentTarget.value))}
+                class="w-full accent-cyan-500 bg-slate-800 rounded-lg cursor-pointer"
+              />
+              <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+                <span>1</span>
+                <span>5</span>
+                <span>10</span>
+              </div>
+            </div>
+
+            {/* Difficulty Selector */}
+            <div class="space-y-2">
+              <label class="text-xs font-semibold text-slate-300">Difficulty Range</label>
+              <div class="grid grid-cols-4 gap-2">
+                {['ANY', 'EASY', 'MEDIUM', 'HARD'].map((diff) => (
+                  <button
+                    type="button"
+                    onClick={() => setPracticeDifficulty(diff)}
+                    class={`py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                      practiceDifficulty() === diff
+                        ? 'bg-cyan-600 text-white border-cyan-400 shadow-md shadow-cyan-600/20'
+                        : 'bg-slate-800 text-slate-400 border-white/5 hover:bg-slate-700'
+                    }`}
+                  >
+                    {diff}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Duration Selector */}
+            <div class="space-y-2">
+              <label class="text-xs font-semibold text-slate-300">Practice Timer</label>
+              <div class="grid grid-cols-5 gap-1.5">
+                {[
+                  { label: 'Untimed', val: 0 },
+                  { label: '30m', val: 30 },
+                  { label: '60m', val: 60 },
+                  { label: '90m', val: 90 },
+                  { label: '120m', val: 120 },
+                ].map((dur) => (
+                  <button
+                    type="button"
+                    onClick={() => setPracticeDuration(dur.val)}
+                    class={`py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                      practiceDuration() === dur.val
+                        ? 'bg-cyan-600 text-white border-cyan-400'
+                        : 'bg-slate-800 text-slate-400 border-white/5 hover:bg-slate-700'
+                    }`}
+                  >
+                    {dur.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Exclude Solved Toggle */}
+            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-white/5">
+              <div>
+                <div class="text-xs font-semibold text-slate-200">Exclude Solved Problems</div>
+                <div class="text-[11px] text-slate-400">Do not include problems you have already passed</div>
+              </div>
+              <input
+                type="checkbox"
+                checked={practiceExcludeSolved()}
+                onChange={(e) => setPracticeExcludeSolved(e.currentTarget.checked)}
+                class="w-4 h-4 accent-cyan-500 rounded cursor-pointer"
+              />
+            </div>
+
+            {/* Tags Filter Chips */}
+            <div class="space-y-2">
+              <label class="text-xs font-semibold text-slate-300">Topic Tags (Optional)</label>
+              <div class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                <For each={availableTags}>
+                  {(tag) => {
+                    const isSelected = () => practiceSelectedTags().includes(tag);
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => toggleTag(tag)}
+                        class={`px-2 py-0.5 rounded-md text-[11px] font-medium border transition-colors ${
+                          isSelected()
+                            ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                            : 'bg-slate-800 text-slate-400 border-white/5 hover:text-slate-200'
+                        }`}
+                      >
+                        #{tag}
+                      </button>
+                    );
+                  }}
+                </For>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div class="pt-2 flex items-center justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => setIsPracticeModalOpen(false)}
+                class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleGeneratePracticeSet}
+                disabled={practiceGenerating()}
+                class="px-5 py-2 rounded-lg text-xs font-bold bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white shadow-lg shadow-cyan-600/30 flex items-center space-x-2 transition-all"
+              >
+                <Show when={practiceGenerating()}>
+                  <svg class="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle cx="12" cy="12" r="10" stroke-width="3" stroke-dasharray="30 60" />
+                  </svg>
+                </Show>
+                <span>Generate & Start Practice</span>
+              </button>
             </div>
           </div>
         </div>

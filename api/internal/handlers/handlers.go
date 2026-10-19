@@ -15,10 +15,13 @@ import (
 	"time"
 
 	"github.com/codebench/codebench/api/internal/auth"
+	"github.com/codebench/codebench/api/internal/canary"
 	"github.com/codebench/codebench/api/internal/database"
 	"github.com/codebench/codebench/api/internal/events"
 	"github.com/codebench/codebench/api/internal/models"
+	"github.com/codebench/codebench/api/internal/practice"
 	"github.com/codebench/codebench/api/internal/queue"
+	"github.com/codebench/codebench/api/internal/rejudge"
 	"github.com/codebench/codebench/api/internal/runner"
 	"github.com/codebench/codebench/api/internal/seed"
 	"github.com/codebench/codebench/api/internal/standings"
@@ -36,6 +39,8 @@ type Server struct {
 	broker       *events.Broker
 	authHandler  *auth.AuthHandler
 	standingsMgr *standings.StandingsManager
+	rejudgeSvc   *rejudge.Service
+	canaryRunner *canary.Canary
 }
 
 func NewServer(db *database.DB, queueMgr *queue.NATSManager, broker *events.Broker, standingsMgr *standings.StandingsManager) *Server {
@@ -46,6 +51,8 @@ func NewServer(db *database.DB, queueMgr *queue.NATSManager, broker *events.Brok
 		broker:       broker,
 		authHandler:  auth.NewAuthHandler(db),
 		standingsMgr: standingsMgr,
+		rejudgeSvc:   rejudge.NewService(db, broker),
+		canaryRunner: canary.NewCanary(60*time.Second, 0.15),
 	}
 
 	s.setupRoutes()
@@ -54,6 +61,14 @@ func NewServer(db *database.DB, queueMgr *queue.NATSManager, broker *events.Brok
 
 func (s *Server) Router() http.Handler {
 	return s.router
+}
+
+func (s *Server) SetCanary(c *canary.Canary) {
+	s.canaryRunner = c
+}
+
+func (s *Server) SetRejudgeService(r *rejudge.Service) {
+	s.rejudgeSvc = r
 }
 
 func (s *Server) setupRoutes() {
@@ -116,6 +131,16 @@ func (s *Server) setupRoutes() {
 		r.Post("/contests/{id}/problems/{label}/submit", s.handleContestSubmit)
 		r.Get("/contests/{id}/leaderboard", s.handleGetLeaderboard)
 		r.Get("/contests/{id}/events", s.handleContestEvents)
+
+		// Practice Mode (Mode B)
+		r.Post("/practice/generate", s.handleGeneratePractice)
+		r.Get("/practice/history", s.handlePracticeHistory)
+
+		// Admin Operations
+		r.Route("/admin", func(r chi.Router) {
+			r.Post("/rejudge", s.handleAdminRejudge)
+			r.Get("/rejudge/{id}", s.handleGetRejudgeStatus)
+		})
 	})
 
 	// Static SPA serving
@@ -167,14 +192,131 @@ func (s *Server) handleReadyz(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
 	w.WriteHeader(http.StatusOK)
-	output := `# HELP codebench_up Is the codebench system up
-# TYPE codebench_up gauge
-codebench_up 1
-# HELP codebench_submissions_total Total count of submissions received
-# TYPE codebench_submissions_total counter
-codebench_submissions_total 1
-`
-	_, _ = w.Write([]byte(output))
+
+	var sb strings.Builder
+	sb.WriteString("# HELP codebench_up Is the codebench system up\n")
+	sb.WriteString("# TYPE codebench_up gauge\n")
+	sb.WriteString("codebench_up 1\n\n")
+
+	// 1. Verdict counts
+	sb.WriteString("# HELP codebench_submissions_total Total count of submissions by verdict\n")
+	sb.WriteString("# TYPE codebench_submissions_total counter\n")
+	if s.db != nil {
+		verdictCounts, err := s.db.GetSubmissionVerdictCounts(r.Context())
+		if err == nil && len(verdictCounts) > 0 {
+			for verdict, count := range verdictCounts {
+				sb.WriteString(fmt.Sprintf("codebench_submissions_total{verdict=%q} %d\n", verdict, count))
+			}
+		} else {
+			sb.WriteString("codebench_submissions_total{verdict=\"ALL\"} 0\n")
+		}
+	} else {
+		sb.WriteString("codebench_submissions_total{verdict=\"ALL\"} 0\n")
+	}
+	sb.WriteString("\n")
+
+	// 2. Queue Depths by Lane
+	sb.WriteString("# HELP codebench_queue_depth Count of pending outbox queue jobs by lane\n")
+	sb.WriteString("# TYPE codebench_queue_depth gauge\n")
+	if s.db != nil {
+		depths, err := s.db.GetQueueDepths(r.Context())
+		if err == nil && len(depths) > 0 {
+			for subject, count := range depths {
+				lane := "standard"
+				if strings.Contains(subject, "priority") {
+					lane = "priority"
+				} else if strings.Contains(subject, "rejudge") {
+					lane = "rejudge"
+				}
+				sb.WriteString(fmt.Sprintf("codebench_queue_depth{lane=%q,subject=%q} %d\n", lane, subject, count))
+			}
+		} else {
+			sb.WriteString("codebench_queue_depth{lane=\"standard\",subject=\"jobs.submissions.standard\"} 0\n")
+			sb.WriteString("codebench_queue_depth{lane=\"priority\",subject=\"jobs.submissions.priority\"} 0\n")
+		}
+	} else {
+		sb.WriteString("codebench_queue_depth{lane=\"standard\",subject=\"jobs.submissions.standard\"} 0\n")
+		sb.WriteString("codebench_queue_depth{lane=\"priority\",subject=\"jobs.submissions.priority\"} 0\n")
+	}
+	sb.WriteString("\n")
+
+	// 3. Active SSE Connections
+	activeSSE := 0
+	if s.broker != nil {
+		activeSSE = s.broker.ActiveConnections()
+	}
+	sb.WriteString("# HELP codebench_sse_connections_active Number of active Server-Sent Events subscribers\n")
+	sb.WriteString("# TYPE codebench_sse_connections_active gauge\n")
+	sb.WriteString(fmt.Sprintf("codebench_sse_connections_active %d\n\n", activeSSE))
+
+	// 4. Timing Canary Metrics
+	if s.canaryRunner != nil {
+		dur := s.canaryRunner.LastDuration().Seconds()
+		drift := s.canaryRunner.DriftRatio()
+		healthyVal := 0
+		if s.canaryRunner.IsHealthy() {
+			healthyVal = 1
+		}
+
+		sb.WriteString("# HELP codebench_canary_duration_seconds Last execution duration of calibration canary\n")
+		sb.WriteString("# TYPE codebench_canary_duration_seconds gauge\n")
+		sb.WriteString(fmt.Sprintf("codebench_canary_duration_seconds %.6f\n\n", dur))
+
+		sb.WriteString("# HELP codebench_canary_timing_drift_ratio Relative timing drift compared to baseline\n")
+		sb.WriteString("# TYPE codebench_canary_timing_drift_ratio gauge\n")
+		sb.WriteString(fmt.Sprintf("codebench_canary_timing_drift_ratio %.4f\n\n", drift))
+
+		sb.WriteString("# HELP codebench_canary_healthy Whether judge host CPU timing is within tolerance\n")
+		sb.WriteString("# TYPE codebench_canary_healthy gauge\n")
+		sb.WriteString(fmt.Sprintf("codebench_canary_healthy %d\n", healthyVal))
+	}
+
+	_, _ = w.Write([]byte(sb.String()))
+}
+
+func (s *Server) handleAdminRejudge(w http.ResponseWriter, r *http.Request) {
+	var req models.RejudgeBatchRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid request payload"}`, http.StatusBadRequest)
+		return
+	}
+
+	if req.ScopeType == "" || req.ScopeID == "" {
+		http.Error(w, `{"error":"scope_type and scope_id are required"}`, http.StatusBadRequest)
+		return
+	}
+
+	user := auth.UserFromContext(r.Context())
+	var userID *uuid.UUID
+	if user != nil {
+		userID = &user.ID
+	}
+
+	resp, err := s.rejudgeSvc.TriggerRejudge(r.Context(), req, userID)
+	if err != nil {
+		slog.Error("Failed to trigger rejudge batch", "error", err)
+		http.Error(w, fmt.Sprintf(`{"error":"failed to trigger rejudge: %s"}`, err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusAccepted, resp)
+}
+
+func (s *Server) handleGetRejudgeStatus(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	batchID, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, `{"error":"invalid batch id"}`, http.StatusBadRequest)
+		return
+	}
+
+	status, err := s.rejudgeSvc.GetStatus(r.Context(), batchID)
+	if err != nil {
+		http.Error(w, `{"error":"rejudge batch not found"}`, http.StatusNotFound)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, status)
 }
 
 func (s *Server) handleListProblems(w http.ResponseWriter, r *http.Request) {
@@ -744,10 +886,11 @@ func (s *Server) handleGetContestProblem(w http.ResponseWriter, r *http.Request)
 		"slug":          cp.Slug,
 		"difficulty":    cp.Difficulty,
 		"statement_md":  pv.StatementMD,
-		"time_limit_ms": pv.TimeLimitMS,
-		"memory_mb":     pv.MemoryMB,
-		"checker_type":  pv.CheckerType,
-		"sample_tests":  sampleTests,
+		"time_limit_ms":     pv.TimeLimitMS,
+		"memory_mb":         pv.MemoryMB,
+		"checker_type":      pv.CheckerType,
+		"complexity_policy": pv.ComplexityPolicy,
+		"sample_tests":      sampleTests,
 	})
 }
 
@@ -970,5 +1113,46 @@ func (s *Server) handleCreateContest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusCreated, contest)
+}
+
+func (s *Server) handleGeneratePractice(w http.ResponseWriter, r *http.Request) {
+	var req models.PracticeGenerateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		req = models.PracticeGenerateRequest{Count: 3, Difficulty: "ANY"}
+	}
+
+	user := auth.UserFromContext(r.Context())
+	var userID *uuid.UUID
+	if user != nil {
+		userID = &user.ID
+	}
+
+	svc := practice.NewService(s.db)
+	resp, err := svc.GeneratePracticeSet(r.Context(), userID, req)
+	if err != nil {
+		slog.Error("Failed to generate practice set", "error", err)
+		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, resp)
+}
+
+func (s *Server) handlePracticeHistory(w http.ResponseWriter, r *http.Request) {
+	user := auth.UserFromContext(r.Context())
+	if user == nil {
+		http.Error(w, `{"error":"authentication required to view practice history"}`, http.StatusUnauthorized)
+		return
+	}
+
+	svc := practice.NewService(s.db)
+	history, err := svc.ListUserPracticeHistory(r.Context(), user.ID)
+	if err != nil {
+		slog.Error("Failed to list practice history", "error", err)
+		http.Error(w, `{"error":"failed to fetch practice history"}`, http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, history)
 }
 

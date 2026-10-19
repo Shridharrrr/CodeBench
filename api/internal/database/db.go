@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/codebench/codebench/api/internal/models"
@@ -66,6 +67,21 @@ func (db *DB) Migrate(ctx context.Context) error {
 
 // CreateSubmissionTx atomically inserts a submission row and an outbox row in the same transaction
 func (db *DB) CreateSubmissionTx(ctx context.Context, sub *models.Submission, jobPayload *models.JudgeJobPayload) error {
+	return db.InsertSubmissionWithOutbox(ctx, sub, jobPayload)
+}
+
+// InsertSubmissionWithOutbox inserts a submission and its corresponding outbox row within a transaction,
+// automatically routing to the priority lane for contest submissions, or standard lane for practice.
+func (db *DB) InsertSubmissionWithOutbox(ctx context.Context, sub *models.Submission, jobPayload any) error {
+	lane := "standard"
+	if sub.ContestID != nil {
+		lane = "priority"
+	}
+	return db.InsertSubmissionWithOutboxLane(ctx, sub, jobPayload, lane)
+}
+
+// InsertSubmissionWithOutboxLane inserts a submission and outbox row directed to a specific priority lane
+func (db *DB) InsertSubmissionWithOutboxLane(ctx context.Context, sub *models.Submission, jobPayload any, lane string) error {
 	tx, err := db.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
@@ -103,6 +119,11 @@ func (db *DB) CreateSubmissionTx(ctx context.Context, sub *models.Submission, jo
 		return fmt.Errorf("failed to marshal job payload: %w", err)
 	}
 
+	subject := "jobs.submissions." + lane
+	if lane == "" {
+		subject = "jobs.submissions"
+	}
+
 	queryOutbox := `
 		INSERT INTO outbox (
 			id, subject, payload, created_at
@@ -111,7 +132,7 @@ func (db *DB) CreateSubmissionTx(ctx context.Context, sub *models.Submission, jo
 		)
 	`
 	outboxID := uuid.New()
-	_, err = tx.Exec(ctx, queryOutbox, outboxID, "jobs.submissions", payloadJSON, sub.CreatedAt)
+	_, err = tx.Exec(ctx, queryOutbox, outboxID, subject, payloadJSON, sub.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to insert outbox row: %w", err)
 	}
@@ -246,11 +267,12 @@ func (db *DB) GetSubmission(ctx context.Context, id uuid.UUID) (*models.Submissi
 	query := `
 		SELECT id, user_id, problem_version_id, contest_id, language, source_hash, source,
 		       status, verdict, time_ms, memory_kb, instructions, failed_test, failed_group,
-		       compile_output, judge_host, created_at, judged_at
+		       compile_output, complexity_report, judge_host, created_at, judged_at
 		FROM submissions
 		WHERE id = $1
 	`
 	var s models.Submission
+	var compJSON []byte
 	err := db.pool.QueryRow(ctx, query, id).Scan(
 		&s.ID,
 		&s.UserID,
@@ -267,12 +289,16 @@ func (db *DB) GetSubmission(ctx context.Context, id uuid.UUID) (*models.Submissi
 		&s.FailedTest,
 		&s.FailedGroup,
 		&s.CompileOutput,
+		&compJSON,
 		&s.JudgeHost,
 		&s.CreatedAt,
 		&s.JudgedAt,
 	)
 	if err != nil {
 		return nil, err
+	}
+	if len(compJSON) > 0 {
+		_ = json.Unmarshal(compJSON, &s.ComplexityReport)
 	}
 
 	// Load results
@@ -435,6 +461,61 @@ func (db *DB) UpsertProblem(ctx context.Context, slug, title, statementMD, diffi
 		ComplexityPolicy: complexityPolicy,
 		PackageHash:      packageHash,
 	}, nil
+}
+
+func (db *DB) GetProblemVersionByID(ctx context.Context, id uuid.UUID) (*models.ProblemVersion, error) {
+	query := `
+		SELECT id, problem_id, version, title, statement_md, difficulty, tags,
+		       time_limit_ms, memory_mb, checker_type, complexity_policy, package_hash, published_at
+		FROM problem_versions
+		WHERE id = $1
+	`
+	var pv models.ProblemVersion
+	var compJSON []byte
+	err := db.pool.QueryRow(ctx, query, id).Scan(
+		&pv.ID,
+		&pv.ProblemID,
+		&pv.Version,
+		&pv.Title,
+		&pv.StatementMD,
+		&pv.Difficulty,
+		&pv.Tags,
+		&pv.TimeLimitMS,
+		&pv.MemoryMB,
+		&pv.CheckerType,
+		&compJSON,
+		&pv.PackageHash,
+		&pv.PublishedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if len(compJSON) > 0 {
+		_ = json.Unmarshal(compJSON, &pv.ComplexityPolicy)
+	}
+	return &pv, nil
+}
+
+func (db *DB) GetTestCasesByVersionID(ctx context.Context, versionID uuid.UUID) ([]models.TestCase, error) {
+	rows, err := db.pool.Query(ctx, `
+		SELECT id, problem_version_id, group_name, ordinal, input_data, output_data, is_sample
+		FROM test_cases
+		WHERE problem_version_id = $1
+		ORDER BY ordinal ASC
+	`, versionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var testCases []models.TestCase
+	for rows.Next() {
+		var tc models.TestCase
+		if err := rows.Scan(&tc.ID, &tc.ProblemVersionID, &tc.GroupName, &tc.Ordinal, &tc.InputData, &tc.OutputData, &tc.IsSample); err == nil {
+			testCases = append(testCases, tc)
+		}
+	}
+	return testCases, nil
 }
 
 func (db *DB) UpsertAdminUser(ctx context.Context, name, email, passwordHash string) error {
@@ -851,3 +932,385 @@ func (db *DB) GetContestSubmissions(ctx context.Context, contestID uuid.UUID) ([
 	}
 	return list, nil
 }
+
+func (db *DB) GetUserSolvedProblemVersionIDs(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
+	query := `
+		SELECT DISTINCT problem_version_id
+		FROM submissions
+		WHERE user_id = $1 AND verdict = 'AC'
+	`
+	rows, err := db.pool.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ids []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	return ids, nil
+}
+
+type PracticeCandidate struct {
+	ProblemVersion models.ProblemVersion
+	Slug           string
+}
+
+func (db *DB) GetPracticeEligibleProblems(ctx context.Context, difficulty string, tags []string, excludeVersionIDs []uuid.UUID) ([]PracticeCandidate, error) {
+	query := `
+		SELECT pv.id, pv.problem_id, pv.version, pv.title, pv.statement_md, pv.difficulty,
+		       pv.tags, pv.time_limit_ms, pv.memory_mb, pv.checker_type, pv.complexity_policy,
+		       pv.package_hash, p.slug
+		FROM problem_versions pv
+		JOIN problems p ON p.id = pv.problem_id
+		WHERE pv.version = (SELECT MAX(v2.version) FROM problem_versions v2 WHERE v2.problem_id = p.id)
+	`
+	args := []any{}
+	argIdx := 1
+
+	if difficulty != "" && strings.ToUpper(difficulty) != "ANY" {
+		query += fmt.Sprintf(" AND UPPER(pv.difficulty) = UPPER($%d)", argIdx)
+		args = append(args, difficulty)
+		argIdx++
+	}
+
+	if len(tags) > 0 {
+		query += fmt.Sprintf(" AND pv.tags && $%d", argIdx)
+		args = append(args, tags)
+		argIdx++
+	}
+
+	if len(excludeVersionIDs) > 0 {
+		query += fmt.Sprintf(" AND NOT (pv.id = ANY($%d))", argIdx)
+		args = append(args, excludeVersionIDs)
+		argIdx++
+	}
+
+	query += " ORDER BY p.slug ASC"
+
+	rows, err := db.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var candidates []PracticeCandidate
+	for rows.Next() {
+		var c PracticeCandidate
+		var compJSON []byte
+		if err := rows.Scan(
+			&c.ProblemVersion.ID,
+			&c.ProblemVersion.ProblemID,
+			&c.ProblemVersion.Version,
+			&c.ProblemVersion.Title,
+			&c.ProblemVersion.StatementMD,
+			&c.ProblemVersion.Difficulty,
+			&c.ProblemVersion.Tags,
+			&c.ProblemVersion.TimeLimitMS,
+			&c.ProblemVersion.MemoryMB,
+			&c.ProblemVersion.CheckerType,
+			&compJSON,
+			&c.ProblemVersion.PackageHash,
+			&c.Slug,
+		); err == nil {
+			if len(compJSON) > 0 {
+				_ = json.Unmarshal(compJSON, &c.ProblemVersion.ComplexityPolicy)
+			}
+			candidates = append(candidates, c)
+		}
+	}
+	return candidates, nil
+}
+
+func (db *DB) GetUserPracticeContests(ctx context.Context, userID uuid.UUID) ([]models.Contest, error) {
+	query := `
+		SELECT id, title, mode, starts_at, ends_at, freeze_at, scoring, owner_id, created_at
+		FROM contests
+		WHERE mode = 'practice' AND owner_id = $1
+		ORDER BY created_at DESC
+	`
+	rows, err := db.pool.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []models.Contest
+	for rows.Next() {
+		var c models.Contest
+		if err := rows.Scan(
+			&c.ID, &c.Title, &c.Mode, &c.StartsAt, &c.EndsAt, &c.FreezeAt, &c.Scoring, &c.OwnerID, &c.CreatedAt,
+		); err == nil {
+			list = append(list, c)
+		}
+	}
+	return list, nil
+}
+
+// -------------------------------------------------------------
+// Phase 7: Rejudge Batches, Stale-Job Sweeper, and Observability
+// -------------------------------------------------------------
+
+// CreateRejudgeBatch records a new administrative batch rejudge
+func (db *DB) CreateRejudgeBatch(ctx context.Context, scope models.RejudgeScope, requestedBy *uuid.UUID) (*models.RejudgeBatch, error) {
+	scopeJSON, err := json.Marshal(scope)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal scope: %w", err)
+	}
+
+	batch := &models.RejudgeBatch{
+		ID:          uuid.New(),
+		Scope:       scope,
+		RequestedBy: requestedBy,
+		CreatedAt:   time.Now().UTC(),
+	}
+
+	query := `
+		INSERT INTO rejudge_batches (id, scope, requested_by, created_at)
+		VALUES ($1, $2, $3, $4)
+	`
+	_, err = db.pool.Exec(ctx, query, batch.ID, scopeJSON, batch.RequestedBy, batch.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to insert rejudge batch: %w", err)
+	}
+
+	return batch, nil
+}
+
+// GetSubmissionsForRejudge fetches all submissions matching the target rejudge scope
+func (db *DB) GetSubmissionsForRejudge(ctx context.Context, scope models.RejudgeScope) ([]models.Submission, error) {
+	var query string
+	var args []any
+
+	switch scope.Type {
+	case models.RejudgeScopeSubmission:
+		query = `
+			SELECT id, user_id, problem_version_id, contest_id, language, source_hash, source,
+			       status, verdict, created_at
+			FROM submissions
+			WHERE id = $1
+		`
+		args = []any{scope.ID}
+	case models.RejudgeScopeProblemVersion:
+		query = `
+			SELECT id, user_id, problem_version_id, contest_id, language, source_hash, source,
+			       status, verdict, created_at
+			FROM submissions
+			WHERE problem_version_id = $1
+			ORDER BY created_at ASC
+		`
+		args = []any{scope.ID}
+	case models.RejudgeScopeContest:
+		query = `
+			SELECT id, user_id, problem_version_id, contest_id, language, source_hash, source,
+			       status, verdict, created_at
+			FROM submissions
+			WHERE contest_id = $1
+			ORDER BY created_at ASC
+		`
+		args = []any{scope.ID}
+	default:
+		return nil, fmt.Errorf("unknown rejudge scope type: %s", scope.Type)
+	}
+
+	rows, err := db.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var subs []models.Submission
+	for rows.Next() {
+		var s models.Submission
+		if err := rows.Scan(
+			&s.ID, &s.UserID, &s.ProblemVersionID, &s.ContestID, &s.Language, &s.SourceHash, &s.Source,
+			&s.Status, &s.Verdict, &s.CreatedAt,
+		); err == nil {
+			subs = append(subs, s)
+		}
+	}
+	return subs, nil
+}
+
+// RequeueSubmissionForRejudge resets a submission to QUEUED, deletes prior test results,
+// and atomically inserts an outbox job in the standard/rejudge priority lane.
+func (db *DB) RequeueSubmissionForRejudge(ctx context.Context, submissionID uuid.UUID, jobPayload any) error {
+	tx, err := db.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// 1. Reset Submission state (preserving original created_at timestamp for contest scoring fairness)
+	updateSub := `
+		UPDATE submissions
+		SET status = 'QUEUED', verdict = 'PENDING',
+		    time_ms = NULL, memory_kb = NULL, instructions = NULL,
+		    failed_test = NULL, complexity_report = NULL, judged_at = NULL
+		WHERE id = $1
+	`
+	if _, err := tx.Exec(ctx, updateSub, submissionID); err != nil {
+		return fmt.Errorf("failed to reset submission state: %w", err)
+	}
+
+	// 2. Clear old individual test results
+	if _, err := tx.Exec(ctx, "DELETE FROM submission_results WHERE submission_id = $1", submissionID); err != nil {
+		return fmt.Errorf("failed to delete prior test results: %w", err)
+	}
+
+	// 3. Insert Outbox Entry for standard/rejudge lane
+	payloadJSON, err := json.Marshal(jobPayload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal job payload: %w", err)
+	}
+
+	queryOutbox := `
+		INSERT INTO outbox (
+			id, subject, payload, created_at
+		) VALUES (
+			$1, $2, $3, $4
+		)
+	`
+	outboxID := uuid.New()
+	if _, err := tx.Exec(ctx, queryOutbox, outboxID, "jobs.submissions.standard", payloadJSON, time.Now().UTC()); err != nil {
+		return fmt.Errorf("failed to insert outbox row: %w", err)
+	}
+
+	return tx.Commit(ctx)
+}
+
+// GetRejudgeBatchStatus retrieves the current progress of a rejudge batch
+func (db *DB) GetRejudgeBatchStatus(ctx context.Context, batchID uuid.UUID) (*models.RejudgeBatchStatus, error) {
+	queryBatch := `
+		SELECT id, scope, created_at
+		FROM rejudge_batches
+		WHERE id = $1
+	`
+	var b models.RejudgeBatch
+	var scopeBytes []byte
+	err := db.pool.QueryRow(ctx, queryBatch, batchID).Scan(&b.ID, &scopeBytes, &b.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("rejudge batch not found: %w", err)
+	}
+	_ = json.Unmarshal(scopeBytes, &b.Scope)
+
+	// Query status count for scoped submissions
+	status := &models.RejudgeBatchStatus{
+		BatchID:   b.ID.String(),
+		ScopeType: string(b.Scope.Type),
+		ScopeID:   b.Scope.ID.String(),
+		CreatedAt: b.CreatedAt,
+	}
+
+	subs, err := db.GetSubmissionsForRejudge(ctx, b.Scope)
+	if err == nil {
+		status.TotalJobs = len(subs)
+		for _, s := range subs {
+			if s.Status == models.StatusDone {
+				status.Completed++
+			} else {
+				status.Pending++
+			}
+		}
+	}
+
+	return status, nil
+}
+
+// FetchStaleSubmissions retrieves submissions stuck in processing states beyond lease timeout
+func (db *DB) FetchStaleSubmissions(ctx context.Context, olderThan time.Duration, limit int) ([]models.Submission, error) {
+	threshold := time.Now().UTC().Add(-olderThan)
+	query := `
+		SELECT id, user_id, problem_version_id, contest_id, language, source_hash, source,
+		       status, verdict, created_at
+		FROM submissions
+		WHERE status IN ('QUEUED', 'RUNNING', 'COMPILING', 'JUDGING')
+		  AND created_at < $1
+		ORDER BY created_at ASC
+		LIMIT $2
+	`
+	rows, err := db.pool.Query(ctx, query, threshold, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var subs []models.Submission
+	for rows.Next() {
+		var s models.Submission
+		if err := rows.Scan(
+			&s.ID, &s.UserID, &s.ProblemVersionID, &s.ContestID, &s.Language, &s.SourceHash, &s.Source,
+			&s.Status, &s.Verdict, &s.CreatedAt,
+		); err == nil {
+			subs = append(subs, s)
+		}
+	}
+	return subs, nil
+}
+
+// MarkSubmissionSystemError marks a dead-lettered / unrecoverable submission as terminal SE
+func (db *DB) MarkSubmissionSystemError(ctx context.Context, subID uuid.UUID, reason string) error {
+	now := time.Now().UTC()
+	query := `
+		UPDATE submissions
+		SET status = 'DONE', verdict = 'SE', judged_at = $1
+		WHERE id = $2 AND status != 'DONE'
+	`
+	_, err := db.pool.Exec(ctx, query, now, subID)
+	return err
+}
+
+// GetSubmissionVerdictCounts returns the aggregate count of submissions per verdict
+func (db *DB) GetSubmissionVerdictCounts(ctx context.Context) (map[string]int64, error) {
+	query := `
+		SELECT COALESCE(verdict::text, 'PENDING'), COUNT(*)
+		FROM submissions
+		GROUP BY verdict
+	`
+	rows, err := db.pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	counts := make(map[string]int64)
+	for rows.Next() {
+		var verdict string
+		var count int64
+		if err := rows.Scan(&verdict, &count); err == nil {
+			counts[verdict] = count
+		}
+	}
+	return counts, nil
+}
+
+// GetQueueDepths returns the count of unpublished outbox entries grouped by subject lane
+func (db *DB) GetQueueDepths(ctx context.Context) (map[string]int64, error) {
+	query := `
+		SELECT subject, COUNT(*)
+		FROM outbox
+		WHERE published_at IS NULL
+		GROUP BY subject
+	`
+	rows, err := db.pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	depths := make(map[string]int64)
+	for rows.Next() {
+		var subject string
+		var count int64
+		if err := rows.Scan(&subject, &count); err == nil {
+			depths[subject] = count
+		}
+	}
+	return depths, nil
+}
+
+

@@ -33,10 +33,40 @@ func main() {
 		runDev()
 	case "down":
 		runDown()
+	case "tune":
+		undo := false
+		autoConfirm := false
+		for _, arg := range os.Args[2:] {
+			if arg == "--undo" {
+				undo = true
+			}
+			if arg == "-y" || arg == "--yes" {
+				autoConfirm = true
+			}
+		}
+		runTune(undo, autoConfirm)
+	case "admin":
+		runAdminCommand()
+	case "backup":
+		target := ""
+		if len(os.Args) > 2 {
+			target = os.Args[2]
+		}
+		runBackup(target)
+	case "restore":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: codebench restore <file.tar.gz>")
+			os.Exit(1)
+		}
+		runRestore(os.Args[2])
+	case "add-judge":
+		runAddJudge()
+	case "rejudge":
+		runRejudgeCommand()
 	case "problems":
 		runProblemsCommand()
 	default:
-		fmt.Printf("Usage: codebench {up|doctor|dev|down|problems {validate|import} <path>}\n")
+		fmt.Println("Usage: codebench {up|doctor|dev|down|tune [--undo]|admin create <email> [pwd]|backup [file]|restore <file>|add-judge|rejudge {--submission|--problem|--contest} <id>|problems {validate|import} <path>}")
 		os.Exit(1)
 	}
 }

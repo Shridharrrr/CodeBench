@@ -67,4 +67,23 @@ func TestFakeJudgeEvaluation(t *testing.T) {
 	if resCE.CompileOutput == "" {
 		t.Errorf("Expected non-empty compile output for CE")
 	}
+
+	// 5. Test Complexity Simulation
+	compJob := models.JudgeJobPayload{
+		SubmissionID: "sub-5",
+		SourceCode:   "// COMPLEXITY_FAIL\nint main() { return 0; }",
+		TimeLimitMS:  1000,
+		TestCases: []models.TestCase{
+			{GroupName: "small", Ordinal: 1},
+			{GroupName: "max-size", Ordinal: 2},
+		},
+	}
+	resComp := fj.evaluate(compJob)
+	if len(resComp.TestResults) != 2 {
+		t.Fatalf("Expected 2 test results, got %d", len(resComp.TestResults))
+	}
+	if resComp.TestResults[1].Instructions < 1000000 {
+		t.Errorf("Expected high instructions on max-size for complexity simulation, got %d", resComp.TestResults[1].Instructions)
+	}
 }
+
