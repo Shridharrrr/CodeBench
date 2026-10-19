@@ -10,20 +10,24 @@ import (
 	"github.com/codebench/codebench/api/internal/events"
 	"github.com/codebench/codebench/api/internal/models"
 	"github.com/codebench/codebench/api/internal/queue"
+	"github.com/codebench/codebench/api/internal/standings"
+	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 )
 
 type Consumer struct {
-	db       *database.DB
-	queueMgr *queue.NATSManager
-	broker   *events.Broker
+	db           *database.DB
+	queueMgr     *queue.NATSManager
+	broker       *events.Broker
+	standingsMgr *standings.StandingsManager
 }
 
-func NewConsumer(db *database.DB, queueMgr *queue.NATSManager, broker *events.Broker) *Consumer {
+func NewConsumer(db *database.DB, queueMgr *queue.NATSManager, broker *events.Broker, standingsMgr *standings.StandingsManager) *Consumer {
 	return &Consumer{
-		db:       db,
-		queueMgr: queueMgr,
-		broker:   broker,
+		db:           db,
+		queueMgr:     queueMgr,
+		broker:       broker,
+		standingsMgr: standingsMgr,
 	}
 }
 
@@ -55,6 +59,17 @@ func (c *Consumer) Start(ctx context.Context) error {
 
 		// Notify live SSE subscribers
 		c.broker.PublishSubmissionStatus(vp.SubmissionID, vp.Status, vp.Verdict, vp)
+
+		// If submission belongs to a contest, trigger in-memory standings recomputation
+		if c.standingsMgr != nil {
+			if subUUID, err := uuid.Parse(vp.SubmissionID); err == nil {
+				if sub, err := c.db.GetSubmission(ctx, subUUID); err == nil && sub.ContestID != nil {
+					go func(cid uuid.UUID) {
+						_, _ = c.standingsMgr.RecomputeAndCache(context.Background(), cid, false)
+					}(*sub.ContestID)
+				}
+			}
+		}
 
 		// Acknowledge JetStream message
 		if err := msg.Ack(); err != nil {

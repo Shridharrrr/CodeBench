@@ -20,6 +20,7 @@ import (
 	"github.com/codebench/codebench/api/internal/models"
 	"github.com/codebench/codebench/api/internal/outbox"
 	"github.com/codebench/codebench/api/internal/queue"
+	"github.com/codebench/codebench/api/internal/standings"
 	"github.com/codebench/codebench/api/internal/verdict"
 	"github.com/google/uuid"
 )
@@ -67,16 +68,17 @@ func TestAuthAndSubmissionLifecycle(t *testing.T) {
 	}
 	defer db.Close()
 
-	// Start outbox relay & verdict consumer
+	// Start outbox relay, standings manager & verdict consumer
 	relay := outbox.NewRelay(db, queueMgr, 20*time.Millisecond)
 	go relay.Start(ctx)
 
-	vConsumer := verdict.NewConsumer(db, queueMgr, broker)
+	standingsMgr := standings.NewManager(db, broker)
+	vConsumer := verdict.NewConsumer(db, queueMgr, broker, standingsMgr)
 	if err := vConsumer.Start(ctx); err != nil {
 		t.Fatalf("Failed to start verdict consumer: %v", err)
 	}
 
-	server := handlers.NewServer(db, queueMgr, broker)
+	server := handlers.NewServer(db, queueMgr, broker, standingsMgr)
 	router := server.Router()
 
 	// 1. Test Registration

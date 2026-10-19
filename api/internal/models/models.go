@@ -73,6 +73,71 @@ type TestCase struct {
 	IsSample         bool      `json:"is_sample"`
 }
 
+type ContestState string
+
+const (
+	ContestUpcoming ContestState = "UPCOMING"
+	ContestRunning  ContestState = "RUNNING"
+	ContestFrozen   ContestState = "FROZEN"
+	ContestEnded    ContestState = "ENDED"
+)
+
+type Contest struct {
+	ID        uuid.UUID  `json:"id"`
+	Title     string     `json:"title"`
+	Mode      string     `json:"mode"`       // "fixed" or "practice"
+	StartsAt  time.Time  `json:"starts_at"`
+	EndsAt    time.Time  `json:"ends_at"`
+	FreezeAt  *time.Time `json:"freeze_at,omitempty"`
+	Scoring   string     `json:"scoring"`    // "icpc" or "points"
+	OwnerID   *uuid.UUID `json:"owner_id,omitempty"`
+	CreatedAt time.Time  `json:"created_at"`
+}
+
+type ContestProblem struct {
+	ContestID        uuid.UUID `json:"contest_id"`
+	ProblemVersionID uuid.UUID `json:"problem_version_id"`
+	Label            string    `json:"label"` // 'A', 'B', 'C', ...
+	Points           int       `json:"points"`
+	Title            string    `json:"title,omitempty"`
+	Slug             string    `json:"slug,omitempty"`
+	Difficulty       string    `json:"difficulty,omitempty"`
+}
+
+type Participant struct {
+	ContestID uuid.UUID `json:"contest_id"`
+	UserID    uuid.UUID `json:"user_id"`
+	UserName  string    `json:"user_name,omitempty"`
+	UserEmail string    `json:"user_email,omitempty"`
+	JoinedAt  time.Time `json:"joined_at"`
+}
+
+type ProblemCell struct {
+	Label             string `json:"label"`
+	Solved            bool   `json:"solved"`
+	SolvedTimeMinutes int64  `json:"solved_time_minutes,omitempty"`
+	AttemptCount      int    `json:"attempt_count"`
+	Points            int    `json:"points"`
+	IsFrozen          bool   `json:"is_frozen"`
+}
+
+type LeaderboardRow struct {
+	Rank     int                    `json:"rank"`
+	UserID   uuid.UUID              `json:"user_id"`
+	UserName string                 `json:"user_name"`
+	Score    int                    `json:"score"`   // Solved count (ICPC) or Points
+	Penalty  int64                  `json:"penalty"` // Minutes
+	LastACTime *time.Time           `json:"last_ac_time,omitempty"`
+	Problems map[string]ProblemCell `json:"problems"`
+}
+
+type Leaderboard struct {
+	ContestID uuid.UUID        `json:"contest_id"`
+	IsFrozen  bool             `json:"is_frozen"`
+	UpdatedAt time.Time        `json:"updated_at"`
+	Rows      []LeaderboardRow `json:"rows"`
+}
+
 type Submission struct {
 	ID               uuid.UUID         `json:"id"`
 	UserID           *uuid.UUID        `json:"user_id,omitempty"`

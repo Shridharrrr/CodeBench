@@ -18,6 +18,7 @@ import (
 	"github.com/codebench/codebench/api/internal/outbox"
 	"github.com/codebench/codebench/api/internal/queue"
 	"github.com/codebench/codebench/api/internal/seed"
+	"github.com/codebench/codebench/api/internal/standings"
 	"github.com/codebench/codebench/api/internal/verdict"
 )
 
@@ -51,15 +52,16 @@ func main() {
 	}
 	defer queueMgr.Close()
 
-	// 3. Initialize SSE Event Broker
+	// 3. Initialize SSE Event Broker & Standings Manager
 	eventBroker := events.NewBroker()
+	standingsMgr := standings.NewManager(db, eventBroker)
 
 	// 4. Start Transactional Outbox Relay
 	outboxRelay := outbox.NewRelay(db, queueMgr, 50*time.Millisecond)
 	go outboxRelay.Start(ctx)
 
 	// 5. Start Verdict Consumer
-	verdictConsumer := verdict.NewConsumer(db, queueMgr, eventBroker)
+	verdictConsumer := verdict.NewConsumer(db, queueMgr, eventBroker, standingsMgr)
 	if err := verdictConsumer.Start(ctx); err != nil {
 		slog.Error("Failed to start verdict consumer", "error", err)
 		os.Exit(1)
@@ -79,8 +81,15 @@ func main() {
 		slog.Warn("Database seeding reported note", "error", err)
 	}
 
+	// Pre-warm in-memory standings from PostgreSQL
+	go func() {
+		if err := standingsMgr.RebuildAll(ctx); err != nil {
+			slog.Warn("Failed to prebuild standings cache", "error", err)
+		}
+	}()
+
 	// 8. Start HTTP Server
-	server := handlers.NewServer(db, queueMgr, eventBroker)
+	server := handlers.NewServer(db, queueMgr, eventBroker, standingsMgr)
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 	httpServer := &http.Server{
 		Addr:         addr,

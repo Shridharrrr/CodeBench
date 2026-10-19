@@ -21,6 +21,7 @@ import (
 	"github.com/codebench/codebench/api/internal/queue"
 	"github.com/codebench/codebench/api/internal/runner"
 	"github.com/codebench/codebench/api/internal/seed"
+	"github.com/codebench/codebench/api/internal/standings"
 	"github.com/codebench/codebench/pkg/problems"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -29,20 +30,22 @@ import (
 )
 
 type Server struct {
-	router      *chi.Mux
-	db          *database.DB
-	queueMgr    *queue.NATSManager
-	broker      *events.Broker
-	authHandler *auth.AuthHandler
+	router       *chi.Mux
+	db           *database.DB
+	queueMgr     *queue.NATSManager
+	broker       *events.Broker
+	authHandler  *auth.AuthHandler
+	standingsMgr *standings.StandingsManager
 }
 
-func NewServer(db *database.DB, queueMgr *queue.NATSManager, broker *events.Broker) *Server {
+func NewServer(db *database.DB, queueMgr *queue.NATSManager, broker *events.Broker, standingsMgr *standings.StandingsManager) *Server {
 	s := &Server{
-		router:      chi.NewRouter(),
-		db:          db,
-		queueMgr:    queueMgr,
-		broker:      broker,
-		authHandler: auth.NewAuthHandler(db),
+		router:       chi.NewRouter(),
+		db:           db,
+		queueMgr:     queueMgr,
+		broker:       broker,
+		authHandler:  auth.NewAuthHandler(db),
+		standingsMgr: standingsMgr,
 	}
 
 	s.setupRoutes()
@@ -72,8 +75,9 @@ func (s *Server) setupRoutes() {
 		MaxAge:           300,
 	}))
 
-	// Session authentication middleware
+	// Session authentication and CSRF protection
 	r.Use(auth.AuthMiddleware(s.db))
+	r.Use(auth.RequireCSRF)
 
 	// Health and probe endpoints
 	r.Get("/healthz", s.handleHealthz)
@@ -102,6 +106,16 @@ func (s *Server) setupRoutes() {
 		r.Get("/submissions", s.handleListSubmissions)
 		r.Get("/submissions/{id}", s.handleGetSubmission)
 		r.Get("/submissions/{id}/events", s.handleSubmissionEvents)
+
+		// Contests
+		r.Get("/contests", s.handleListContests)
+		r.Post("/contests", s.handleCreateContest)
+		r.Get("/contests/{id}", s.handleGetContest)
+		r.Post("/contests/{id}/join", s.handleJoinContest)
+		r.Get("/contests/{id}/problems/{label}", s.handleGetContestProblem)
+		r.Post("/contests/{id}/problems/{label}/submit", s.handleContestSubmit)
+		r.Get("/contests/{id}/leaderboard", s.handleGetLeaderboard)
+		r.Get("/contests/{id}/events", s.handleContestEvents)
 	})
 
 	// Static SPA serving
@@ -408,6 +422,17 @@ func (s *Server) handleGetSubmission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Defense-in-depth: sanitize test diagnostics for non-admin callers to quarantine hidden test data
+	user := auth.UserFromContext(r.Context())
+	isAdmin := user != nil && user.Role == "admin"
+	if !isAdmin && sub.Results != nil {
+		for i := range sub.Results {
+			if sub.Results[i].Verdict == models.VerdictWA {
+				sub.Results[i].Diagnostic = "Wrong Answer"
+			}
+		}
+	}
+
 	writeJSON(w, http.StatusOK, sub)
 }
 
@@ -524,5 +549,426 @@ func writeJSON(w http.ResponseWriter, status int, data any) {
 
 func contextWithTimeout(r *http.Request, d time.Duration) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(r.Context(), d)
+}
+
+// Contest Handlers & Server-Authoritative Timing
+
+func getContestState(c *models.Contest, now time.Time) (models.ContestState, int64) {
+	if now.Before(c.StartsAt) {
+		return models.ContestUpcoming, c.StartsAt.Sub(now).Milliseconds()
+	}
+	if !now.Before(c.EndsAt) {
+		return models.ContestEnded, 0
+	}
+	if c.FreezeAt != nil && !now.Before(*c.FreezeAt) {
+		return models.ContestFrozen, c.EndsAt.Sub(now).Milliseconds()
+	}
+	return models.ContestRunning, c.EndsAt.Sub(now).Milliseconds()
+}
+
+func (s *Server) handleListContests(w http.ResponseWriter, r *http.Request) {
+	mode := r.URL.Query().Get("mode")
+	list, err := s.db.ListContests(r.Context(), mode)
+	if err != nil {
+		slog.Error("Failed to list contests", "error", err)
+		http.Error(w, `{"error":"failed to list contests"}`, http.StatusInternalServerError)
+		return
+	}
+
+	now := time.Now().UTC()
+	resp := make([]map[string]any, 0, len(list))
+	for _, c := range list {
+		state, timeRemaining := getContestState(&c, now)
+		probs, _ := s.db.GetContestProblems(r.Context(), c.ID)
+		parts, _ := s.db.GetContestParticipants(r.Context(), c.ID)
+
+		resp = append(resp, map[string]any{
+			"id":                c.ID,
+			"title":             c.Title,
+			"mode":              c.Mode,
+			"starts_at":         c.StartsAt,
+			"ends_at":           c.EndsAt,
+			"freeze_at":         c.FreezeAt,
+			"scoring":           c.Scoring,
+			"server_time":       now,
+			"state":             state,
+			"time_remaining_ms": timeRemaining,
+			"problem_count":     len(probs),
+			"participant_count": len(parts),
+		})
+	}
+
+	writeJSON(w, http.StatusOK, resp)
+}
+
+func (s *Server) handleGetContest(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, `{"error":"invalid contest id"}`, http.StatusBadRequest)
+		return
+	}
+
+	c, err := s.db.GetContest(r.Context(), id)
+	if err != nil {
+		http.Error(w, `{"error":"contest not found"}`, http.StatusNotFound)
+		return
+	}
+
+	now := time.Now().UTC()
+	state, timeRemaining := getContestState(c, now)
+
+	user := auth.UserFromContext(r.Context())
+	isAdmin := user != nil && user.Role == "admin"
+	isRegistered := false
+	if user != nil {
+		isRegistered, _ = s.db.IsParticipant(r.Context(), id, user.ID)
+	}
+
+	probs, err := s.db.GetContestProblems(r.Context(), id)
+	if err != nil {
+		http.Error(w, `{"error":"failed to fetch contest problems"}`, http.StatusInternalServerError)
+		return
+	}
+
+	// Pre-contest quarantine: hide problem details if contest is upcoming and caller is not admin
+	var problemSummaries []map[string]any
+	for _, p := range probs {
+		if state == models.ContestUpcoming && !isAdmin {
+			problemSummaries = append(problemSummaries, map[string]any{
+				"label":  p.Label,
+				"points": p.Points,
+			})
+		} else {
+			problemSummaries = append(problemSummaries, map[string]any{
+				"label":      p.Label,
+				"points":     p.Points,
+				"title":      p.Title,
+				"slug":       p.Slug,
+				"difficulty": p.Difficulty,
+			})
+		}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"id":                c.ID,
+		"title":             c.Title,
+		"mode":              c.Mode,
+		"starts_at":         c.StartsAt,
+		"ends_at":           c.EndsAt,
+		"freeze_at":         c.FreezeAt,
+		"scoring":           c.Scoring,
+		"server_time":       now,
+		"state":             state,
+		"time_remaining_ms": timeRemaining,
+		"is_registered":     isRegistered,
+		"problems":          problemSummaries,
+	})
+}
+
+func (s *Server) handleJoinContest(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, `{"error":"invalid contest id"}`, http.StatusBadRequest)
+		return
+	}
+
+	user := auth.UserFromContext(r.Context())
+	if user == nil {
+		http.Error(w, `{"error":"authentication required to join contest"}`, http.StatusUnauthorized)
+		return
+	}
+
+	if err := s.db.JoinContest(r.Context(), id, user.ID); err != nil {
+		slog.Error("Failed to join contest", "error", err)
+		http.Error(w, `{"error":"failed to join contest"}`, http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"status":     "joined",
+		"contest_id": id,
+		"user_id":    user.ID,
+	})
+}
+
+func (s *Server) handleGetContestProblem(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	contestID, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, `{"error":"invalid contest id"}`, http.StatusBadRequest)
+		return
+	}
+
+	label := chi.URLParam(r, "label")
+	c, err := s.db.GetContest(r.Context(), contestID)
+	if err != nil {
+		http.Error(w, `{"error":"contest not found"}`, http.StatusNotFound)
+		return
+	}
+
+	now := time.Now().UTC()
+	user := auth.UserFromContext(r.Context())
+	isAdmin := user != nil && user.Role == "admin"
+
+	// Pre-contest quarantine: block problem viewing before start
+	if now.Before(c.StartsAt) && !isAdmin {
+		http.Error(w, `{"error":"contest has not started yet"}`, http.StatusForbidden)
+		return
+	}
+
+	cp, pv, testCases, err := s.db.GetContestProblemByLabel(r.Context(), contestID, label)
+	if err != nil {
+		http.Error(w, `{"error":"contest problem not found"}`, http.StatusNotFound)
+		return
+	}
+
+	// Filter sample tests strictly (hidden tests quarantined)
+	var sampleTests []map[string]any
+	for _, tc := range testCases {
+		if tc.IsSample {
+			sampleTests = append(sampleTests, map[string]any{
+				"ordinal":     tc.Ordinal,
+				"group_name":  tc.GroupName,
+				"input_data":  tc.InputData,
+				"output_data": tc.OutputData,
+			})
+		}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"label":         cp.Label,
+		"points":        cp.Points,
+		"title":         cp.Title,
+		"slug":          cp.Slug,
+		"difficulty":    cp.Difficulty,
+		"statement_md":  pv.StatementMD,
+		"time_limit_ms": pv.TimeLimitMS,
+		"memory_mb":     pv.MemoryMB,
+		"checker_type":  pv.CheckerType,
+		"sample_tests":  sampleTests,
+	})
+}
+
+func (s *Server) handleContestSubmit(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	contestID, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, `{"error":"invalid contest id"}`, http.StatusBadRequest)
+		return
+	}
+
+	label := chi.URLParam(r, "label")
+
+	c, err := s.db.GetContest(r.Context(), contestID)
+	if err != nil {
+		http.Error(w, `{"error":"contest not found"}`, http.StatusNotFound)
+		return
+	}
+
+	// Server-authoritative timer validation
+	now := time.Now().UTC()
+	if now.Before(c.StartsAt) {
+		http.Error(w, `{"error":"contest has not started yet"}`, http.StatusBadRequest)
+		return
+	}
+	if !now.Before(c.EndsAt) {
+		http.Error(w, `{"error":"contest has already ended"}`, http.StatusBadRequest)
+		return
+	}
+
+	user := auth.UserFromContext(r.Context())
+	if user == nil {
+		http.Error(w, `{"error":"authentication required to submit to contest"}`, http.StatusUnauthorized)
+		return
+	}
+
+	// Auto-register participant if needed
+	_ = s.db.JoinContest(r.Context(), contestID, user.ID)
+
+	var req models.SubmitRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(req.Source) == "" {
+		http.Error(w, `{"error":"source code cannot be empty"}`, http.StatusBadRequest)
+		return
+	}
+	if len(req.Source) > 64*1024 {
+		http.Error(w, `{"error":"source code exceeds maximum size of 64KB"}`, http.StatusBadRequest)
+		return
+	}
+	if req.Language == "" {
+		req.Language = "cpp23-gcc"
+	}
+
+	validLangs := map[string]bool{"cpp23-gcc": true, "cpp23-clang": true, "c23-gcc": true, "c23-clang": true}
+	if !validLangs[req.Language] {
+		http.Error(w, `{"error":"unsupported language"}`, http.StatusBadRequest)
+		return
+	}
+
+	cp, pv, testCases, err := s.db.GetContestProblemByLabel(r.Context(), contestID, label)
+	if err != nil {
+		http.Error(w, `{"error":"contest problem not found"}`, http.StatusNotFound)
+		return
+	}
+
+	h := sha256.Sum256([]byte(req.Source))
+	sourceHash := hex.EncodeToString(h[:])
+
+	submissionID := uuid.New()
+	sub := &models.Submission{
+		ID:               submissionID,
+		UserID:           &user.ID,
+		ProblemVersionID: cp.ProblemVersionID,
+		ContestID:        &contestID,
+		Language:         req.Language,
+		SourceHash:       sourceHash,
+		Source:           req.Source,
+		Status:           models.StatusQueued,
+		Verdict:          models.VerdictPending,
+		CreatedAt:        now,
+	}
+
+	jobPayload := &models.JudgeJobPayload{
+		SubmissionID:  submissionID.String(),
+		AttemptID:     uuid.New().String(),
+		Language:      req.Language,
+		SourceCode:    req.Source,
+		TimeLimitMS:   int64(pv.TimeLimitMS),
+		MemoryLimitKB: int64(pv.MemoryMB * 1024),
+		CheckerType:   pv.CheckerType,
+		TestCases:     testCases,
+	}
+
+	if err := s.db.CreateSubmissionTx(r.Context(), sub, jobPayload); err != nil {
+		slog.Error("Failed to create contest submission transaction", "error", err)
+		http.Error(w, `{"error":"failed to queue contest submission"}`, http.StatusInternalServerError)
+		return
+	}
+
+	s.broker.PublishSubmissionStatus(submissionID.String(), models.StatusQueued, models.VerdictPending, nil)
+
+	writeJSON(w, http.StatusAccepted, models.SubmitResponse{
+		SubmissionID: submissionID.String(),
+		Status:       models.StatusQueued,
+	})
+}
+
+func (s *Server) handleGetLeaderboard(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	contestID, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, `{"error":"invalid contest id"}`, http.StatusBadRequest)
+		return
+	}
+
+	user := auth.UserFromContext(r.Context())
+	isAdmin := user != nil && user.Role == "admin"
+
+	board, err := s.standingsMgr.GetLeaderboard(r.Context(), contestID, isAdmin)
+	if err != nil {
+		slog.Error("Failed to get leaderboard", "contest_id", contestID, "error", err)
+		http.Error(w, `{"error":"failed to calculate leaderboard"}`, http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, board)
+}
+
+func (s *Server) handleContestEvents(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		http.Error(w, "missing contest id", http.StatusBadRequest)
+		return
+	}
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+
+	lastEventIDStr := r.Header.Get("Last-Event-ID")
+	var lastEventID int64
+	if lastEventIDStr != "" {
+		lastEventID, _ = strconv.ParseInt(lastEventIDStr, 10, 64)
+	}
+
+	sendFunc := func(eventID int64, eventType string, data []byte) error {
+		if eventID > 0 {
+			_, _ = fmt.Fprintf(w, "id: %d\n", eventID)
+		}
+		if eventType != "" {
+			_, _ = fmt.Fprintf(w, "event: %s\n", eventType)
+		}
+		_, _ = fmt.Fprintf(w, "data: %s\n\n", string(data))
+		flusher.Flush()
+		return nil
+	}
+
+	_ = s.broker.StreamSSE(r.Context(), "contest_"+id, lastEventID, sendFunc)
+}
+
+func (s *Server) handleCreateContest(w http.ResponseWriter, r *http.Request) {
+	user := auth.UserFromContext(r.Context())
+	if user == nil || user.Role != "admin" {
+		http.Error(w, `{"error":"admin role required to create contest"}`, http.StatusForbidden)
+		return
+	}
+
+	var req struct {
+		Title    string                  `json:"title"`
+		Mode     string                  `json:"mode"`
+		StartsAt time.Time               `json:"starts_at"`
+		EndsAt   time.Time               `json:"ends_at"`
+		FreezeAt *time.Time              `json:"freeze_at,omitempty"`
+		Scoring  string                  `json:"scoring"`
+		Problems []models.ContestProblem `json:"problems"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid request payload"}`, http.StatusBadRequest)
+		return
+	}
+
+	if req.Title == "" {
+		http.Error(w, `{"error":"title is required"}`, http.StatusBadRequest)
+		return
+	}
+	if req.Mode == "" {
+		req.Mode = "fixed"
+	}
+	if req.Scoring == "" {
+		req.Scoring = "icpc"
+	}
+
+	contest := &models.Contest{
+		ID:        uuid.New(),
+		Title:     req.Title,
+		Mode:      req.Mode,
+		StartsAt:  req.StartsAt,
+		EndsAt:    req.EndsAt,
+		FreezeAt:  req.FreezeAt,
+		Scoring:   req.Scoring,
+		OwnerID:   &user.ID,
+		CreatedAt: time.Now().UTC(),
+	}
+
+	if err := s.db.CreateContest(r.Context(), contest, req.Problems); err != nil {
+		slog.Error("Failed to create contest", "error", err)
+		http.Error(w, `{"error":"failed to create contest"}`, http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, contest)
 }
 

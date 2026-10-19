@@ -1,5 +1,6 @@
 import { createSignal, createEffect, onMount, For, Show } from 'solid-js';
 import { getBoilerplate } from './templates';
+import ContestArena from './ContestArena';
 
 interface ProblemSummary {
   slug: string;
@@ -92,7 +93,8 @@ interface SubmissionHistoryItem {
 }
 
 export default function App() {
-  // Navigation & Problem selection
+  // Navigation & Mode selection
+  const [viewMode, setViewMode] = createSignal<'practice' | 'contest'>('contest');
   const [problems, setProblems] = createSignal<ProblemSummary[]>([]);
   const [selectedSlug, setSelectedSlug] = createSignal<string>('two-sum');
   const [problem, setProblem] = createSignal<ProblemDetail | null>(null);
@@ -511,15 +513,42 @@ export default function App() {
             </span>
           </div>
 
-          {/* Quick Problem Switcher Button */}
-          <button
-            onClick={() => setIsCatalogOpen(true)}
-            class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-xs font-medium text-slate-300 transition"
-          >
-            <span>Problem:</span>
-            <span class="text-white font-semibold">{problem()?.title || 'Select Problem'}</span>
-            <span class="text-slate-500">▾</span>
-          </button>
+          {/* Quick Problem Switcher Button (Practice mode only) */}
+          <Show when={viewMode() === 'practice'}>
+            <button
+              onClick={() => setIsCatalogOpen(true)}
+              class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-xs font-medium text-slate-300 transition"
+            >
+              <span>Problem:</span>
+              <span class="text-white font-semibold">{problem()?.title || 'Select Problem'}</span>
+              <span class="text-slate-500">▾</span>
+            </button>
+          </Show>
+
+          {/* Mode Switcher */}
+          <div class="flex items-center bg-slate-950/80 p-1 rounded-xl border border-white/10 shadow-inner">
+            <button
+              onClick={() => setViewMode('practice')}
+              class={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                viewMode() === 'practice'
+                  ? 'bg-slate-800 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Practice Library
+            </button>
+            <button
+              onClick={() => setViewMode('contest')}
+              class={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all ${
+                viewMode() === 'contest'
+                  ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>Contest Arena</span>
+            </button>
+          </div>
         </div>
 
         <div class="flex items-center gap-4">
@@ -568,8 +597,21 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Workspace Layout */}
-      <main class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 overflow-hidden h-[calc(100vh-3.5rem)]">
+      {/* Contest Arena View */}
+      <Show when={viewMode() === 'contest'}>
+        <ContestArena
+          user={user()}
+          csrfToken={csrfToken()}
+          onOpenAuth={() => {
+            setAuthMode('login');
+            setIsAuthOpen(true);
+          }}
+        />
+      </Show>
+
+      {/* Practice Mode Main Workspace Layout */}
+      <Show when={viewMode() === 'practice'}>
+        <main class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 overflow-hidden h-[calc(100vh-3.5rem)]">
         {/* Left Column: Problem Statement & Constraints */}
         <section class="flex flex-col gap-4 overflow-y-auto pr-1">
           <div class="glass-panel rounded-xl p-6 shadow-xl flex-1 flex flex-col">
@@ -1036,6 +1078,7 @@ export default function App() {
           </div>
         </section>
       </main>
+      </Show>
 
       {/* Problem Catalog Modal */}
       <Show when={isCatalogOpen()}>

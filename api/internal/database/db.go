@@ -634,3 +634,220 @@ func (db *DB) ListSubmissions(ctx context.Context, slug string, userID *uuid.UUI
 	}
 	return list, nil
 }
+
+// Contest queries
+
+func (db *DB) CreateContest(ctx context.Context, c *models.Contest, problems []models.ContestProblem) error {
+	tx, err := db.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	if c.ID == uuid.Nil {
+		c.ID = uuid.New()
+	}
+	if c.CreatedAt.IsZero() {
+		c.CreatedAt = time.Now().UTC()
+	}
+
+	queryContest := `
+		INSERT INTO contests (id, title, mode, starts_at, ends_at, freeze_at, scoring, owner_id, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	`
+	_, err = tx.Exec(ctx, queryContest, c.ID, c.Title, c.Mode, c.StartsAt, c.EndsAt, c.FreezeAt, c.Scoring, c.OwnerID, c.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	for _, p := range problems {
+		queryProb := `
+			INSERT INTO contest_problems (contest_id, problem_version_id, label, points)
+			VALUES ($1, $2, $3, $4)
+			ON CONFLICT (contest_id, problem_version_id) DO UPDATE SET label = EXCLUDED.label, points = EXCLUDED.points
+		`
+		if _, err := tx.Exec(ctx, queryProb, c.ID, p.ProblemVersionID, p.Label, p.Points); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit(ctx)
+}
+
+func (db *DB) GetContest(ctx context.Context, id uuid.UUID) (*models.Contest, error) {
+	query := `
+		SELECT id, title, mode, starts_at, ends_at, freeze_at, scoring, owner_id, created_at
+		FROM contests
+		WHERE id = $1
+	`
+	var c models.Contest
+	err := db.pool.QueryRow(ctx, query, id).Scan(
+		&c.ID, &c.Title, &c.Mode, &c.StartsAt, &c.EndsAt, &c.FreezeAt, &c.Scoring, &c.OwnerID, &c.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
+func (db *DB) ListContests(ctx context.Context, mode string) ([]models.Contest, error) {
+	query := `
+		SELECT id, title, mode, starts_at, ends_at, freeze_at, scoring, owner_id, created_at
+		FROM contests
+		WHERE ($1 = '' OR mode = $1)
+		ORDER BY starts_at DESC
+	`
+	rows, err := db.pool.Query(ctx, query, mode)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	list := make([]models.Contest, 0)
+	for rows.Next() {
+		var c models.Contest
+		if err := rows.Scan(&c.ID, &c.Title, &c.Mode, &c.StartsAt, &c.EndsAt, &c.FreezeAt, &c.Scoring, &c.OwnerID, &c.CreatedAt); err == nil {
+			list = append(list, c)
+		}
+	}
+	return list, nil
+}
+
+func (db *DB) JoinContest(ctx context.Context, contestID, userID uuid.UUID) error {
+	query := `
+		INSERT INTO participants (contest_id, user_id, joined_at)
+		VALUES ($1, $2, NOW())
+		ON CONFLICT (contest_id, user_id) DO NOTHING
+	`
+	_, err := db.pool.Exec(ctx, query, contestID, userID)
+	return err
+}
+
+func (db *DB) IsParticipant(ctx context.Context, contestID, userID uuid.UUID) (bool, error) {
+	var exists bool
+	query := `SELECT EXISTS(SELECT 1 FROM participants WHERE contest_id = $1 AND user_id = $2)`
+	err := db.pool.QueryRow(ctx, query, contestID, userID).Scan(&exists)
+	return exists, err
+}
+
+func (db *DB) GetContestProblems(ctx context.Context, contestID uuid.UUID) ([]models.ContestProblem, error) {
+	query := `
+		SELECT cp.contest_id, cp.problem_version_id, cp.label, cp.points, pv.title, p.slug, pv.difficulty
+		FROM contest_problems cp
+		JOIN problem_versions pv ON pv.id = cp.problem_version_id
+		JOIN problems p ON p.id = pv.problem_id
+		WHERE cp.contest_id = $1
+		ORDER BY cp.label ASC
+	`
+	rows, err := db.pool.Query(ctx, query, contestID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	list := make([]models.ContestProblem, 0)
+	for rows.Next() {
+		var cp models.ContestProblem
+		if err := rows.Scan(&cp.ContestID, &cp.ProblemVersionID, &cp.Label, &cp.Points, &cp.Title, &cp.Slug, &cp.Difficulty); err == nil {
+			list = append(list, cp)
+		}
+	}
+	return list, nil
+}
+
+func (db *DB) GetContestProblemByLabel(ctx context.Context, contestID uuid.UUID, label string) (*models.ContestProblem, *models.ProblemVersion, []models.TestCase, error) {
+	query := `
+		SELECT cp.contest_id, cp.problem_version_id, cp.label, cp.points, pv.title, p.slug, pv.difficulty,
+		       pv.statement_md, pv.time_limit_ms, pv.memory_mb, pv.checker_type, pv.version, pv.package_hash, pv.published_at
+		FROM contest_problems cp
+		JOIN problem_versions pv ON pv.id = cp.problem_version_id
+		JOIN problems p ON p.id = pv.problem_id
+		WHERE cp.contest_id = $1 AND UPPER(cp.label) = UPPER($2)
+	`
+	var cp models.ContestProblem
+	var pv models.ProblemVersion
+	err := db.pool.QueryRow(ctx, query, contestID, label).Scan(
+		&cp.ContestID, &cp.ProblemVersionID, &cp.Label, &cp.Points, &cp.Title, &cp.Slug, &cp.Difficulty,
+		&pv.StatementMD, &pv.TimeLimitMS, &pv.MemoryMB, &pv.CheckerType, &pv.Version, &pv.PackageHash, &pv.PublishedAt,
+	)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	pv.ID = cp.ProblemVersionID
+	pv.Title = cp.Title
+
+	// Fetch test cases
+	tcRows, err := db.pool.Query(ctx, `
+		SELECT id, problem_version_id, group_name, ordinal, input_data, output_data, is_sample
+		FROM test_cases
+		WHERE problem_version_id = $1
+		ORDER BY ordinal ASC
+	`, pv.ID)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	defer tcRows.Close()
+
+	var testCases []models.TestCase
+	for tcRows.Next() {
+		var tc models.TestCase
+		if err := tcRows.Scan(&tc.ID, &tc.ProblemVersionID, &tc.GroupName, &tc.Ordinal, &tc.InputData, &tc.OutputData, &tc.IsSample); err == nil {
+			testCases = append(testCases, tc)
+		}
+	}
+
+	return &cp, &pv, testCases, nil
+}
+
+func (db *DB) GetContestParticipants(ctx context.Context, contestID uuid.UUID) ([]models.Participant, error) {
+	query := `
+		SELECT p.contest_id, p.user_id, u.name, u.email, p.joined_at
+		FROM participants p
+		JOIN users u ON u.id = p.user_id
+		WHERE p.contest_id = $1
+		ORDER BY p.joined_at ASC
+	`
+	rows, err := db.pool.Query(ctx, query, contestID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	list := make([]models.Participant, 0)
+	for rows.Next() {
+		var p models.Participant
+		if err := rows.Scan(&p.ContestID, &p.UserID, &p.UserName, &p.UserEmail, &p.JoinedAt); err == nil {
+			list = append(list, p)
+		}
+	}
+	return list, nil
+}
+
+func (db *DB) GetContestSubmissions(ctx context.Context, contestID uuid.UUID) ([]models.Submission, error) {
+	query := `
+		SELECT id, user_id, problem_version_id, contest_id, language, source_hash, source,
+		       status, verdict, time_ms, memory_kb, instructions, failed_test, failed_group,
+		       compile_output, judge_host, created_at, judged_at
+		FROM submissions
+		WHERE contest_id = $1
+		ORDER BY created_at ASC
+	`
+	rows, err := db.pool.Query(ctx, query, contestID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	list := make([]models.Submission, 0)
+	for rows.Next() {
+		var s models.Submission
+		if err := rows.Scan(
+			&s.ID, &s.UserID, &s.ProblemVersionID, &s.ContestID, &s.Language, &s.SourceHash, &s.Source,
+			&s.Status, &s.Verdict, &s.TimeMS, &s.MemoryKB, &s.Instructions, &s.FailedTest, &s.FailedGroup,
+			&s.CompileOutput, &s.JudgeHost, &s.CreatedAt, &s.JudgedAt,
+		); err == nil {
+			list = append(list, s)
+		}
+	}
+	return list, nil
+}
