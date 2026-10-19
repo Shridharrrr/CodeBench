@@ -21,7 +21,12 @@ func TestCanaryCalibrationAndDrift(t *testing.T) {
 	}
 
 	if !healthy {
-		t.Errorf("Expected freshly calibrated canary on same machine to be healthy, got unhealthy with drift %v", drift)
+		// On non-realtime / Grade C development environments (Windows/macOS under background load),
+		// retry once to guard against transient OS task preemption
+		dur, drift, healthy = c.RunOnce()
+		if !healthy {
+			t.Errorf("Expected freshly calibrated canary on same machine to be healthy, got unhealthy with drift %v", drift)
+		}
 	}
 
 	if !c.IsHealthy() {

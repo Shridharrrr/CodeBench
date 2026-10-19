@@ -38,14 +38,27 @@ func NewCanary(interval time.Duration, tolerance float64) *Canary {
 }
 
 func (c *Canary) calibrate() {
-	// Run 3 warmup passes and average to establish host baseline
-	var total time.Duration
-	for i := 0; i < 3; i++ {
-		total += c.executeDeterministicWorkload()
+	// Warm up
+	for i := 0; i < 2; i++ {
+		c.executeDeterministicWorkload()
 	}
+
+	// Run 5 passes and compute median
+	samples := make([]time.Duration, 5)
+	for i := 0; i < 5; i++ {
+		samples[i] = c.executeDeterministicWorkload()
+	}
+	for i := 0; i < len(samples); i++ {
+		for j := i + 1; j < len(samples); j++ {
+			if samples[i] > samples[j] {
+				samples[i], samples[j] = samples[j], samples[i]
+			}
+		}
+	}
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.baseline = total / 3
+	c.baseline = samples[2] // Median of 5
 	c.lastDuration = c.baseline
 	c.driftRatio = 0.0
 	c.healthy = true
@@ -68,9 +81,22 @@ func (c *Canary) Start(ctx context.Context) {
 	}
 }
 
-// RunOnce executes a single calibration run and measures timing drift
+// RunOnce executes calibration runs and takes the median to filter out OS scheduler spikes
 func (c *Canary) RunOnce() (time.Duration, float64, bool) {
-	dur := c.executeDeterministicWorkload()
+	s := make([]time.Duration, 3)
+	for i := 0; i < 3; i++ {
+		s[i] = c.executeDeterministicWorkload()
+	}
+	if s[0] > s[1] {
+		s[0], s[1] = s[1], s[0]
+	}
+	if s[1] > s[2] {
+		s[1], s[2] = s[2], s[1]
+	}
+	if s[0] > s[1] {
+		s[0], s[1] = s[1], s[0]
+	}
+	dur := s[1] // Median
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -131,9 +157,9 @@ func (c *Canary) IsHealthy() bool {
 func (c *Canary) executeDeterministicWorkload() time.Duration {
 	start := time.Now()
 
-	// 1,000,000 deterministic operations
+	// Deterministic workload designed to measure CPU-bound execution speed
 	var acc uint64 = 14695981039346656037
-	for i := uint64(0); i < 500000; i++ {
+	for i := uint64(0); i < 20000000; i++ {
 		acc ^= i * 1099511628211
 		acc = (acc << 13) | (acc >> 51)
 		acc += (acc ^ (acc >> 7))

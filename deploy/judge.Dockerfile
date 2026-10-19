@@ -16,5 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 COPY --from=builder /app/target/release/codebench-judge /usr/local/bin/codebench-judge
-RUN mkdir -p /var/cache/codebench /var/run/codebench/slots
+RUN groupadd -g 10001 codebench && useradd -u 10001 -g codebench -s /bin/false codebench \
+    && mkdir -p /var/cache/codebench /var/run/codebench/slots /var/run/codebench/work \
+    && chown -R 10001:10001 /var/cache/codebench /var/run/codebench
 ENTRYPOINT ["/usr/local/bin/codebench-judge"]

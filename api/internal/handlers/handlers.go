@@ -23,6 +23,7 @@ import (
 	"github.com/codebench/codebench/api/internal/queue"
 	"github.com/codebench/codebench/api/internal/rejudge"
 	"github.com/codebench/codebench/api/internal/runner"
+	"github.com/codebench/codebench/api/internal/security"
 	"github.com/codebench/codebench/api/internal/seed"
 	"github.com/codebench/codebench/api/internal/standings"
 	"github.com/codebench/codebench/pkg/problems"
@@ -33,26 +34,30 @@ import (
 )
 
 type Server struct {
-	router       *chi.Mux
-	db           *database.DB
-	queueMgr     *queue.NATSManager
-	broker       *events.Broker
-	authHandler  *auth.AuthHandler
-	standingsMgr *standings.StandingsManager
-	rejudgeSvc   *rejudge.Service
-	canaryRunner *canary.Canary
+	router            *chi.Mux
+	db                *database.DB
+	queueMgr          *queue.NATSManager
+	broker            *events.Broker
+	authHandler       *auth.AuthHandler
+	standingsMgr      *standings.StandingsManager
+	rejudgeSvc        *rejudge.Service
+	canaryRunner      *canary.Canary
+	authRateLimiter   *security.RateLimiter
+	submitRateLimiter *security.RateLimiter
 }
 
 func NewServer(db *database.DB, queueMgr *queue.NATSManager, broker *events.Broker, standingsMgr *standings.StandingsManager) *Server {
 	s := &Server{
-		router:       chi.NewRouter(),
-		db:           db,
-		queueMgr:     queueMgr,
-		broker:       broker,
-		authHandler:  auth.NewAuthHandler(db),
-		standingsMgr: standingsMgr,
-		rejudgeSvc:   rejudge.NewService(db, broker),
-		canaryRunner: canary.NewCanary(60*time.Second, 0.15),
+		router:            chi.NewRouter(),
+		db:                db,
+		queueMgr:          queueMgr,
+		broker:            broker,
+		authHandler:       auth.NewAuthHandler(db),
+		standingsMgr:      standingsMgr,
+		rejudgeSvc:        rejudge.NewService(db, broker),
+		canaryRunner:      canary.NewCanary(60*time.Second, 0.15),
+		authRateLimiter:   security.NewRateLimiter(30, time.Minute),
+		submitRateLimiter: security.NewRateLimiter(60, time.Minute),
 	}
 
 	s.setupRoutes()
@@ -81,6 +86,10 @@ func (s *Server) setupRoutes() {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
 
+	// Global security headers and body limit
+	r.Use(security.SecurityHeaders)
+	r.Use(security.BodyLimit(10 * 1024 * 1024))
+
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:8080", "http://localhost:5173", "http://127.0.0.1:8080", "http://127.0.0.1:5173"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -101,10 +110,10 @@ func (s *Server) setupRoutes() {
 
 	// API routes
 	r.Route("/api", func(r chi.Router) {
-		// Auth routes
+		// Auth routes (rate-limited)
 		r.Route("/auth", func(r chi.Router) {
-			r.Post("/register", s.authHandler.HandleRegister)
-			r.Post("/login", s.authHandler.HandleLogin)
+			r.With(s.authRateLimiter.Middleware()).Post("/register", s.authHandler.HandleRegister)
+			r.With(s.authRateLimiter.Middleware()).Post("/login", s.authHandler.HandleLogin)
 			r.Post("/logout", s.authHandler.HandleLogout)
 			r.Get("/me", s.authHandler.HandleMe)
 		})
@@ -115,7 +124,7 @@ func (s *Server) setupRoutes() {
 		r.Post("/problems/validate", s.handleValidateProblem)
 		r.Post("/problems/import", s.handleImportProblem)
 		r.Post("/problems/{slug}/run", s.handleRunSample)
-		r.Post("/problems/{slug}/submit", s.handleSubmit)
+		r.With(security.BodyLimit(1*1024*1024), s.submitRateLimiter.Middleware()).Post("/problems/{slug}/submit", s.handleSubmit)
 
 		// Submissions
 		r.Get("/submissions", s.handleListSubmissions)
@@ -128,7 +137,7 @@ func (s *Server) setupRoutes() {
 		r.Get("/contests/{id}", s.handleGetContest)
 		r.Post("/contests/{id}/join", s.handleJoinContest)
 		r.Get("/contests/{id}/problems/{label}", s.handleGetContestProblem)
-		r.Post("/contests/{id}/problems/{label}/submit", s.handleContestSubmit)
+		r.With(security.BodyLimit(1*1024*1024), s.submitRateLimiter.Middleware()).Post("/contests/{id}/problems/{label}/submit", s.handleContestSubmit)
 		r.Get("/contests/{id}/leaderboard", s.handleGetLeaderboard)
 		r.Get("/contests/{id}/events", s.handleContestEvents)
 
@@ -138,8 +147,11 @@ func (s *Server) setupRoutes() {
 
 		// Admin Operations
 		r.Route("/admin", func(r chi.Router) {
+			r.Use(security.RequireRole("admin"))
 			r.Post("/rejudge", s.handleAdminRejudge)
 			r.Get("/rejudge/{id}", s.handleGetRejudgeStatus)
+			r.Post("/problems/import", s.handleImportProblem)
+			r.Post("/problems/validate", s.handleValidateProblem)
 		})
 	})
 
@@ -572,7 +584,14 @@ func (s *Server) handleGetSubmission(w http.ResponseWriter, r *http.Request) {
 			if sub.Results[i].Verdict == models.VerdictWA {
 				sub.Results[i].Diagnostic = "Wrong Answer"
 			}
+			if len(sub.Results[i].Diagnostic) > 512 {
+				sub.Results[i].Diagnostic = sub.Results[i].Diagnostic[:512] + "... [truncated]"
+			}
 		}
+	}
+	if sub.CompileOutput != nil && len(*sub.CompileOutput) > 4096 {
+		truncated := (*sub.CompileOutput)[:4096] + "\n... [truncated]"
+		sub.CompileOutput = &truncated
 	}
 
 	writeJSON(w, http.StatusOK, sub)
@@ -624,6 +643,11 @@ func (s *Server) handleSubmissionEvents(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) handleValidateProblem(w http.ResponseWriter, r *http.Request) {
+	if u := auth.UserFromContext(r.Context()); u != nil && u.Role != "admin" {
+		http.Error(w, `{"error":"forbidden: admin privileges required"}`, http.StatusForbidden)
+		return
+	}
+
 	var body struct {
 		Path string `json:"path"`
 	}
@@ -647,6 +671,10 @@ func (s *Server) handleValidateProblem(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleImportProblem(w http.ResponseWriter, r *http.Request) {
+	if u := auth.UserFromContext(r.Context()); u != nil && u.Role != "admin" {
+		http.Error(w, `{"error":"forbidden: admin privileges required"}`, http.StatusForbidden)
+		return
+	}
 	var body struct {
 		Path string `json:"path"`
 	}

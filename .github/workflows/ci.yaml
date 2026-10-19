@@ -7,8 +7,8 @@ on:
     branches: [ master, main ]
 
 jobs:
-  test-api:
-    name: Test Go API
+  test-go:
+    name: Test Go Services & SAT
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,17 +17,24 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.24'
-          cache-dependency-path: api/go.sum
+          cache-dependency-path: go.sum
 
-      - name: Run Go tests
-        run: |
-          cd api
-          go test -v -race ./...
+      - name: Verify Go Modules
+        run: go mod verify
 
-      - name: Run Go vet
+      - name: Run Go Vet
+        run: go vet ./...
+
+      - name: Run Go Test Suite (Unit & Integration)
+        run: go test -v -race ./...
+
+      - name: Run Problem Parser Fuzzing
+        run: go test -fuzz=FuzzLoadPackage -fuzztime=10s ./pkg/problems
+
+      - name: Run Setup Acceptance & Escape Corpus Tests
         run: |
-          cd api
-          go vet ./...
+          go test -v ./tests/...
+          go test -v -run "TestEscapeCorpus|TestSetupAcceptance" ./api/internal/integration/...
 
   test-judge:
     name: Test Rust Judge
@@ -42,9 +49,8 @@ jobs:
 
       - name: Run Cargo check & test
         run: |
-          cd judge
-          cargo check
-          cargo test
+          cargo check --manifest-path judge/Cargo.toml
+          cargo test --manifest-path judge/Cargo.toml
 
   test-web:
     name: Test Web Frontend
@@ -64,3 +70,29 @@ jobs:
           cd web
           npm ci || npm install
           npm run build
+
+  build-containers:
+    name: Verify Docker Container Builds
+    runs-on: ubuntu-latest
+    needs: [test-go, test-web]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build API Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deploy/api.Dockerfile
+          push: false
+          tags: codebench-api:ci-test
+
+      - name: Build Judge Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deploy/judge.Dockerfile
+          push: false
+          tags: codebench-judge:ci-test

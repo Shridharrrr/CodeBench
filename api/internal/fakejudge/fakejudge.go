@@ -50,7 +50,7 @@ func (fj *FakeJudge) Start(ctx context.Context) error {
 		}
 		time.Sleep(100 * time.Millisecond)
 
-		verdictPayload := fj.evaluate(job)
+		verdictPayload := fj.Evaluate(job)
 
 		// Publish verdict to NATS verdicts.submissions
 		data, err := json.Marshal(verdictPayload)
@@ -85,6 +85,10 @@ func (fj *FakeJudge) Start(ctx context.Context) error {
 }
 
 func (fj *FakeJudge) evaluate(job models.JudgeJobPayload) models.JudgeVerdictPayload {
+	return fj.Evaluate(job)
+}
+
+func (fj *FakeJudge) Evaluate(job models.JudgeJobPayload) models.JudgeVerdictPayload {
 	vp := models.JudgeVerdictPayload{
 		SubmissionID:      job.SubmissionID,
 		AttemptID:         job.AttemptID,
@@ -99,14 +103,14 @@ func (fj *FakeJudge) evaluate(job models.JudgeJobPayload) models.JudgeVerdictPay
 	src := job.SourceCode
 
 	// CE test
-	if strings.Contains(src, "// CE") || strings.Contains(src, "syntax_error_here") {
+	if strings.Contains(src, "// CE") || strings.Contains(src, "syntax_error_here") || strings.Contains(src, "Compiler Template Bomb") {
 		vp.Verdict = models.VerdictCE
-		vp.CompileOutput = "sol.cpp: In function 'int main()': error: expected ';' before 'return'"
+		vp.CompileOutput = "sol.cpp: In function 'int main()': error: template instantiation depth exceeded / unauthorized header inclusion"
 		return vp
 	}
 
 	// TLE test
-	if strings.Contains(src, "// TLE") || strings.Contains(src, "for (int i = 0; i < n; ++i) { for (int j = i + 1; j < n; ++j)") {
+	if strings.Contains(src, "// TLE") || strings.Contains(src, "for (int i = 0; i < n; ++i) { for (int j = i + 1; j < n; ++j)") || strings.Contains(src, "Infinite Busy Loop") {
 		vp.Verdict = models.VerdictTLE
 		vp.TotalTimeMS = job.TimeLimitMS + 200
 		fTest := 1
@@ -124,8 +128,45 @@ func (fj *FakeJudge) evaluate(job models.JudgeJobPayload) models.JudgeVerdictPay
 		return vp
 	}
 
+	// MLE test
+	if strings.Contains(src, "// MLE") || strings.Contains(src, "Memory Exhaustion") {
+		vp.Verdict = models.VerdictMLE
+		vp.PeakMemoryKB = 8 * 1024 * 1024
+		fTest := 1
+		fGroup := "max-size"
+		vp.FailedTest = &fTest
+		vp.FailedGroup = &fGroup
+		vp.TestResults = append(vp.TestResults, models.JudgeTestResultDetail{
+			Ordinal:    1,
+			GroupName:  "max-size",
+			Verdict:    models.VerdictMLE,
+			TimeMS:     50,
+			MemoryKB:   512 * 1024,
+			Diagnostic: "Memory limit exceeded (cgroup memory cap breached)",
+		})
+		return vp
+	}
+
+	// OLE test
+	if strings.Contains(src, "// OLE") || strings.Contains(src, "Output Flooding") {
+		vp.Verdict = models.VerdictOLE
+		fTest := 1
+		fGroup := "sample"
+		vp.FailedTest = &fTest
+		vp.FailedGroup = &fGroup
+		vp.TestResults = append(vp.TestResults, models.JudgeTestResultDetail{
+			Ordinal:    1,
+			GroupName:  "sample",
+			Verdict:    models.VerdictOLE,
+			TimeMS:     40,
+			MemoryKB:   4096,
+			Diagnostic: "Output limit exceeded (stdout buffer cap breached)",
+		})
+		return vp
+	}
+
 	// WA test
-	if strings.Contains(src, "// WA") || strings.Contains(src, "-1 -1") {
+	if strings.Contains(src, "// WA") || strings.Contains(src, "-1 -1") || strings.Contains(src, "Host Filesystem Traversal Probe") {
 		vp.Verdict = models.VerdictWA
 		fTest := 1
 		fGroup := "sample"
@@ -137,13 +178,13 @@ func (fj *FakeJudge) evaluate(job models.JudgeJobPayload) models.JudgeVerdictPay
 			Verdict:    models.VerdictWA,
 			TimeMS:     8,
 			MemoryKB:   2048,
-			Diagnostic: "Wrong Answer: expected '0 1', got '-1 -1'",
+			Diagnostic: "Wrong Answer: output mismatch or non-breach exit code",
 		})
 		return vp
 	}
 
 	// RE test
-	if strings.Contains(src, "// RE") {
+	if strings.Contains(src, "// RE") || strings.Contains(src, "Fork Bomb") || strings.Contains(src, "Thread Explosion Bomb") || strings.Contains(src, "Stack Overflow Exhaustion") || strings.Contains(src, "Unauthorized Syscall Probe") {
 		vp.Verdict = models.VerdictRE
 		fTest := 1
 		vp.FailedTest = &fTest
@@ -153,7 +194,7 @@ func (fj *FakeJudge) evaluate(job models.JudgeJobPayload) models.JudgeVerdictPay
 			Verdict:    models.VerdictRE,
 			TimeMS:     4,
 			MemoryKB:   2048,
-			Diagnostic: "Runtime error: signal 11 (SIGSEGV)",
+			Diagnostic: "Runtime error: process killed by sandbox security limits",
 		})
 		return vp
 	}
