@@ -1,0 +1,28 @@
+slug: binary-search
+version: 1
+title: Binary Search
+difficulty: Easy
+tags:
+  - binary-search
+  - array
+languages:
+  - cpp23-gcc
+  - cpp23-clang
+  - c23-gcc
+  - c23-clang
+limits:
+  time_limit_ms: 1000
+  memory_limit_mb: 256
+checker:
+  type: token
+complexity:
+  policy: query_or_scaling
+  time_complexity: "O(log N)"
+  space_complexity: "O(1)"
+test_groups:
+  - name: sample
+    weight: 0
+  - name: small
+    weight: 30
+  - name: max-size
+    weight: 70
