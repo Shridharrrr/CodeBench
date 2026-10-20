@@ -776,7 +776,7 @@ Print the single integer answer.
   };
 
   return (
-    <div class="max-w-5xl mx-auto w-full px-6 py-8 space-y-6 relative">
+    <div class="max-w-5xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-6 relative">
       <TopProgressBar active={eventSubmitting() || probSubmitting() || rejudgeRunning() || adjSubmitting()} />
       {/* Top Header */}
       <div class="flex flex-col md:flex-row md:items-center justify-between pb-5 border-b border-[#d4d6dc] dark:border-[#262a32] gap-4">
@@ -786,11 +786,11 @@ Print the single integer answer.
               Admin
             </span>
             <h1 class="text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
-              Admin Dashboard
+              Competition Hosting & Management
             </h1>
           </div>
           <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-            Manage competition schedules, problem authoring, score adjustments, and squads.
+            Host live coding tournaments, configure scoring formulas, author problem sets, and manage participant squads.
           </p>
         </div>
 
@@ -820,16 +820,16 @@ Print the single integer answer.
             class="btn-workstation btn-workstation-primary text-xs"
           >
             <IconPlus class="w-3.5 h-3.5" />
-            <span>New Contest</span>
+            <span>Host New Contest</span>
           </button>
         </div>
       </div>
 
       {/* Segmented Tabs Navigation */}
-      <div class="flex flex-wrap items-center gap-1.5 p-1 bg-[#eaedf1] dark:bg-[#14171d] rounded-[2px] border border-[#d4d6dc] dark:border-[#262a32] text-xs font-medium">
+      <div class="flex items-center gap-1.5 p-1 bg-[#eaedf1] dark:bg-[#14171d] rounded-[2px] border border-[#d4d6dc] dark:border-[#262a32] text-xs font-medium overflow-x-auto no-scrollbar">
         <button
           onClick={() => setActiveTab('event')}
-          class={`flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] transition ${
+          class={`flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] transition shrink-0 ${
             activeTab() === 'event'
               ? 'bg-white dark:bg-[#212530] text-zinc-900 dark:text-white font-semibold border border-[#d4d6dc] dark:border-[#2f3544] shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
               : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
@@ -841,7 +841,7 @@ Print the single integer answer.
 
         <button
           onClick={() => setActiveTab('new_problem')}
-          class={`flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] transition ${
+          class={`flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] transition shrink-0 ${
             activeTab() === 'new_problem'
               ? 'bg-white dark:bg-[#212530] text-zinc-900 dark:text-white font-semibold border border-[#d4d6dc] dark:border-[#2f3544] shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
               : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
@@ -853,7 +853,7 @@ Print the single integer answer.
 
         <button
           onClick={() => setActiveTab('adjustments')}
-          class={`flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] transition ${
+          class={`flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] transition shrink-0 ${
             activeTab() === 'adjustments'
               ? 'bg-white dark:bg-[#212530] text-zinc-900 dark:text-white font-semibold border border-[#d4d6dc] dark:border-[#2f3544] shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
               : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
@@ -865,7 +865,7 @@ Print the single integer answer.
 
         <button
           onClick={() => setActiveTab('rejudge')}
-          class={`flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] transition ${
+          class={`flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] transition shrink-0 ${
             activeTab() === 'rejudge'
               ? 'bg-white dark:bg-[#212530] text-zinc-900 dark:text-white font-semibold border border-[#d4d6dc] dark:border-[#2f3544] shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
               : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
@@ -877,7 +877,7 @@ Print the single integer answer.
 
         <button
           onClick={() => { setActiveTab('teams'); fetchTeams(); }}
-          class={`flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] transition ${
+          class={`flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] transition shrink-0 ${
             activeTab() === 'teams'
               ? 'bg-white dark:bg-[#212530] text-zinc-900 dark:text-white font-semibold border border-[#d4d6dc] dark:border-[#2f3544] shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
               : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'

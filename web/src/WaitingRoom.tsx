@@ -214,7 +214,7 @@ export default function WaitingRoom(props: WaitingRoomProps) {
   };
 
   return (
-    <div class="flex-1 flex flex-col items-center justify-center py-10 px-6 max-w-4xl mx-auto w-full text-zinc-900 dark:text-zinc-100 font-sans">
+    <div class="flex-1 flex flex-col items-center justify-center py-6 sm:py-10 px-4 sm:px-6 max-w-4xl mx-auto w-full text-zinc-900 dark:text-zinc-100 font-sans">
       {/* Contest Status Header */}
       <div class="text-center mb-6">
         <div class="inline-flex items-center gap-2 mb-2 font-mono">
@@ -222,27 +222,27 @@ export default function WaitingRoom(props: WaitingRoomProps) {
             {props.contest.is_paused ? 'Contest Paused' : 'Contest Scheduled'}
           </span>
         </div>
-        <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+        <h1 class="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
           {props.contest.title}
         </h1>
-        <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-lg mx-auto">
-          Problems and the code editor will unlock once the round begins.
+        <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-lg mx-auto leading-relaxed">
+          The arena and code editor will unlock automatically once the round clock initiates.
         </p>
       </div>
 
       {/* Countdown Timer Card */}
-      <div class="notion-card w-full p-6 text-center mb-6 bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px] shadow-[1px_1px_0px_rgba(0,0,0,0.06)] dark:shadow-[1px_1px_0px_rgba(0,0,0,0.4)]">
+      <div class="notion-card w-full p-5 sm:p-6 text-center mb-6 bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px] shadow-[1px_1px_0px_rgba(0,0,0,0.06)] dark:shadow-[1px_1px_0px_rgba(0,0,0,0.4)]">
         <span class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
           Contest Starts In
         </span>
         <div class="my-3 flex justify-center">
-          <div class="digital-clock-box px-6 py-2.5">
-            <span class="font-mono text-4xl md:text-5xl font-black text-zinc-900 dark:text-sky-400 tracking-wider">
+          <div class="digital-clock-box px-4 sm:px-6 py-2 sm:py-2.5">
+            <span class="font-mono text-3xl sm:text-4xl md:text-5xl font-black text-zinc-900 dark:text-sky-400 tracking-wider">
               {countdown()}
             </span>
           </div>
         </div>
-        <div class="flex flex-wrap items-center justify-center gap-3 text-xs text-zinc-600 dark:text-zinc-400">
+        <div class="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 text-xs text-zinc-600 dark:text-zinc-400">
           <span>Scoring: <strong class="text-zinc-900 dark:text-zinc-200 uppercase">{props.contest.scoring}</strong></span>
           <span class="text-zinc-300 dark:text-zinc-700">&bull;</span>
           <span>Start: <strong class="text-zinc-900 dark:text-zinc-200">{formatIST(props.contest.starts_at)}</strong></span>
@@ -373,18 +373,18 @@ export default function WaitingRoom(props: WaitingRoomProps) {
       <div class="notion-card w-full p-5 bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px] shadow-[1px_1px_0px_rgba(0,0,0,0.05)] text-xs">
         <h3 class="font-semibold text-zinc-800 dark:text-zinc-200 mb-2.5 flex items-center gap-2">
           <IconShield class="w-3.5 h-3.5 text-zinc-500" />
-          <span>Contest Rules & Environment</span>
+          <span>Competition Guidelines & Sandbox Rules</span>
         </h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-zinc-600 dark:text-zinc-400">
           <ul class="space-y-1 list-disc list-inside">
-            <li>Linux kernel namespace isolation per submission</li>
-            <li>Hardware instruction counter enforces deterministic evaluation</li>
-            <li>Runtimes: C++23, C23, Python 3.12, Rust 1.85, Go 1.24</li>
+            <li>Automated testcase evaluation in isolated Linux sandboxes</li>
+            <li>Supported runtimes: C++23, C23, Python 3.12, Rust 1.85, Go 1.24</li>
+            <li>Server-authoritative contest clock with synchronized tournament timing</li>
           </ul>
           <ul class="space-y-1 list-disc list-inside">
-            <li>Standard memory quota: 256MB, CPU timeout: 1000ms</li>
-            <li>Real-time progression during hidden test evaluation</li>
-            <li>Server-authoritative timer synchronization across participants</li>
+            <li>Standard execution limits: 256MB memory quota, 1000ms CPU timeout</li>
+            <li>Live standings update dynamically on every accepted solution</li>
+            <li>Form squads using the 6-character captain code before the round unlocks</li>
           </ul>
         </div>
       </div>

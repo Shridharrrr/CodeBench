@@ -213,28 +213,25 @@ export default function App() {
   return (
     <div class="min-h-screen bg-[#f4f5f7] dark:bg-[#090a0c] text-zinc-900 dark:text-zinc-100 flex flex-col font-sans select-none transition-colors duration-100">
       {/* Top Header Navigation: Classic Workstation Status Bar */}
-      <header class="h-12 border-b border-[#d4d6dc] dark:border-[#262a32] bg-white dark:bg-[#111316] px-5 flex items-center justify-between sticky top-0 z-40">
-        <div class="flex items-center gap-5">
+      <header class="h-12 border-b border-[#d4d6dc] dark:border-[#262a32] bg-white dark:bg-[#111316] px-3 sm:px-5 flex items-center justify-between sticky top-0 z-40 gap-2">
+        <div class="flex items-center gap-2 sm:gap-4 min-w-0">
           <div
-            class="flex items-center gap-2 cursor-pointer group"
+            class="flex items-center gap-2 cursor-pointer group shrink-0"
             onClick={() => setViewMode('home')}
           >
             <div class="w-6 h-6 rounded-xs bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 flex items-center justify-center font-mono font-black text-xs border border-zinc-700 dark:border-zinc-300 shadow-[1px_1px_0px_rgba(0,0,0,0.2)]">
               CB
             </div>
-            <span class="font-mono font-bold text-sm tracking-tight text-zinc-900 dark:text-zinc-100">
+            <span class="font-mono font-bold text-xs sm:text-sm tracking-tight text-zinc-900 dark:text-zinc-100 hidden xs:inline-block">
               CODEBENCH
-            </span>
-            <span class="hidden sm:inline-block font-mono text-[9px] px-1.5 py-0.5 rounded-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-300 dark:border-zinc-700">
-              v1.4.2
             </span>
           </div>
 
-          {/* Clean Classic Navigation Tabs */}
-          <nav class="flex items-center bg-[#eaecf0] dark:bg-[#181a20] p-0.5 rounded-[2px] border border-[#d4d6dc] dark:border-[#272b34] font-medium text-xs">
+          {/* Clean Classic Navigation Tabs (Scrollable on small viewports) */}
+          <nav class="flex items-center bg-[#eaecf0] dark:bg-[#181a20] p-0.5 rounded-[2px] border border-[#d4d6dc] dark:border-[#272b34] font-medium text-xs overflow-x-auto no-scrollbar shrink">
             <button
               onClick={() => setViewMode('home')}
-              class={`px-3 py-1 rounded-[2px] transition ${
+              class={`px-2.5 sm:px-3 py-1 rounded-[2px] transition shrink-0 ${
                 viewMode() === 'home'
                   ? 'bg-white dark:bg-[#232731] text-zinc-900 dark:text-white font-semibold shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
                   : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
@@ -244,7 +241,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setViewMode('contest')}
-              class={`px-3 py-1 rounded-[2px] transition ${
+              class={`px-2.5 sm:px-3 py-1 rounded-[2px] transition shrink-0 ${
                 viewMode() === 'contest'
                   ? 'bg-white dark:bg-[#232731] text-zinc-900 dark:text-white font-semibold shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
                   : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
@@ -254,7 +251,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setViewMode('teams')}
-              class={`px-3 py-1 rounded-[2px] transition ${
+              class={`px-2.5 sm:px-3 py-1 rounded-[2px] transition shrink-0 ${
                 viewMode() === 'teams'
                   ? 'bg-white dark:bg-[#232731] text-zinc-900 dark:text-white font-semibold shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
                   : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
@@ -264,7 +261,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setViewMode('scoreboard')}
-              class={`px-3 py-1 rounded-[2px] transition ${
+              class={`px-2.5 sm:px-3 py-1 rounded-[2px] transition shrink-0 ${
                 viewMode() === 'scoreboard'
                   ? 'bg-white dark:bg-[#232731] text-zinc-900 dark:text-white font-semibold shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
                   : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
@@ -275,7 +272,7 @@ export default function App() {
             <Show when={user()?.role === 'admin'}>
               <button
                 onClick={() => setViewMode('admin')}
-                class={`px-3 py-1 rounded-[2px] transition ${
+                class={`px-2.5 sm:px-3 py-1 rounded-[2px] transition shrink-0 ${
                   viewMode() === 'admin'
                     ? 'bg-zinc-900 dark:bg-blue-600 text-white font-semibold shadow-[1px_1px_0px_rgba(0,0,0,0.1)]'
                     : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
@@ -287,15 +284,17 @@ export default function App() {
           </nav>
         </div>
 
-        <div class="flex items-center gap-2.5">
+        <div class="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           {/* Live System Heartbeat & Telemetry Monitor */}
-          <SystemHeartbeatPill />
+          <div class="hidden sm:inline-flex">
+            <SystemHeartbeatPill />
+          </div>
 
           {/* CRT Scanline Toggle */}
           <button
             onClick={toggleCrt}
             title="Toggle Retro CRT Scanline Overlay (C)"
-            class={`px-2 py-1 rounded-[2px] text-[10px] font-mono font-bold uppercase transition border ${
+            class={`hidden md:inline-flex px-2 py-1 rounded-[2px] text-[10px] font-mono font-bold uppercase transition border ${
               crtEnabled()
                 ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700'
                 : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 border-[#d4d6dc] dark:border-[#272b34]'
@@ -308,7 +307,7 @@ export default function App() {
           <button
             onClick={() => setIsShortcutsOpen(true)}
             title="Keyboard Accelerators (?)"
-            class="px-2 py-1 rounded-[2px] text-xs font-mono text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-[#ebedf1] dark:hover:bg-[#1c1f26] transition border border-[#d4d6dc] dark:border-[#272b34]"
+            class="hidden lg:inline-flex px-2 py-1 rounded-[2px] text-xs font-mono text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-[#ebedf1] dark:hover:bg-[#1c1f26] transition border border-[#d4d6dc] dark:border-[#272b34]"
           >
             <IconKeyboard class="w-3.5 h-3.5" />
           </button>
@@ -317,12 +316,12 @@ export default function App() {
           <button
             onClick={toggleTheme}
             title={theme() === 'dark' ? 'Switch to Light Mode (T)' : 'Switch to Dark Mode (T)'}
-            class="px-2.5 py-1 rounded-[2px] text-xs font-mono text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-[#ebedf1] dark:hover:bg-[#1c1f26] transition flex items-center gap-1.5 border border-[#d4d6dc] dark:border-[#272b34]"
+            class="p-1.5 sm:px-2.5 sm:py-1 rounded-[2px] text-xs font-mono text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-[#ebedf1] dark:hover:bg-[#1c1f26] transition flex items-center gap-1.5 border border-[#d4d6dc] dark:border-[#272b34]"
           >
             <Show when={theme() === 'dark'} fallback={<IconMoon class="w-3.5 h-3.5" />}>
               <IconSun class="w-3.5 h-3.5 text-amber-400" />
             </Show>
-            <span class="text-[10px] uppercase font-bold">{theme()}</span>
+            <span class="text-[10px] uppercase font-bold hidden sm:inline">{theme()}</span>
           </button>
 
           {/* User Profile / Auth Button */}
@@ -334,17 +333,17 @@ export default function App() {
                   setAuthMode('login');
                   setIsAuthOpen(true);
                 }}
-                class="px-3.5 py-1 rounded-[2px] text-xs font-semibold bg-zinc-900 dark:bg-blue-600 hover:bg-zinc-800 dark:hover:bg-blue-500 text-white transition shadow-[1px_1px_0px_rgba(0,0,0,0.15)]"
+                class="px-3 sm:px-3.5 py-1 rounded-[2px] text-xs font-semibold bg-zinc-900 dark:bg-blue-600 hover:bg-zinc-800 dark:hover:bg-blue-500 text-white transition shadow-[1px_1px_0px_rgba(0,0,0,0.15)] shrink-0"
               >
                 Sign In
               </button>
             }
           >
             {(u) => (
-              <div class="flex items-center gap-2">
-                <div class="flex items-center gap-1.5 text-xs font-medium">
-                  <span class="text-zinc-800 dark:text-zinc-200 font-semibold">{u().name}</span>
-                  <span class="px-1.5 py-0.2 rounded-[2px] text-[10px] font-semibold uppercase bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700">
+              <div class="flex items-center gap-1.5 sm:gap-2">
+                <div class="flex items-center gap-1 sm:gap-1.5 text-xs font-medium">
+                  <span class="text-zinc-800 dark:text-zinc-200 font-semibold max-w-[90px] sm:max-w-none truncate">{u().name}</span>
+                  <span class="px-1.5 py-0.2 rounded-[2px] text-[10px] font-semibold uppercase bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700 hidden sm:inline">
                     {u().role}
                   </span>
                 </div>
@@ -414,7 +413,7 @@ export default function App() {
           <div class="notion-card w-full max-w-sm p-6 shadow-[3px_3px_0px_rgba(0,0,0,0.25)] bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#2b303a]">
             <div class="flex items-center justify-between mb-4 pb-2.5 border-b border-[#eaecf0] dark:border-[#222630]">
               <h2 class="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                {authMode() === 'login' ? 'Sign In to CodeBench' : 'Create an Account'}
+                {authMode() === 'login' ? 'Sign In to Host & Compete' : 'Create Competitor Account'}
               </h2>
               <button
                 onClick={() => setIsAuthOpen(false)}
@@ -465,7 +464,7 @@ export default function App() {
                     required
                     value={authName()}
                     onInput={(e) => setAuthName(e.currentTarget.value)}
-                    placeholder="Participant Name"
+                    placeholder="Participant or Organizer Name"
                     class="notion-input w-full text-xs"
                   />
                 </div>
@@ -515,12 +514,12 @@ export default function App() {
               <div class="text-center pt-2 border-t border-[#eaecf0] dark:border-[#222630]">
                 <Show when={authMode() === 'login'}>
                   <div class="text-[11px] text-zinc-500 dark:text-zinc-400">
-                    Sign in with your registered account credentials.
+                    Sign in to host tournaments, join team squads, and submit solutions.
                   </div>
                 </Show>
                 <Show when={authMode() === 'register'}>
                   <div class="text-[11px] text-zinc-500 dark:text-zinc-400">
-                    Registration creates a participant account with squad privileges.
+                    Create an account to participate in live coding competitions and form squads.
                   </div>
                 </Show>
               </div>

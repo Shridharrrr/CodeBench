@@ -155,6 +155,10 @@ export default function ContestArena(props: ContestArenaProps) {
   const [, setIsDraggingX] = createSignal<boolean>(false);
   const [, setIsDraggingY] = createSignal<boolean>(false);
 
+  // Responsive Viewports & Mobile Pane Mode
+  const [mobileView, setMobileView] = createSignal<'statement' | 'editor' | 'console'>('statement');
+  const [isDesktop, setIsDesktop] = createSignal<boolean>(typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
+
   let workspaceRef: HTMLDivElement | undefined;
   let rightPaneRef: HTMLDivElement | undefined;
 
@@ -214,6 +218,9 @@ export default function ContestArena(props: ContestArenaProps) {
   onMount(() => {
     fetchContests();
 
+    const handleResize = () => setIsDesktop(window.innerWidth >= 1024);
+    window.addEventListener('resize', handleResize);
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
@@ -227,6 +234,7 @@ export default function ContestArena(props: ContestArenaProps) {
     window.addEventListener('keydown', handleKeyDown);
 
     onCleanup(() => {
+      window.removeEventListener('resize', handleResize);
       window.removeEventListener('keydown', handleKeyDown);
       if (countdownInterval) clearInterval(countdownInterval);
       if (contestEventSource) contestEventSource.close();
@@ -450,6 +458,7 @@ export default function ContestArena(props: ContestArenaProps) {
 
     setIsRunning(true);
     setActiveTab('output');
+    setMobileView('console');
     setSampleRunResult(null);
 
     try {
@@ -499,6 +508,7 @@ export default function ContestArena(props: ContestArenaProps) {
 
     setIsSubmitting(true);
     setActiveTab('verdict');
+    setMobileView('console');
     setSubmissionStage('QUEUED');
     setSubmissionVerdict(null);
     setEvaluatingTestCount(1);
@@ -630,12 +640,12 @@ export default function ContestArena(props: ContestArenaProps) {
           }
         >
           {/* Contest Top Banner (Only visible when contest is running) */}
-          <header class="h-12 border-b border-[#d4d6dc] dark:border-[#262a32] px-5 flex items-center justify-between bg-white dark:bg-[#111316] z-20">
-            <div class="flex items-center gap-3">
+          <header class="min-h-11 sm:h-12 py-1 sm:py-0 border-b border-[#d4d6dc] dark:border-[#262a32] px-3 sm:px-5 flex items-center justify-between bg-white dark:bg-[#111316] z-20 gap-2">
+            <div class="flex items-center gap-2 sm:gap-3 min-w-0">
               <Show
                 when={contests().length > 1}
                 fallback={
-                  <span class="font-mono font-bold text-xs uppercase text-zinc-900 dark:text-zinc-100 tracking-tight">
+                  <span class="font-mono font-bold text-xs uppercase text-zinc-900 dark:text-zinc-100 tracking-tight truncate max-w-[120px] sm:max-w-none">
                     {activeContest()?.title}
                   </span>
                 }
@@ -724,15 +734,18 @@ export default function ContestArena(props: ContestArenaProps) {
           </header>
 
           {/* Problem Letter Tabs Banner: Workstation Sharp Tabs */}
-          <div class="h-9 border-b border-[#d4d6dc] dark:border-[#262a32] bg-[#eaedf1] dark:bg-[#14171d] px-4 flex items-center gap-1 overflow-x-auto">
+          <div class="h-9 border-b border-[#d4d6dc] dark:border-[#262a32] bg-[#eaedf1] dark:bg-[#14171d] px-3 sm:px-4 flex items-center gap-1 overflow-x-auto no-scrollbar">
             <For each={problems()}>
               {(p) => {
                 const isSelected = () => selectedLabel() === p.label;
                 const status = () => problemStatuses()[p.label];
                 return (
                   <button
-                    onClick={() => setSelectedLabel(p.label)}
-                    class={`flex items-center gap-1.5 px-3 py-1 text-xs font-mono rounded-[2px] border transition ${
+                    onClick={() => {
+                      setSelectedLabel(p.label);
+                      setMobileView('statement');
+                    }}
+                    class={`flex items-center gap-1.5 px-3 py-1 text-xs font-mono rounded-[2px] border transition shrink-0 ${
                       isSelected()
                         ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 font-bold border-zinc-900 dark:border-zinc-100 shadow-[1px_1px_0px_rgba(0,0,0,0.15)]'
                         : 'bg-white dark:bg-[#1a1d24] text-zinc-700 dark:text-zinc-300 border-[#d4d6dc] dark:border-[#2a2f3a] hover:bg-zinc-100 dark:hover:bg-[#222731]'
@@ -761,12 +774,50 @@ export default function ContestArena(props: ContestArenaProps) {
             </For>
           </div>
 
+          {/* Mobile View Mode Switcher (< lg only) */}
+          <div class="flex lg:hidden items-center justify-between px-3 py-1.5 bg-[#eaedf1] dark:bg-[#121419] border-b border-[#d4d6dc] dark:border-[#262a32] text-xs">
+            <div class="flex items-center gap-1 bg-white dark:bg-[#181b22] p-0.5 rounded-[2px] border border-[#d4d6dc] dark:border-[#272b34] w-full font-medium">
+              <button
+                onClick={() => setMobileView('statement')}
+                class={`flex-1 py-1 text-center rounded-[2px] transition ${
+                  mobileView() === 'statement'
+                    ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 font-bold shadow-xs'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                }`}
+              >
+                Problem
+              </button>
+              <button
+                onClick={() => setMobileView('editor')}
+                class={`flex-1 py-1 text-center rounded-[2px] transition ${
+                  mobileView() === 'editor'
+                    ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 font-bold shadow-xs'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                }`}
+              >
+                Code Editor
+              </button>
+              <button
+                onClick={() => setMobileView('console')}
+                class={`flex-1 py-1 text-center rounded-[2px] transition ${
+                  mobileView() === 'console'
+                    ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 font-bold shadow-xs'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                }`}
+              >
+                Console & Runs
+              </button>
+            </div>
+          </div>
+
         {/* Dual Pane Ergonomic Workspace with Resizable Splitters */}
         <div ref={workspaceRef} class="flex-1 flex min-h-0 overflow-hidden relative">
           {/* Left Pane: Independently Scrollable Problem Statement */}
           <div
-            style={{ width: `${splitX()}%` }}
-            class="border-r border-[#d4d6dc] dark:border-[#262a32] flex flex-col min-w-0 min-h-0 h-full overflow-y-auto bg-white dark:bg-[#0c0d10] p-6 space-y-5"
+            style={{ width: isDesktop() ? `${splitX()}%` : '100%' }}
+            class={`border-r border-[#d4d6dc] dark:border-[#262a32] flex-col min-w-0 min-h-0 h-full overflow-y-auto bg-white dark:bg-[#0c0d10] p-4 sm:p-6 space-y-5 ${
+              isDesktop() || mobileView() === 'statement' ? 'flex' : 'hidden'
+            }`}
           >
             <Show when={problemLoading()}>
               <div class="py-2">
@@ -862,7 +913,9 @@ export default function ContestArena(props: ContestArenaProps) {
           {/* Horizontal Splitter Drag Handle between Problem and Code Panels */}
           <div
             onMouseDown={handleStartDragX}
-            class="w-1.5 shrink-0 bg-[#d4d6dc] dark:bg-[#262a32] hover:bg-blue-600 dark:hover:bg-blue-500 cursor-col-resize transition-colors flex items-center justify-center group relative z-10 select-none"
+            class={`w-1.5 shrink-0 bg-[#d4d6dc] dark:bg-[#262a32] hover:bg-blue-600 dark:hover:bg-blue-500 cursor-col-resize transition-colors items-center justify-center group relative z-10 select-none ${
+              isDesktop() ? 'flex' : 'hidden'
+            }`}
             title="Drag horizontally to resize problem description and code editor"
           >
             <div class="w-0.5 h-8 rounded-none bg-zinc-400 dark:bg-zinc-600 group-hover:bg-white transition-colors" />
@@ -871,13 +924,17 @@ export default function ContestArena(props: ContestArenaProps) {
           {/* Right Pane: Code Editor & Results Console */}
           <div
             ref={rightPaneRef}
-            style={{ width: `${100 - splitX()}%` }}
-            class="flex flex-col min-w-0 min-h-0 h-full overflow-hidden bg-white dark:bg-[#090a0c]"
+            style={{ width: isDesktop() ? `${100 - splitX()}%` : '100%' }}
+            class={`flex-col min-w-0 min-h-0 h-full overflow-hidden bg-white dark:bg-[#090a0c] ${
+              isDesktop() || mobileView() !== 'statement' ? 'flex' : 'hidden'
+            }`}
           >
             {/* Top Sub-Pane: Code Editor (Bounded & Scrollable) */}
             <div
-              style={{ height: `${splitY()}%` }}
-              class="flex flex-col min-h-0 min-w-0 overflow-hidden"
+              style={{ height: isDesktop() ? `${splitY()}%` : (mobileView() === 'editor' ? '100%' : '0%') }}
+              class={`flex-col min-h-0 min-w-0 overflow-hidden ${
+                isDesktop() || mobileView() === 'editor' ? 'flex' : 'hidden'
+              }`}
             >
               {/* Editor Header Bar */}
               <div class="h-9 shrink-0 border-b border-[#d4d6dc] dark:border-[#262a32] px-4 flex items-center justify-between bg-[#f0f2f5] dark:bg-[#121419] font-mono text-xs">
@@ -924,7 +981,9 @@ export default function ContestArena(props: ContestArenaProps) {
             {/* Vertical Splitter Drag Handle between Code Editor and Console */}
             <div
               onMouseDown={handleStartDragY}
-              class="h-1.5 shrink-0 bg-[#d4d6dc] dark:bg-[#262a32] hover:bg-blue-600 dark:hover:bg-blue-500 cursor-row-resize transition-colors flex items-center justify-center group relative z-10 select-none"
+              class={`h-1.5 shrink-0 bg-[#d4d6dc] dark:bg-[#262a32] hover:bg-blue-600 dark:hover:bg-blue-500 cursor-row-resize transition-colors items-center justify-center group relative z-10 select-none ${
+                isDesktop() ? 'flex' : 'hidden'
+              }`}
               title="Drag vertically to resize code editor and console"
             >
               <div class="h-0.5 w-10 rounded-none bg-zinc-400 dark:bg-zinc-600 group-hover:bg-white transition-colors" />
@@ -932,8 +991,10 @@ export default function ContestArena(props: ContestArenaProps) {
 
             {/* Bottom Sub-Pane: Console Tabs & Drawer */}
             <div
-              style={{ height: `${100 - splitY()}%` }}
-              class="flex flex-col min-h-0 min-w-0 overflow-hidden bg-[#f8f9fa] dark:bg-[#0c0d10] border-t border-[#d4d6dc] dark:border-[#262a32]"
+              style={{ height: isDesktop() ? `${100 - splitY()}%` : (mobileView() === 'console' ? '100%' : '0%') }}
+              class={`flex-col min-h-0 min-w-0 overflow-hidden bg-[#f8f9fa] dark:bg-[#0c0d10] border-t border-[#d4d6dc] dark:border-[#262a32] ${
+                isDesktop() || mobileView() === 'console' ? 'flex' : 'hidden'
+              }`}
             >
               {/* Tab Selector */}
               <div class="flex items-center gap-1 px-3 py-1 border-b border-[#d4d6dc] dark:border-[#262a32] bg-[#eaedf1] dark:bg-[#121419] text-xs font-medium">
@@ -1168,8 +1229,8 @@ export default function ContestArena(props: ContestArenaProps) {
             </div>
 
             {/* Persistent Sticky Bottom Action Bar */}
-            <div class="sticky-action-bar h-12 px-5 flex items-center justify-between border-t border-[#d4d6dc] dark:border-[#262a32] bg-[#eaedf1] dark:bg-[#111316] text-xs">
-              <div class="text-[11px] text-zinc-500 dark:text-zinc-400">
+            <div class="sticky-action-bar min-h-12 py-1 sm:py-0 px-3 sm:px-5 flex items-center justify-between border-t border-[#d4d6dc] dark:border-[#262a32] bg-[#eaedf1] dark:bg-[#111316] text-xs gap-2">
+              <div class="hidden sm:block text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
                 <span>Shortcuts: </span>
                 <kbd class="px-1.5 py-0.5 bg-white dark:bg-[#1f2229] border border-[#d4d6dc] dark:border-[#313744] text-zinc-800 dark:text-zinc-200 rounded-[2px] font-mono text-[10px]">Ctrl+Enter</kbd>
                 <span> Run &bull; </span>
@@ -1177,27 +1238,27 @@ export default function ContestArena(props: ContestArenaProps) {
                 <span> Submit</span>
               </div>
 
-              <div class="flex items-center gap-2.5">
+              <div class="flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto justify-end">
                 <button
                   onClick={handleRunSamples}
                   disabled={isRunning() || isSubmitting()}
-                  class="btn-workstation btn-workstation-secondary text-xs flex items-center gap-1.5"
+                  class="btn-workstation btn-workstation-secondary text-xs flex items-center gap-1.5 flex-1 sm:flex-none justify-center"
                 >
                   <Show when={isRunning()} fallback={<IconPlay class="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />}>
                     <ButtonSpinner class="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />
                   </Show>
-                  <span>{isRunning() ? 'Running Sandbox...' : 'Run Code'}</span>
+                  <span>{isRunning() ? 'Running...' : 'Run Code'}</span>
                 </button>
 
                 <button
                   onClick={handleContestSubmit}
                   disabled={isSubmitting() || isRunning()}
-                  class="btn-workstation btn-workstation-success text-xs font-semibold flex items-center gap-1.5"
+                  class="btn-workstation btn-workstation-success text-xs font-semibold flex items-center gap-1.5 flex-1 sm:flex-none justify-center"
                 >
                   <Show when={isSubmitting()} fallback={<IconCheck class="w-3.5 h-3.5" />}>
                     <ButtonSpinner class="w-3.5 h-3.5 text-white" />
                   </Show>
-                  <span>{isSubmitting() ? 'Evaluating Testcases...' : 'Submit Solution'}</span>
+                  <span>{isSubmitting() ? 'Evaluating...' : 'Submit Solution'}</span>
                 </button>
               </div>
             </div>

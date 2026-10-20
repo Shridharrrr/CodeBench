@@ -1,7 +1,7 @@
 # CodeBench
 
-> **High-throughput, kernel-isolated competitive programming and collegiate contest platform.**  
-> Built as a Go modular monolith with an embedded NATS JetStream broker and a bare-metal Linux cgroups v2 / Seccomp-BPF execution sandbox.
+> **The modern, self-hosted platform to host live coding competitions, collegiate tournaments, and technical hackathons.**  
+> Built with Go, SolidJS, PostgreSQL, embedded NATS JetStream, and bare-metal Linux cgroups v2 / Seccomp-BPF execution sandboxes.
 
 ---
 

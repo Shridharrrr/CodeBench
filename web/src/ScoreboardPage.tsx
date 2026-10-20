@@ -147,7 +147,7 @@ export default function ScoreboardPage() {
   };
 
   return (
-    <div class="flex-1 bg-[#f4f5f7] dark:bg-[#090a0c] text-zinc-900 dark:text-zinc-100 py-8 px-6 font-sans transition-colors duration-100 relative">
+    <div class="flex-1 bg-[#f4f5f7] dark:bg-[#090a0c] text-zinc-900 dark:text-zinc-100 py-6 sm:py-8 px-4 sm:px-6 font-sans transition-colors duration-100 relative">
       <TopProgressBar active={isRefreshing()} />
       <div class="max-w-5xl mx-auto space-y-5">
         {/* Top Header & Actions */}
@@ -180,11 +180,11 @@ export default function ScoreboardPage() {
                 </span>
               </Show>
             </div>
-            <h1 class="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
-              {scoreboard()?.contest_title || 'Competition Scoreboard'}
+            <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
+              {scoreboard()?.contest_title || 'Tournament Standings & Leaderboard'}
             </h1>
             <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-              Scoring: <strong class="text-zinc-800 dark:text-zinc-200 uppercase">{selectedContest()?.scoring === 'icpc' ? 'Standard Penalty' : (selectedContest()?.scoring || 'Standard')}</strong> &bull; Timezone: Asia/Kolkata (IST)
+              Live tournament standings updated in real time as submissions are judged &bull; Scoring: <strong class="text-zinc-800 dark:text-zinc-200 uppercase">{selectedContest()?.scoring === 'icpc' ? 'Standard Penalty' : (selectedContest()?.scoring || 'Standard')}</strong> &bull; Asia/Kolkata (IST)
             </p>
           </div>
 

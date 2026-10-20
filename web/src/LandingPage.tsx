@@ -6,8 +6,7 @@ import {
   IconSettings,
   IconArrowRight,
   IconTrophy,
-  IconServer,
-  IconActivity,
+  IconCode,
 } from './icons';
 
 interface Contest {
@@ -69,57 +68,57 @@ export default function LandingPage(props: LandingPageProps) {
 
   return (
     <div class="flex-1 bg-[#f4f5f7] dark:bg-[#090a0c] text-zinc-900 dark:text-zinc-100 flex flex-col font-sans transition-colors duration-100">
-      {/* Top Mainframe Telemetry Bar */}
-      <div class="border-b border-[#d4d6dc] dark:border-[#222630] bg-[#eaedf1] dark:bg-[#0e1015] px-4 py-2 text-[11px] font-mono text-zinc-600 dark:text-zinc-400 flex flex-wrap items-center justify-between gap-2">
-        <div class="flex items-center gap-3">
-          <span class="flex items-center gap-1.5">
+      {/* Top Telemetry & Status Bar */}
+      <div class="border-b border-zinc-200 dark:border-zinc-800 bg-[#ebedf2] dark:bg-[#0c0e12] px-4 py-2 text-[11px] font-mono text-zinc-600 dark:text-zinc-400 flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
+        <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
+          <span class="flex items-center gap-1.5 text-zinc-900 dark:text-zinc-200 font-semibold">
             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <strong class="text-zinc-800 dark:text-zinc-200">CLUSTER: ONLINE</strong>
+            Contest Hosting Engine Online
           </span>
-          <span class="text-zinc-300 dark:text-zinc-700">|</span>
-          <span>QUEUE: NATS JETSTREAM 2.10</span>
-          <span class="text-zinc-300 dark:text-zinc-700">|</span>
-          <span>SANDBOX: SECCOMP-BPF STRICT</span>
+          <span class="text-zinc-300 dark:text-zinc-700 hidden sm:inline">&bull;</span>
+          <span>Real-Time Submission Queue</span>
+          <span class="text-zinc-300 dark:text-zinc-700 hidden sm:inline">&bull;</span>
+          <span>Automated Multi-Language Judging</span>
         </div>
-        <div class="flex items-center gap-3">
-          <span>HOST JITTER TOL: &lt;15%</span>
-          <span class="px-2 py-0.5 rounded-[2px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold">
-            ALL SYSTEMS NOMINAL
+        <div class="flex items-center gap-2">
+          <span class="text-zinc-500">Host Status:</span>
+          <span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 font-bold text-[10px]">
+            OPERATIONAL
           </span>
         </div>
       </div>
 
       {/* Main Hero Section */}
-      <section class="py-14 md:py-20 px-6 max-w-5xl mx-auto w-full text-center">
+      <section class="py-12 sm:py-16 md:py-20 px-4 sm:px-6 max-w-5xl mx-auto w-full text-center">
         {/* Monospace System Badge */}
-        <div class="inline-flex items-center gap-2 px-3 py-1 text-xs font-mono mb-6 bg-white dark:bg-[#14171d] text-zinc-700 dark:text-zinc-300 border border-[#d4d6dc] dark:border-[#272b34] shadow-[1px_1px_0px_rgba(0,0,0,0.06)] rounded-[2px]">
+        <div class="inline-flex items-center gap-2 px-3 py-1 text-xs font-mono mb-6 bg-white dark:bg-[#14171d] text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 shadow-2xs rounded">
           <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-          <span class="font-bold text-zinc-900 dark:text-white">CODEBENCH // BENCHMARK ARENA</span>
-          <span class="text-zinc-400 dark:text-zinc-500">&bull;</span>
-          <span class="text-[11px] text-zinc-500">LINUX CGROUPS V2 CONTAINMENT</span>
+          <span class="font-bold text-zinc-900 dark:text-white">Coding Competition Hosting Platform</span>
+          <span class="text-zinc-300 dark:text-zinc-600">&bull;</span>
+          <span class="text-[11px] text-zinc-500">Automated Judging & Live Leaderboards</span>
         </div>
 
-        <h1 class="text-3xl md:text-5xl lg:text-6xl font-black font-sans tracking-tight text-zinc-900 dark:text-zinc-100 max-w-4xl mx-auto leading-tight">
-          Deterministic Algorithmic Execution at Scale.
+        <h1 class="text-3xl sm:text-5xl lg:text-6xl font-black font-sans tracking-tight text-zinc-900 dark:text-white max-w-4xl mx-auto leading-[1.12]">
+          The Modern Platform to Host Live Coding Competitions.
         </h1>
 
-        <p class="text-sm md:text-base font-sans text-zinc-600 dark:text-zinc-400 mt-5 max-w-2xl mx-auto leading-relaxed">
-          Zero-overhead Linux execution sandboxes, server-authoritative contest clocks, and real-time synchronized squad competition. Engineered for collegiate tournaments and rigorous enterprise evaluations without clock drift or flaky test runs.
+        <p class="text-sm sm:text-base font-sans text-zinc-600 dark:text-zinc-400 mt-4 sm:mt-5 max-w-2xl mx-auto leading-relaxed">
+          Host collegiate tournaments, student hackathons, and technical hiring contests with ease. Featuring automated multi-language execution sandboxes, real-time frozen leaderboards, team squad rosters, and custom problem authoring.
         </p>
 
-        {/* Action Buttons */}
-        <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+        {/* Action Buttons (Fully Responsive on Mobile/Tablet/Desktop) */}
+        <div class="mt-8 flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
           <button
             onClick={() => props.onNavigate('contest')}
-            class="btn-workstation btn-workstation-primary px-5 py-2.5 text-xs shadow-[2px_2px_0px_rgba(0,0,0,0.25)] flex items-center gap-2"
+            class="btn-workstation btn-workstation-primary px-5 py-2.5 text-xs shadow-xs flex items-center justify-center gap-2 w-full sm:w-auto"
           >
-            <span>Enter Competition Arena</span>
+            <span>Enter Contest Arena</span>
             <IconArrowRight class="w-3.5 h-3.5" />
           </button>
 
           <button
             onClick={() => props.onNavigate('teams')}
-            class="btn-workstation btn-workstation-secondary px-4 py-2.5 text-xs flex items-center gap-2"
+            class="btn-workstation btn-workstation-secondary px-4 py-2.5 text-xs flex items-center justify-center gap-2 w-full sm:w-auto"
           >
             <IconUsers class="w-3.5 h-3.5 text-zinc-500" />
             <span>Manage Squads</span>
@@ -127,7 +126,7 @@ export default function LandingPage(props: LandingPageProps) {
 
           <button
             onClick={() => props.onNavigate('scoreboard')}
-            class="btn-workstation btn-workstation-secondary px-4 py-2.5 text-xs flex items-center gap-2"
+            class="btn-workstation btn-workstation-secondary px-4 py-2.5 text-xs flex items-center justify-center gap-2 w-full sm:w-auto"
           >
             <IconTrophy class="w-3.5 h-3.5 text-amber-500" />
             <span>Live Scoreboard</span>
@@ -136,22 +135,22 @@ export default function LandingPage(props: LandingPageProps) {
           <Show when={props.user?.role === 'admin'}>
             <button
               onClick={() => props.onNavigate('admin')}
-              class="btn-workstation btn-workstation-secondary px-4 py-2.5 text-xs border-indigo-400 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 flex items-center gap-2"
+              class="btn-workstation btn-workstation-secondary px-4 py-2.5 text-xs border-indigo-400 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 flex items-center justify-center gap-2 w-full sm:w-auto"
             >
               <IconSettings class="w-3.5 h-3.5" />
-              <span>Admin Dashboard</span>
+              <span>Host a Contest (Admin)</span>
             </button>
           </Show>
         </div>
       </section>
 
       {/* Live Contest Event Status Panel */}
-      <section class="px-6 max-w-5xl mx-auto w-full mb-14">
+      <section class="px-4 sm:px-6 max-w-5xl mx-auto w-full mb-14">
         <div class="bg-white dark:bg-[#111317] border border-zinc-200 dark:border-zinc-800 overflow-hidden rounded-lg shadow-xs">
           {/* Header Bar */}
-          <div class="px-5 py-3 bg-[#f8f9fa] dark:bg-[#151821] border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between text-xs font-mono">
-            <span class="font-bold text-zinc-800 dark:text-zinc-200">
-              CURRENT CONTEST STATUS
+          <div class="px-4 sm:px-5 py-3 bg-[#f8f9fa] dark:bg-[#151821] border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between text-xs font-mono">
+            <span class="font-bold text-zinc-800 dark:text-zinc-200 tracking-tight">
+              UPCOMING & LIVE COMPETITIONS
             </span>
 
             <button
@@ -159,23 +158,23 @@ export default function LandingPage(props: LandingPageProps) {
               class="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-1.5 transition font-medium text-xs font-sans"
             >
               <IconTrophy class="w-3.5 h-3.5 text-amber-500" />
-              <span>View Scoreboard</span>
+              <span>View Leaderboard</span>
             </button>
           </div>
 
-          <div class="p-6">
+          <div class="p-5 sm:p-6">
             <Show
               when={!loading() && activeContest()}
               fallback={
-                <div class="py-8 text-center space-y-3">
+                <div class="py-8 text-center space-y-3 px-4">
                   <div class="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 flex items-center justify-center mx-auto border border-zinc-200 dark:border-zinc-700">
                     <IconClock class="w-4 h-4" />
                   </div>
                   <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 font-sans">
-                    No active round currently running
+                    No scheduled competition currently active
                   </h3>
                   <p class="text-xs text-zinc-500 dark:text-zinc-400 max-w-md mx-auto leading-relaxed font-sans">
-                    Rounds unlock immediately once configured and scheduled by an administrator. You can organize your squad in the meantime or practice in local mode.
+                    Tournament rounds unlock automatically when started by an organizer. Form your squad in the squads tab, test sample problems in the arena, or configure a new round from the admin panel.
                   </p>
                   <Show when={props.user?.role === 'admin'}>
                     <div class="pt-2">
@@ -183,7 +182,7 @@ export default function LandingPage(props: LandingPageProps) {
                         onClick={() => props.onNavigate('admin')}
                         class="btn-workstation btn-workstation-primary text-xs"
                       >
-                        Launch Contest from Admin
+                        Host Competition from Admin
                       </button>
                     </div>
                   </Show>
@@ -216,7 +215,7 @@ export default function LandingPage(props: LandingPageProps) {
 
                     <div class="flex flex-wrap items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400 font-sans">
                       <span>
-                        Scoring:{' '}
+                        Scoring Formula:{' '}
                         <strong class="text-zinc-900 dark:text-zinc-200 uppercase">
                           {c().scoring === 'icpc' ? 'Standard Penalty' : c().scoring}
                         </strong>
@@ -232,7 +231,7 @@ export default function LandingPage(props: LandingPageProps) {
                       </span>
                       <span class="text-zinc-300 dark:text-zinc-700">&bull;</span>
                       <span>
-                        Start Time:{' '}
+                        Scheduled Start:{' '}
                         <strong class="text-zinc-900 dark:text-zinc-200">
                           {formatIST(c().starts_at)}
                         </strong>
@@ -243,10 +242,10 @@ export default function LandingPage(props: LandingPageProps) {
                   <div class="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => props.onNavigate('contest')}
-                      class="btn-workstation btn-workstation-primary px-4 py-2 text-xs font-sans"
+                      class="btn-workstation btn-workstation-primary px-4 py-2 text-xs font-sans w-full md:w-auto justify-center"
                     >
                       <span>
-                        {c().state === 'RUNNING' ? 'Enter Arena' : 'View Schedule'}
+                        {c().state === 'RUNNING' ? 'Enter Contest Arena' : 'View Schedule'}
                       </span>
                       <IconArrowRight class="w-3.5 h-3.5" />
                     </button>
@@ -258,168 +257,168 @@ export default function LandingPage(props: LandingPageProps) {
         </div>
       </section>
 
-      {/* Redesigned Architecture & Engineering Foundations Section */}
-      <section class="px-6 max-w-5xl mx-auto w-full mb-16">
-        {/* Clean Editorial Section Header */}
+      {/* Platform Features & Capabilities Section */}
+      <section class="px-4 sm:px-6 max-w-5xl mx-auto w-full mb-16">
+        {/* Editorial Section Header */}
         <div class="mb-8 text-center max-w-2xl mx-auto">
-          <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[2px] text-xs font-mono font-semibold tracking-wider uppercase text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900/60 mb-3">
-            <span>Kernel Foundations & Security</span>
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono font-semibold tracking-wider uppercase text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900/60 mb-3">
+            <span>Platform Capabilities</span>
           </div>
           <h2 class="text-2xl sm:text-3xl font-extrabold text-zinc-900 dark:text-zinc-100 tracking-tight">
-            Deterministic execution, built from the kernel up.
+            Everything you need to host world-class coding competitions.
           </h2>
           <p class="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mt-2.5 leading-relaxed">
-            Hardware-level Linux containment and server-authoritative clocks protect every contest from virtualization steal-time and client tampering.
+            Built for university organizers, hackathon leads, and competitive programmers. Experience zero-friction contest hosting with rock-solid judging infrastructure.
           </p>
         </div>
 
         {/* 4 Architectural Pillars Grid */}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Card 1: Seccomp-BPF */}
-          <div class="bg-white dark:bg-[#111317] border border-zinc-200 dark:border-[#222733] rounded-lg p-5 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-sm transition-all duration-150 flex flex-col justify-between">
+          {/* Card 1: Automated Judging */}
+          <div class="bg-white dark:bg-[#111317] border border-zinc-200 dark:border-[#222733] rounded-lg p-5 sm:p-6 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-sm transition-all duration-150 flex flex-col justify-between">
             <div>
               <div class="flex items-center justify-between mb-3">
                 <div class="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-900/60 flex items-center justify-center">
                   <IconShield class="w-4 h-4" />
                 </div>
-                <span class="text-[10px] font-mono font-bold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/80 px-2 py-0.5 rounded-[2px] border border-zinc-200 dark:border-zinc-700">
-                  SECCOMP-BPF
+                <span class="text-[10px] font-mono font-bold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/80 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">
+                  AUTOMATED JUDGE
                 </span>
               </div>
-              <h3 class="text-sm font-bold text-zinc-900 dark:text-zinc-100 font-sans tracking-tight">
-                Kernel Syscall Whitelist & Namespaces
+              <h3 class="text-sm sm:text-base font-bold text-zinc-900 dark:text-zinc-100 font-sans tracking-tight">
+                Automated Multi-Language Judging Sandboxes
               </h3>
               <p class="text-xs text-zinc-600 dark:text-zinc-400 mt-2 leading-relaxed">
-                Every submission spawns in isolated PID, network, and mount namespaces with a read-only rootfs. Outbound sockets, fork bombs, and unwhitelisted syscalls are killed instantly by the kernel filter.
+                Submissions are evaluated automatically against sample and hidden test suites. Sandboxed in secure Linux namespaces with strict CPU time and memory quotas across C++23, C23, Python 3.12, Rust 1.85, and Go 1.24.
               </p>
             </div>
-            <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-[11px] font-mono text-zinc-500">
-              <span class="text-emerald-600 dark:text-emerald-400 font-medium">● Strict Syscall Filter</span>
-              <span>CLONE_NEWPID • NET</span>
+            <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-[11px] font-mono text-zinc-500">
+              <span class="text-emerald-600 dark:text-emerald-400 font-medium">● Instant Verdicts</span>
+              <span>AC • WA • TLE • MLE • CE</span>
             </div>
           </div>
 
-          {/* Card 2: NATS JetStream */}
-          <div class="bg-white dark:bg-[#111317] border border-zinc-200 dark:border-[#222733] rounded-lg p-5 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-sm transition-all duration-150 flex flex-col justify-between">
-            <div>
-              <div class="flex items-center justify-between mb-3">
-                <div class="w-8 h-8 rounded-md bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-200/80 dark:border-blue-900/60 flex items-center justify-center">
-                  <IconServer class="w-4 h-4" />
-                </div>
-                <span class="text-[10px] font-mono font-bold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/80 px-2 py-0.5 rounded-[2px] border border-zinc-200 dark:border-zinc-700">
-                  JETSTREAM 2.10
-                </span>
-              </div>
-              <h3 class="text-sm font-bold text-zinc-900 dark:text-zinc-100 font-sans tracking-tight">
-                Zero-Loss Transactional Outbox
-              </h3>
-              <p class="text-xs text-zinc-600 dark:text-zinc-400 mt-2 leading-relaxed">
-                Code submissions are committed to PostgreSQL atomically alongside outbox events before streaming via embedded NATS JetStream with write-ahead persistence and fair-share queueing.
-              </p>
-            </div>
-            <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-[11px] font-mono text-zinc-500">
-              <span class="text-blue-600 dark:text-blue-400 font-medium">● Guaranteed At-Least-Once</span>
-              <span>WAL Disk-Backed</span>
-            </div>
-          </div>
-
-          {/* Card 3: Monotonic Clocks */}
-          <div class="bg-white dark:bg-[#111317] border border-zinc-200 dark:border-[#222733] rounded-lg p-5 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-sm transition-all duration-150 flex flex-col justify-between">
+          {/* Card 2: Live Leaderboards */}
+          <div class="bg-white dark:bg-[#111317] border border-zinc-200 dark:border-[#222733] rounded-lg p-5 sm:p-6 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-sm transition-all duration-150 flex flex-col justify-between">
             <div>
               <div class="flex items-center justify-between mb-3">
                 <div class="w-8 h-8 rounded-md bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-200/80 dark:border-amber-900/60 flex items-center justify-center">
-                  <IconClock class="w-4 h-4" />
+                  <IconTrophy class="w-4 h-4" />
                 </div>
-                <span class="text-[10px] font-mono font-bold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/80 px-2 py-0.5 rounded-[2px] border border-zinc-200 dark:border-zinc-700">
-                  MONOTONIC TIME
+                <span class="text-[10px] font-mono font-bold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/80 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">
+                  LIVE STANDINGS
                 </span>
               </div>
-              <h3 class="text-sm font-bold text-zinc-900 dark:text-zinc-100 font-sans tracking-tight">
-                Server-Authoritative Timing
+              <h3 class="text-sm sm:text-base font-bold text-zinc-900 dark:text-zinc-100 font-sans tracking-tight">
+                Real-Time Leaderboards & Scoreboard Freezes
               </h3>
               <p class="text-xs text-zinc-600 dark:text-zinc-400 mt-2 leading-relaxed">
-                Client-side clock tampering is impossible. Round timers, penalty increments, and scoreboard freeze/unfreeze ceremonies run strictly on tamper-proof monotonic server time.
+                Tournament leaderboards update instantaneously on every solved problem. Supports standard penalty scoring formulas, points-based rules, and dramatic final-hour scoreboard freezes.
               </p>
             </div>
-            <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-[11px] font-mono text-zinc-500">
-              <span class="text-amber-600 dark:text-amber-400 font-medium">● 0ms Clock Drift</span>
-              <span>NTP Synchronized</span>
+            <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-[11px] font-mono text-zinc-500">
+              <span class="text-amber-600 dark:text-amber-400 font-medium">● Real-Time Event Stream</span>
+              <span>Dynamic Standings & Freezes</span>
             </div>
           </div>
 
-          {/* Card 4: Canary Benchmark */}
-          <div class="bg-white dark:bg-[#111317] border border-zinc-200 dark:border-[#222733] rounded-lg p-5 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-sm transition-all duration-150 flex flex-col justify-between">
+          {/* Card 3: Team Squads */}
+          <div class="bg-white dark:bg-[#111317] border border-zinc-200 dark:border-[#222733] rounded-lg p-5 sm:p-6 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-sm transition-all duration-150 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <div class="w-8 h-8 rounded-md bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-200/80 dark:border-blue-900/60 flex items-center justify-center">
+                  <IconUsers class="w-4 h-4" />
+                </div>
+                <span class="text-[10px] font-mono font-bold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/80 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">
+                  TEAM SQUADS
+                </span>
+              </div>
+              <h3 class="text-sm sm:text-base font-bold text-zinc-900 dark:text-zinc-100 font-sans tracking-tight">
+                Squad Rosters & Team Competition
+              </h3>
+              <p class="text-xs text-zinc-600 dark:text-zinc-400 mt-2 leading-relaxed">
+                Host solo challenges or collaborative team hackathons. Squad captains generate private 6-character invite codes for teammates to synchronize problem-solving and track unified squad scores.
+              </p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-[11px] font-mono text-zinc-500">
+              <span class="text-blue-600 dark:text-blue-400 font-medium">● Team Collaboration</span>
+              <span>1 to 5 Members per Squad</span>
+            </div>
+          </div>
+
+          {/* Card 4: Problem Studio */}
+          <div class="bg-white dark:bg-[#111317] border border-zinc-200 dark:border-[#222733] rounded-lg p-5 sm:p-6 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-sm transition-all duration-150 flex flex-col justify-between">
             <div>
               <div class="flex items-center justify-between mb-3">
                 <div class="w-8 h-8 rounded-md bg-cyan-50 dark:bg-cyan-950/50 text-cyan-600 dark:text-cyan-400 border border-cyan-200/80 dark:border-cyan-900/60 flex items-center justify-center">
-                  <IconActivity class="w-4 h-4" />
+                  <IconCode class="w-4 h-4" />
                 </div>
-                <span class="text-[10px] font-mono font-bold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/80 px-2 py-0.5 rounded-[2px] border border-zinc-200 dark:border-zinc-700">
-                  JITTER CANARY
+                <span class="text-[10px] font-mono font-bold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/80 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">
+                  PROBLEM STUDIO
                 </span>
               </div>
-              <h3 class="text-sm font-bold text-zinc-900 dark:text-zinc-100 font-sans tracking-tight">
-                Continuous Hardware Canaries
+              <h3 class="text-sm sm:text-base font-bold text-zinc-900 dark:text-zinc-100 font-sans tracking-tight">
+                Problem Studio & Testcase Authoring
               </h3>
               <p class="text-xs text-zinc-600 dark:text-zinc-400 mt-2 leading-relaxed">
-                Continuous 60-second micro-benchmarks measure CPU steal-time on judge workers. Dynamic time dilation automatically prevents false Time Limit Exceeded (TLE) verdicts.
+                Author custom algorithmic challenges with rich Markdown formatting, specify visible sample tests, upload hidden evaluation test suites, and enforce custom CPU and memory constraints.
               </p>
             </div>
-            <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-[11px] font-mono text-zinc-500">
-              <span class="text-cyan-600 dark:text-cyan-400 font-medium">● Steal-Time Calibration</span>
-              <span>Dynamic Dilation</span>
+            <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-[11px] font-mono text-zinc-500">
+              <span class="text-cyan-600 dark:text-cyan-400 font-medium">● Markdown & Test Suites</span>
+              <span>Custom CPU & Memory Budgets</span>
             </div>
           </div>
         </div>
 
-        {/* Refined Integrated Telemetry & Benchmark Ribbon */}
-        <div class="mt-4 bg-white dark:bg-[#111317] border border-zinc-200 dark:border-[#222733] rounded-lg p-6 shadow-xs">
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-zinc-200 dark:divide-zinc-800">
-            <div class="px-2 pt-2 md:pt-0">
+        {/* Responsive Telemetry & Benchmark Ribbon */}
+        <div class="mt-4 bg-white dark:bg-[#111317] border border-zinc-200 dark:border-[#222733] rounded-lg p-5 sm:p-6 shadow-xs">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 text-center divide-y-0 sm:divide-x divide-zinc-200 dark:divide-zinc-800">
+            <div class="px-2 py-2 sm:py-0">
               <div class="text-2xl sm:text-3xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400 font-mono">
+                5+
+              </div>
+              <div class="text-xs font-bold text-zinc-900 dark:text-zinc-100 mt-1">
+                Supported Languages
+              </div>
+              <div class="text-[11px] text-zinc-500 mt-0.5 font-sans">
+                C++, Python, Rust, Go, C
+              </div>
+            </div>
+
+            <div class="px-2 py-2 sm:py-0">
+              <div class="text-2xl sm:text-3xl font-extrabold tracking-tight text-blue-600 dark:text-blue-400 font-mono">
+                &lt; 18ms
+              </div>
+              <div class="text-xs font-bold text-zinc-900 dark:text-zinc-100 mt-1">
+                Judge Latency
+              </div>
+              <div class="text-[11px] text-zinc-500 mt-0.5 font-sans">
+                Real-time queue dispatch
+              </div>
+            </div>
+
+            <div class="px-2 py-2 sm:py-0">
+              <div class="text-2xl sm:text-3xl font-extrabold tracking-tight text-indigo-600 dark:text-indigo-400 font-mono">
+                100%
+              </div>
+              <div class="text-xs font-bold text-zinc-900 dark:text-zinc-100 mt-1">
+                Sandbox Isolation
+              </div>
+              <div class="text-[11px] text-zinc-500 mt-0.5 font-sans">
+                Process & memory quotas
+              </div>
+            </div>
+
+            <div class="px-2 py-2 sm:py-0">
+              <div class="text-2xl sm:text-3xl font-extrabold tracking-tight text-cyan-600 dark:text-cyan-400 font-mono">
                 0ms
               </div>
               <div class="text-xs font-bold text-zinc-900 dark:text-zinc-100 mt-1">
                 Clock Drift
               </div>
               <div class="text-[11px] text-zinc-500 mt-0.5 font-sans">
-                Monotonic sync
-              </div>
-            </div>
-
-            <div class="px-2 pt-4 md:pt-0">
-              <div class="text-2xl sm:text-3xl font-extrabold tracking-tight text-blue-600 dark:text-blue-400 font-mono">
-                &lt; 18ms
-              </div>
-              <div class="text-xs font-bold text-zinc-900 dark:text-zinc-100 mt-1">
-                Queue Latency
-              </div>
-              <div class="text-[11px] text-zinc-500 mt-0.5 font-sans">
-                P99 submission dispatch
-              </div>
-            </div>
-
-            <div class="px-2 pt-4 md:pt-0">
-              <div class="text-2xl sm:text-3xl font-extrabold tracking-tight text-indigo-600 dark:text-indigo-400 font-mono">
-                64
-              </div>
-              <div class="text-xs font-bold text-zinc-900 dark:text-zinc-100 mt-1">
-                Process Limit
-              </div>
-              <div class="text-[11px] text-zinc-500 mt-0.5 font-sans">
-                cgroups v2 pids.max
-              </div>
-            </div>
-
-            <div class="px-2 pt-4 md:pt-0">
-              <div class="text-2xl sm:text-3xl font-extrabold tracking-tight text-cyan-600 dark:text-cyan-400 font-mono">
-                100%
-              </div>
-              <div class="text-xs font-bold text-zinc-900 dark:text-zinc-100 mt-1">
-                Kernel Isolation
-              </div>
-              <div class="text-[11px] text-zinc-500 mt-0.5 font-sans">
-                Seccomp-BPF filters
+                Server-authoritative timers
               </div>
             </div>
           </div>
@@ -428,11 +427,11 @@ export default function LandingPage(props: LandingPageProps) {
 
       {/* Clean Workstation Footer */}
       <footer class="mt-auto py-5 border-t border-[#d4d6dc] dark:border-[#262a32] bg-[#eaedf1] dark:bg-[#0e1014] text-xs text-zinc-500 font-mono">
-        <div class="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           <div class="flex items-center gap-2 font-medium">
             <span class="text-zinc-800 dark:text-zinc-200 font-bold">CodeBench v1.4.2</span>
             <span>&bull;</span>
-            <span>Deterministic Algorithmic Benchmark Platform</span>
+            <span>Modern Coding Competition Hosting Platform</span>
           </div>
           <div class="flex items-center gap-3">
             <span>Timezone: Asia/Kolkata (IST)</span>

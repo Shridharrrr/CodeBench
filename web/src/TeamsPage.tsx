@@ -237,16 +237,16 @@ export default function TeamsPage(props: TeamsPageProps) {
   };
 
   return (
-    <div class="flex-1 bg-[#f4f5f7] dark:bg-[#090a0c] text-zinc-900 dark:text-zinc-100 py-8 px-6 font-sans transition-colors duration-100 relative">
+    <div class="flex-1 bg-[#f4f5f7] dark:bg-[#090a0c] text-zinc-900 dark:text-zinc-100 py-6 sm:py-8 px-4 sm:px-6 font-sans transition-colors duration-100 relative">
       <TopProgressBar active={loading()} />
       <div class="max-w-5xl mx-auto space-y-6">
         {/* Header */}
         <div class="pb-4 border-b border-[#d4d6dc] dark:border-[#262a32]">
-          <h1 class="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
-            Squads & Rosters
+          <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
+            Squads & Team Rosters
           </h1>
           <p class="text-xs text-zinc-600 dark:text-zinc-400 mt-1 max-w-2xl leading-relaxed">
-            Form your squad before the contest begins. Captains generate a 6-character invite code to share with teammates.
+            Form your squad before the contest begins. Captains generate a secure 6-character invite code to synchronize team membership.
           </p>
         </div>
 
@@ -394,7 +394,7 @@ export default function TeamsPage(props: TeamsPageProps) {
                   </div>
 
                   {/* Team Join Code & Copy Button */}
-                  <div class="flex items-center gap-2">
+                  <div class="flex flex-wrap items-center gap-2">
                     <div class="digital-clock-box">
                       <span class="text-[10px] uppercase text-zinc-500 dark:text-zinc-400">Code:</span>
                       <span class="text-xs font-mono font-bold text-zinc-900 dark:text-sky-400 tracking-wider">
