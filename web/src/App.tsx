@@ -1,10 +1,12 @@
-import { createSignal, onMount, Show } from 'solid-js';
+import { createSignal, onMount, onCleanup, Show } from 'solid-js';
 import LandingPage from './LandingPage';
 import ContestArena from './ContestArena';
 import TeamsPage from './TeamsPage';
 import ScoreboardPage from './ScoreboardPage';
 import AdminDashboard from './AdminDashboard';
-import { IconX, IconSun, IconMoon } from './icons';
+import ShortcutsModal from './ShortcutsModal';
+import { SystemHeartbeatPill, ButtonSpinner } from './Loaders';
+import { IconX, IconSun, IconMoon, IconKeyboard } from './icons';
 
 interface UserProfile {
   id: string;
@@ -27,9 +29,14 @@ export default function App() {
   const [authEmail, setAuthEmail] = createSignal('');
   const [authPassword, setAuthPassword] = createSignal('');
   const [authError, setAuthError] = createSignal('');
+  const [authSubmitting, setAuthSubmitting] = createSignal(false);
 
-  // Theme State
+  // Modals state
+  const [isShortcutsOpen, setIsShortcutsOpen] = createSignal(false);
+
+  // Theme & CRT Scanline State
   const [theme, setTheme] = createSignal<'light' | 'dark'>('light');
+  const [crtEnabled, setCrtEnabled] = createSignal<boolean>(false);
 
   const applyTheme = (t: 'light' | 'dark') => {
     if (t === 'dark') {
@@ -46,12 +53,58 @@ export default function App() {
     applyTheme(next);
   };
 
+  const toggleCrt = () => {
+    const next = !crtEnabled();
+    setCrtEnabled(next);
+    if (next) {
+      document.body.classList.add('crt-active');
+    } else {
+      document.body.classList.remove('crt-active');
+    }
+    localStorage.setItem('codebench_crt', next ? 'true' : 'false');
+  };
+
+  const handleGlobalKeyDown = (e: KeyboardEvent) => {
+    const target = e.target as HTMLElement;
+    const isEditing = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+    if (e.key === 'Escape') {
+      setIsAuthOpen(false);
+      setIsShortcutsOpen(false);
+      return;
+    }
+
+    if (isEditing) return;
+
+    if (e.key === '1') setViewMode('home');
+    else if (e.key === '2') setViewMode('contest');
+    else if (e.key === '3') setViewMode('teams');
+    else if (e.key === '4') setViewMode('scoreboard');
+    else if (e.key === '5' && user()?.role === 'admin') setViewMode('admin');
+    else if (e.key === 't' || e.key === 'T') {
+      toggleTheme();
+    } else if (e.key === 'c' || e.key === 'C') {
+      toggleCrt();
+    } else if (e.key === '?') {
+      setIsShortcutsOpen(!isShortcutsOpen());
+    }
+  };
+
   onMount(() => {
     // Initialize Theme
     const savedTheme = localStorage.getItem('codebench_theme') as 'light' | 'dark' | null;
     const initialTheme = savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     setTheme(initialTheme);
     applyTheme(initialTheme);
+
+    // Initialize CRT
+    const savedCrt = localStorage.getItem('codebench_crt') === 'true';
+    if (savedCrt) {
+      setCrtEnabled(true);
+      document.body.classList.add('crt-active');
+    }
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
 
     fetchSession();
 
@@ -67,9 +120,11 @@ export default function App() {
     } else {
       setViewMode('home');
     }
-  });
 
-  const [authSubmitting, setAuthSubmitting] = createSignal(false);
+    onCleanup(() => {
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+    });
+  });
 
   const fetchSession = async () => {
     try {
@@ -171,7 +226,7 @@ export default function App() {
               CODEBENCH
             </span>
             <span class="hidden sm:inline-block font-mono text-[9px] px-1.5 py-0.5 rounded-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-300 dark:border-zinc-700">
-              v1.0
+              v1.4.2
             </span>
           </div>
 
@@ -232,11 +287,36 @@ export default function App() {
           </nav>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2.5">
+          {/* Live System Heartbeat & Telemetry Monitor */}
+          <SystemHeartbeatPill />
+
+          {/* CRT Scanline Toggle */}
+          <button
+            onClick={toggleCrt}
+            title="Toggle Retro CRT Scanline Overlay (C)"
+            class={`px-2 py-1 rounded-[2px] text-[10px] font-mono font-bold uppercase transition border ${
+              crtEnabled()
+                ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700'
+                : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 border-[#d4d6dc] dark:border-[#272b34]'
+            }`}
+          >
+            CRT: {crtEnabled() ? 'ON' : 'OFF'}
+          </button>
+
+          {/* Keyboard Shortcuts Palette Trigger */}
+          <button
+            onClick={() => setIsShortcutsOpen(true)}
+            title="Keyboard Accelerators (?)"
+            class="px-2 py-1 rounded-[2px] text-xs font-mono text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-[#ebedf1] dark:hover:bg-[#1c1f26] transition border border-[#d4d6dc] dark:border-[#272b34]"
+          >
+            <IconKeyboard class="w-3.5 h-3.5" />
+          </button>
+
           {/* Theme Changing Toggle */}
           <button
             onClick={toggleTheme}
-            title={theme() === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            title={theme() === 'dark' ? 'Switch to Light Mode (T)' : 'Switch to Dark Mode (T)'}
             class="px-2.5 py-1 rounded-[2px] text-xs font-mono text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-[#ebedf1] dark:hover:bg-[#1c1f26] transition flex items-center gap-1.5 border border-[#d4d6dc] dark:border-[#272b34]"
           >
             <Show when={theme() === 'dark'} fallback={<IconMoon class="w-3.5 h-3.5" />}>
@@ -321,6 +401,12 @@ export default function App() {
       <Show when={viewMode() === 'admin'}>
         <AdminDashboard csrfToken={csrfToken()} />
       </Show>
+
+      {/* Keyboard Shortcuts Accelerator Modal */}
+      <ShortcutsModal
+        isOpen={isShortcutsOpen()}
+        onClose={() => setIsShortcutsOpen(false)}
+      />
 
       {/* Auth Modal (Login / Register) */}
       <Show when={isAuthOpen()}>
@@ -413,11 +499,16 @@ export default function App() {
                 <button
                   type="submit"
                   disabled={authSubmitting()}
-                  class="btn-workstation btn-workstation-primary w-full text-xs"
+                  class="btn-workstation btn-workstation-primary w-full text-xs flex items-center justify-center gap-2"
                 >
-                  {authSubmitting()
-                    ? (authMode() === 'login' ? 'Signing in...' : 'Creating Account...')
-                    : (authMode() === 'login' ? 'Sign In' : 'Create Account')}
+                  <Show when={authSubmitting()}>
+                    <ButtonSpinner class="w-3.5 h-3.5 text-white" />
+                  </Show>
+                  <span>
+                    {authSubmitting()
+                      ? (authMode() === 'login' ? 'Authenticating...' : 'Creating Account...')
+                      : (authMode() === 'login' ? 'Sign In' : 'Create Account')}
+                  </span>
                 </button>
               </div>
 

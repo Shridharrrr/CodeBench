@@ -15,12 +15,15 @@ import {
   IconUpload,
   IconDownload,
 } from './icons';
+import {
+  ButtonSpinner,
+  TopProgressBar,
+} from './Loaders';
 import MarkdownView from './MarkdownView';
 import {
   parseProblemMarkdown,
   generateProblemMarkdownTemplate,
   ParsedProblem,
-  TestCaseParsed,
 } from './problemMarkdownParser';
 
 interface Contest {
@@ -106,6 +109,7 @@ export default function AdminDashboard(props: AdminDashboardProps) {
   const [contests, setContests] = createSignal<Contest[]>([]);
   const [selectedContestId, setSelectedContestId] = createSignal<string>('');
   const [selectedContest, setSelectedContest] = createSignal<Contest | null>(null);
+  const [eventSubmitting, setEventSubmitting] = createSignal(false);
 
   // Squads / Teams Management
   const [teamsList, setTeamsList] = createSignal<AdminTeam[]>([]);
@@ -224,7 +228,7 @@ Print the single integer answer.
   // Create Competition Modal State
   const [isCreateContestOpen, setIsCreateContestOpen] = createSignal(false);
   const [newTitle, setNewTitle] = createSignal('');
-  const [newMode, setNewMode] = createSignal('fixed');
+  const [newMode] = createSignal('fixed');
   const [newScoring, setNewScoring] = createSignal('icpc');
   const [newIsTeam, setNewIsTeam] = createSignal(true);
   const [newMaxTeamSize, setNewMaxTeamSize] = createSignal(3);
@@ -470,6 +474,7 @@ Print the single integer answer.
     const cid = selectedContestId();
     if (!cid) return;
     setEventMsg(null);
+    setEventSubmitting(true);
     try {
       const body: any = {
         scoring: scoringMode(),
@@ -499,6 +504,8 @@ Print the single integer answer.
       }
     } catch (e: any) {
       setEventMsg({ type: 'error', text: e.message });
+    } finally {
+      setEventSubmitting(false);
     }
   };
 
@@ -769,7 +776,8 @@ Print the single integer answer.
   };
 
   return (
-    <div class="max-w-5xl mx-auto w-full px-6 py-8 space-y-6">
+    <div class="max-w-5xl mx-auto w-full px-6 py-8 space-y-6 relative">
+      <TopProgressBar active={eventSubmitting() || probSubmitting() || rejudgeRunning() || adjSubmitting()} />
       {/* Top Header */}
       <div class="flex flex-col md:flex-row md:items-center justify-between pb-5 border-b border-[#d4d6dc] dark:border-[#262a32] gap-4">
         <div>
@@ -1062,7 +1070,7 @@ Print the single integer answer.
                       onChange={(e) => setScoringMode(e.currentTarget.value)}
                       class="notion-input w-full"
                     >
-                      <option value="icpc">ICPC (Solved Count + 20-Minute Wrong Submission Penalty)</option>
+                      <option value="icpc">Standard Penalty (Solved Count + 20-Minute Wrong Submission Penalty)</option>
                       <option value="points">Flat Points (Fixed score per problem, zero penalty)</option>
                       <option value="ctfd">Dynamic Points (Points decay with solve count)</option>
                     </select>
@@ -1111,9 +1119,13 @@ Print the single integer answer.
               </span>
               <button
                 onClick={handleSaveContestState}
-                class="px-6 py-2.5 rounded-md text-xs font-bold bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white transition shadow-xs"
+                disabled={eventSubmitting()}
+                class="px-6 py-2.5 rounded-md text-xs font-bold bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white transition shadow-xs flex items-center gap-2"
               >
-                Save & Broadcast Settings
+                <Show when={eventSubmitting()}>
+                  <ButtonSpinner class="w-3.5 h-3.5 text-white" />
+                </Show>
+                <span>{eventSubmitting() ? 'Broadcasting...' : 'Save & Broadcast Settings'}</span>
               </button>
             </div>
 
@@ -1166,21 +1178,6 @@ Print the single integer answer.
               >
                 <IconUpload class="w-3.5 h-3.5 text-blue-500" />
                 <span>Upload .md Problem</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const tmpl = generateProblemMarkdownTemplate();
-                  setRawMDInput(tmpl);
-                  setParsedMDPreview(parseProblemMarkdown(tmpl));
-                  setIsUploadMDModalOpen(true);
-                }}
-                class="px-3 py-1.5 rounded-md text-xs font-semibold bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition shadow-2xs flex items-center gap-1.5"
-                title="Paste or Edit Raw Markdown Template"
-              >
-                <IconFileText class="w-3.5 h-3.5 text-slate-500" />
-                <span>Paste .md Template</span>
               </button>
 
               <button
@@ -1975,7 +1972,7 @@ Print the single integer answer.
                     onChange={(e) => setNewScoring(e.currentTarget.value)}
                     class="notion-input w-full text-xs"
                   >
-                    <option value="icpc">ICPC (Solved + 20m Penalty)</option>
+                    <option value="icpc">Standard Penalty (Solved + 20m Penalty)</option>
                     <option value="points">Points (Flat Points)</option>
                   </select>
                 </div>

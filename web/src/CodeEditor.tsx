@@ -1,4 +1,4 @@
-import { createMemo, onMount } from 'solid-js';
+import { createMemo } from 'solid-js';
 import { highlightCode } from './syntax';
 
 interface CodeEditorProps {

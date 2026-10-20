@@ -559,3 +559,102 @@ html.dark .code-editor-textarea {
   tab-size: inherit;
   z-index: 1;
 }
+
+/* =====================================================================
+   Retro-Modern Legacy Mainframe & Workstation Animations
+   ===================================================================== */
+@keyframes shimmerWave {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(212, 214, 220, 0.4) 25%,
+    rgba(240, 242, 245, 0.8) 50%,
+    rgba(212, 214, 220, 0.4) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmerWave 1.8s infinite linear;
+}
+
+html.dark .skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.09) 50%,
+    rgba(255, 255, 255, 0.03) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmerWave 1.8s infinite linear;
+}
+
+/* Authentic CRT Phosphor Scanline Overlay */
+.crt-active {
+  position: relative;
+}
+
+.crt-active::after {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.22) 50%),
+              linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+  z-index: 9999;
+  background-size: 100% 3px, 6px 100%;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* Terminal Monospace Blinking Caret */
+@keyframes terminalBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.terminal-cursor {
+  display: inline-block;
+  width: 7px;
+  height: 13px;
+  background-color: currentColor;
+  margin-left: 2px;
+  vertical-align: middle;
+  animation: terminalBlink 1s step-end infinite;
+}
+
+/* Subtle Phosphor Highlights */
+.phosphor-amber {
+  color: #f59e0b;
+  text-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
+}
+
+.phosphor-emerald {
+  color: #10b981;
+  text-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+}
+
+.phosphor-cyan {
+  color: #06b6d4;
+  text-shadow: 0 0 6px rgba(6, 182, 212, 0.4);
+}
+
+/* Ambient Engineering Grid */
+.bg-grid-pattern {
+  background-image: radial-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+html.dark .bg-grid-pattern {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+

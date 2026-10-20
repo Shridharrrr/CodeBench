@@ -1,7 +1,6 @@
 import { createSignal, onMount, onCleanup, For, Show } from 'solid-js';
 import {
   IconUsers,
-  IconClock,
   IconShield,
   IconCopy,
   IconCheck,

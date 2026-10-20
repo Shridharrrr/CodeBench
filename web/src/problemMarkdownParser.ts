@@ -72,7 +72,7 @@ function parseFrontmatter(raw: string): Record<string, any> {
 }
 
 // Extracts code block content from markdown (```...```)
-function extractFencedBlock(text: string, type: string): string | null {
+export function extractFencedBlock(text: string, type: string): string | null {
   const regex = new RegExp(`\`\`\`(?:${type})?\\s*\\r?\\n([\\s\\S]*?)\\r?\\n\`\`\``, 'i');
   const match = text.match(regex);
   return match ? match[1].trim() : null;

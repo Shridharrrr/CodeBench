@@ -4,14 +4,16 @@ import WaitingRoom from './WaitingRoom';
 import MarkdownView from './MarkdownView';
 import CodeEditor from './CodeEditor';
 import {
-  IconTrophy,
   IconCheck,
-  IconCopy,
   IconPlay,
-  IconX,
   IconClock,
-  IconShield,
 } from './icons';
+import {
+  ProblemSkeletonLoader,
+  CrtTerminalLoader,
+  ButtonSpinner,
+  TopProgressBar,
+} from './Loaders';
 
 export interface UserProfile {
   id: string;
@@ -138,7 +140,7 @@ export default function ContestArena(props: ContestArenaProps) {
   const [isSubmitting, setIsSubmitting] = createSignal(false);
   const [sampleRunResult, setSampleRunResult] = createSignal<any | null>(null);
   const [submissionVerdict, setSubmissionVerdict] = createSignal<any | null>(null);
-  const [submissionStage, setSubmissionStage] = createSignal<string>('IDLE');
+  const [, setSubmissionStage] = createSignal<string>('IDLE');
   const [evaluatingTestCount, setEvaluatingTestCount] = createSignal<number>(0);
 
   // Solved Cache
@@ -150,8 +152,8 @@ export default function ContestArena(props: ContestArenaProps) {
   // Resizable Panes State (horizontal splitX % for problem statement, vertical splitY % for code editor)
   const [splitX, setSplitX] = createSignal<number>(45);
   const [splitY, setSplitY] = createSignal<number>(60);
-  const [isDraggingX, setIsDraggingX] = createSignal<boolean>(false);
-  const [isDraggingY, setIsDraggingY] = createSignal<boolean>(false);
+  const [, setIsDraggingX] = createSignal<boolean>(false);
+  const [, setIsDraggingY] = createSignal<boolean>(false);
 
   let workspaceRef: HTMLDivElement | undefined;
   let rightPaneRef: HTMLDivElement | undefined;
@@ -597,7 +599,8 @@ export default function ContestArena(props: ContestArenaProps) {
   };
 
   return (
-    <div class="flex-1 flex flex-col h-[calc(100vh-57px)] overflow-hidden bg-slate-50 dark:bg-slate-950">
+    <div class="flex-1 flex flex-col h-[calc(100vh-57px)] overflow-hidden bg-slate-50 dark:bg-slate-950 relative">
+      <TopProgressBar active={isRunning() || isSubmitting()} />
       <Show
         when={contests().length > 0 && activeContest()}
         fallback={
@@ -657,16 +660,16 @@ export default function ContestArena(props: ContestArenaProps) {
                   <div class="flex items-center gap-2">
                     <span
                       class={`status-chip ${
-                        c().state === 'running' || c().state === 'RUNNING'
+                        c().state === 'running'
                           ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800'
-                          : c().state === 'upcoming' || c().state === 'UPCOMING'
+                          : c().state === 'upcoming'
                           ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800'
                           : c().state === 'PAUSED'
                           ? 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800'
                           : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700'
                       }`}
                     >
-                      {c().is_paused ? 'Paused' : (c().state === 'running' || c().state === 'RUNNING' ? 'Running' : 'Upcoming')}
+                      {c().is_paused ? 'Paused' : (c().state === 'running' ? 'Running' : 'Upcoming')}
                     </span>
 
                     <span class="hidden md:inline font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
@@ -766,8 +769,8 @@ export default function ContestArena(props: ContestArenaProps) {
             class="border-r border-[#d4d6dc] dark:border-[#262a32] flex flex-col min-w-0 min-h-0 h-full overflow-y-auto bg-white dark:bg-[#0c0d10] p-6 space-y-5"
           >
             <Show when={problemLoading()}>
-              <div class="flex-1 flex items-center justify-center text-zinc-400 font-mono text-xs">
-                <span>[ LOADING PROBLEM SPECIFICATION... ]</span>
+              <div class="py-2">
+                <ProblemSkeletonLoader />
               </div>
             </Show>
 
@@ -1044,14 +1047,18 @@ export default function ContestArena(props: ContestArenaProps) {
 
                 {/* 2. Run Output Tab */}
                 <Show when={activeTab() === 'output'}>
-                  <Show
-                    when={sampleRunResult()}
-                    fallback={
-                      <div class="py-6 text-center text-zinc-400 dark:text-zinc-500 font-sans text-xs">
-                        Click "Run Code" to test against sample test cases.
-                      </div>
-                    }
-                  >
+                  <Show when={isRunning()}>
+                    <CrtTerminalLoader mode="run" language={language()} />
+                  </Show>
+                  <Show when={!isRunning()}>
+                    <Show
+                      when={sampleRunResult()}
+                      fallback={
+                        <div class="py-8 text-center text-zinc-400 dark:text-zinc-500 font-sans text-xs">
+                          Click "Run Code" to compile and execute against sample test vectors.
+                        </div>
+                      }
+                    >
                     <div class="space-y-3 font-mono">
                       <div class="flex items-center gap-3">
                         <span
@@ -1098,21 +1105,19 @@ export default function ContestArena(props: ContestArenaProps) {
                       </div>
                     </div>
                   </Show>
+                  </Show>
                 </Show>
 
                 {/* 3. Submission Verdict Tab */}
                 <Show when={activeTab() === 'verdict'}>
                   <div class="space-y-3 font-mono">
                     <Show when={isSubmitting()}>
-                      <div class="p-4 bg-white dark:bg-[#12141a] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px] text-center space-y-2">
-                        <div class="inline-flex items-center gap-2 px-2.5 py-0.5 text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-300 dark:border-zinc-700">
-                          <span class="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
-                          <span>Evaluating Test Cases ({evaluatingTestCount()}/32)...</span>
-                        </div>
-                        <p class="text-[11px] text-zinc-500 dark:text-zinc-400 font-sans">
-                          Executing within isolated sandbox environment...
-                        </p>
-                      </div>
+                      <CrtTerminalLoader
+                        mode="submit"
+                        language={language()}
+                        testCount={evaluatingTestCount()}
+                        totalTests={32}
+                      />
                     </Show>
 
                     <Show when={submissionVerdict()}>
@@ -1176,19 +1181,23 @@ export default function ContestArena(props: ContestArenaProps) {
                 <button
                   onClick={handleRunSamples}
                   disabled={isRunning() || isSubmitting()}
-                  class="btn-workstation btn-workstation-secondary text-xs"
+                  class="btn-workstation btn-workstation-secondary text-xs flex items-center gap-1.5"
                 >
-                  <IconPlay class="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />
-                  <span>{isRunning() ? 'Running...' : 'Run Code'}</span>
+                  <Show when={isRunning()} fallback={<IconPlay class="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />}>
+                    <ButtonSpinner class="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />
+                  </Show>
+                  <span>{isRunning() ? 'Running Sandbox...' : 'Run Code'}</span>
                 </button>
 
                 <button
                   onClick={handleContestSubmit}
                   disabled={isSubmitting() || isRunning()}
-                  class="btn-workstation btn-workstation-success text-xs font-semibold"
+                  class="btn-workstation btn-workstation-success text-xs font-semibold flex items-center gap-1.5"
                 >
-                  <IconCheck class="w-3.5 h-3.5" />
-                  <span>{isSubmitting() ? 'Evaluating...' : 'Submit Solution'}</span>
+                  <Show when={isSubmitting()} fallback={<IconCheck class="w-3.5 h-3.5" />}>
+                    <ButtonSpinner class="w-3.5 h-3.5 text-white" />
+                  </Show>
+                  <span>{isSubmitting() ? 'Evaluating Testcases...' : 'Submit Solution'}</span>
                 </button>
               </div>
             </div>

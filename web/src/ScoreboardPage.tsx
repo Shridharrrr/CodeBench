@@ -4,6 +4,11 @@ import {
   IconRefresh,
   IconSearch,
 } from './icons';
+import {
+  TableSkeletonLoader,
+  TopProgressBar,
+  ButtonSpinner,
+} from './Loaders';
 
 interface ContestSummary {
   id: string;
@@ -142,7 +147,8 @@ export default function ScoreboardPage() {
   };
 
   return (
-    <div class="flex-1 bg-[#f4f5f7] dark:bg-[#090a0c] text-zinc-900 dark:text-zinc-100 py-8 px-6 font-sans transition-colors duration-100">
+    <div class="flex-1 bg-[#f4f5f7] dark:bg-[#090a0c] text-zinc-900 dark:text-zinc-100 py-8 px-6 font-sans transition-colors duration-100 relative">
+      <TopProgressBar active={isRefreshing()} />
       <div class="max-w-5xl mx-auto space-y-5">
         {/* Top Header & Actions */}
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#d4d6dc] dark:border-[#262a32]">
@@ -178,7 +184,7 @@ export default function ScoreboardPage() {
               {scoreboard()?.contest_title || 'Competition Scoreboard'}
             </h1>
             <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-              Scoring: <strong class="text-zinc-800 dark:text-zinc-200 uppercase">{selectedContest()?.scoring || 'ICPC'}</strong> &bull; Timezone: Asia/Kolkata (IST)
+              Scoring: <strong class="text-zinc-800 dark:text-zinc-200 uppercase">{selectedContest()?.scoring === 'icpc' ? 'Standard Penalty' : (selectedContest()?.scoring || 'Standard')}</strong> &bull; Timezone: Asia/Kolkata (IST)
             </p>
           </div>
 
@@ -202,10 +208,12 @@ export default function ScoreboardPage() {
                 if (selectedContestId()) fetchScoreboard(selectedContestId());
               }}
               disabled={isRefreshing()}
-              class="btn-workstation btn-workstation-secondary text-xs"
+              class="btn-workstation btn-workstation-secondary text-xs flex items-center gap-1.5"
             >
-              <IconRefresh class={`w-3 h-3 text-zinc-600 dark:text-zinc-300 ${isRefreshing() ? 'animate-spin' : ''}`} />
-              <span>{isRefreshing() ? 'Updating...' : 'Refresh'}</span>
+              <Show when={isRefreshing()} fallback={<IconRefresh class="w-3 h-3 text-zinc-600 dark:text-zinc-300" />}>
+                <ButtonSpinner class="w-3 h-3 text-zinc-600 dark:text-zinc-300" />
+              </Show>
+              <span>{isRefreshing() ? 'Refreshing...' : 'Refresh'}</span>
             </button>
           </div>
         </div>
@@ -231,24 +239,27 @@ export default function ScoreboardPage() {
         </div>
 
         {/* Scoreboard Table Card */}
-        <Show
-          when={!loading() && scoreboard() && filteredRows().length > 0}
-          fallback={
-            <div class="notion-card p-14 text-center bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px]">
-              <div class="w-10 h-10 rounded-[2px] bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 flex items-center justify-center mx-auto mb-3 border border-zinc-300 dark:border-zinc-700">
-                <IconTrophy class="w-5 h-5 text-amber-500" />
-              </div>
-              <h3 class="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-                {contests().length === 0 ? 'No competitions registered' : 'No submissions judged yet'}
-              </h3>
-              <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-sm mx-auto">
-                {contests().length === 0
-                  ? 'An administrator can configure and launch a competition from the Admin Dashboard.'
-                  : 'The scoreboard will reflect live solve times, points, and penalty logs once participants begin submitting.'}
-              </p>
+        <Show when={loading()}>
+          <TableSkeletonLoader rows={8} columns={problemColumns().length + 4} />
+        </Show>
+
+        <Show when={!loading() && (!scoreboard() || filteredRows().length === 0)}>
+          <div class="notion-card p-14 text-center bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px]">
+            <div class="w-10 h-10 rounded-[2px] bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 flex items-center justify-center mx-auto mb-3 border border-zinc-300 dark:border-zinc-700">
+              <IconTrophy class="w-5 h-5 text-amber-500" />
             </div>
-          }
-        >
+            <h3 class="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+              {contests().length === 0 ? 'No competitions registered' : 'No submissions judged yet'}
+            </h3>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-sm mx-auto">
+              {contests().length === 0
+                ? 'An administrator can configure and launch a competition from the Admin Dashboard.'
+                : 'The scoreboard will reflect live solve times, points, and penalty logs once participants begin submitting.'}
+            </p>
+          </div>
+        </Show>
+
+        <Show when={!loading() && scoreboard() && filteredRows().length > 0}>
           <div class="notion-card bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] overflow-hidden rounded-[2px] shadow-[1px_1px_0px_rgba(0,0,0,0.06)] dark:shadow-[1px_1px_0px_rgba(0,0,0,0.4)]">
             <div class="overflow-x-auto">
               <table class="w-full text-left text-xs border-collapse">

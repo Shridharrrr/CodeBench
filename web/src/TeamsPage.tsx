@@ -1,7 +1,6 @@
 import { createSignal, createEffect, onMount, For, Show } from 'solid-js';
 import {
   IconUsers,
-  IconPlus,
   IconX,
   IconCopy,
   IconCheck,
@@ -9,6 +8,11 @@ import {
   IconSearch,
   IconTrash,
 } from './icons';
+import {
+  TableSkeletonLoader,
+  ButtonSpinner,
+  TopProgressBar,
+} from './Loaders';
 
 interface TeamMember {
   team_id: string;
@@ -233,7 +237,8 @@ export default function TeamsPage(props: TeamsPageProps) {
   };
 
   return (
-    <div class="flex-1 bg-[#f4f5f7] dark:bg-[#090a0c] text-zinc-900 dark:text-zinc-100 py-8 px-6 font-sans transition-colors duration-100">
+    <div class="flex-1 bg-[#f4f5f7] dark:bg-[#090a0c] text-zinc-900 dark:text-zinc-100 py-8 px-6 font-sans transition-colors duration-100 relative">
+      <TopProgressBar active={loading()} />
       <div class="max-w-5xl mx-auto space-y-6">
         {/* Header */}
         <div class="pb-4 border-b border-[#d4d6dc] dark:border-[#262a32]">
@@ -320,9 +325,12 @@ export default function TeamsPage(props: TeamsPageProps) {
                     <button
                       type="submit"
                       disabled={actionLoading() || !createName().trim()}
-                      class="btn-workstation btn-workstation-primary w-full text-xs"
+                      class="btn-workstation btn-workstation-primary w-full text-xs flex items-center justify-center gap-2"
                     >
-                      {actionLoading() ? 'Creating...' : 'Create Squad & Get Code'}
+                      <Show when={actionLoading()}>
+                        <ButtonSpinner class="w-3.5 h-3.5 text-white" />
+                      </Show>
+                      <span>{actionLoading() ? 'Creating Squad...' : 'Create Squad & Get Code'}</span>
                     </button>
                   </form>
                 </div>
@@ -357,9 +365,12 @@ export default function TeamsPage(props: TeamsPageProps) {
                     <button
                       type="submit"
                       disabled={actionLoading() || !joinCode().trim()}
-                      class="btn-workstation btn-workstation-secondary w-full text-xs"
+                      class="btn-workstation btn-workstation-secondary w-full text-xs flex items-center justify-center gap-2"
                     >
-                      {actionLoading() ? 'Joining...' : 'Join Squad'}
+                      <Show when={actionLoading()}>
+                        <ButtonSpinner class="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />
+                      </Show>
+                      <span>{actionLoading() ? 'Joining...' : 'Join Squad'}</span>
                     </button>
                   </form>
                 </div>
@@ -478,20 +489,23 @@ export default function TeamsPage(props: TeamsPageProps) {
             </div>
           </div>
 
-          <Show
-            when={!loading() && filteredTeams().length > 0}
-            fallback={
-              <div class="notion-card p-10 text-center bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px]">
-                <div class="w-8 h-8 rounded-[2px] bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 flex items-center justify-center mx-auto mb-2 border border-zinc-300 dark:border-zinc-700">
-                  <IconShield class="w-4 h-4" />
-                </div>
-                <h3 class="text-xs font-bold text-zinc-700 dark:text-zinc-300">No squads found</h3>
-                <p class="text-xs text-zinc-400 dark:text-zinc-500 mt-1 max-w-sm mx-auto">
-                  {searchQuery() ? 'No squads matched your search filter.' : 'Register a squad above to begin competing together.'}
-                </p>
+          <Show when={loading()}>
+            <TableSkeletonLoader rows={6} columns={3} />
+          </Show>
+
+          <Show when={!loading() && filteredTeams().length === 0}>
+            <div class="notion-card p-10 text-center bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px]">
+              <div class="w-8 h-8 rounded-[2px] bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 flex items-center justify-center mx-auto mb-2 border border-zinc-300 dark:border-zinc-700">
+                <IconShield class="w-4 h-4" />
               </div>
-            }
-          >
+              <h3 class="text-xs font-bold text-zinc-700 dark:text-zinc-300">No squads found</h3>
+              <p class="text-xs text-zinc-400 dark:text-zinc-500 mt-1 max-w-sm mx-auto">
+                {searchQuery() ? 'No squads matched your search filter.' : 'Register a squad above to begin competing together.'}
+              </p>
+            </div>
+          </Show>
+
+          <Show when={!loading() && filteredTeams().length > 0}>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <For each={filteredTeams()}>
                 {(t) => (
