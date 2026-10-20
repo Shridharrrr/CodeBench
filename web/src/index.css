@@ -4,28 +4,30 @@
 
 @layer base {
   :root {
-    font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     color-scheme: light;
-    --background: #f8fafc;
-    --foreground: #0f172a;
+    --background: #f4f5f7;
+    --foreground: #18191b;
     --card: #ffffff;
-    --card-foreground: #0f172a;
-    --border: #e2e8f0;
-    --muted: #f1f5f9;
-    --muted-foreground: #64748b;
+    --card-foreground: #18191b;
+    --border: #d4d6dc;
+    --border-subtle: #e5e7eb;
+    --muted: #ebedf1;
+    --muted-foreground: #5a606b;
     --accent: #2563eb;
     --accent-foreground: #ffffff;
   }
 
   html.dark {
     color-scheme: dark;
-    --background: #000000;
-    --foreground: #ffffff;
-    --card: #09090b;
-    --card-foreground: #ffffff;
-    --border: #27272a;
-    --muted: #121214;
-    --muted-foreground: #a1a1aa;
+    --background: #090a0c;
+    --foreground: #f0f2f5;
+    --card: #111316;
+    --card-foreground: #f0f2f5;
+    --border: #262a32;
+    --border-subtle: #1c1f26;
+    --muted: #16181e;
+    --muted-foreground: #8b929e;
     --accent: #3b82f6;
     --accent-foreground: #ffffff;
   }
@@ -38,79 +40,239 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-    transition: background-color 0.15s ease, color 0.15s ease;
+    transition: background-color 0.1s ease, color 0.1s ease;
   }
 
   code, pre, .font-mono {
-    font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-family: 'JetBrains Mono', 'IBM Plex Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-feature-settings: "liga" 0;
   }
 }
 
 /* =====================================================================
-   Notion & High-Contrast Obsidian Dark Cards
+   Legacy-Modern Architectural Workstation Components
    ===================================================================== */
 .notion-card {
   background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  border: 1px solid #d4d6dc;
+  border-radius: 2px;
+  box-shadow: 1px 1px 0px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.1s ease, box-shadow 0.1s ease, background-color 0.1s ease;
 }
 
 html.dark .notion-card {
-  background-color: #09090b;
-  border-color: #27272a;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 4px 24px -2px rgba(0, 0, 0, 0.95);
+  background-color: #111316;
+  border-color: #272b34;
+  box-shadow: 1px 1px 0px rgba(0, 0, 0, 0.45);
 }
 
 .notion-card-subtle {
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
+  background-color: #f8f9fa;
+  border: 1px solid #dcdfe4;
+  border-radius: 2px;
 }
 
 html.dark .notion-card-subtle {
-  background-color: #121214;
-  border-color: #27272a;
+  background-color: #15181d;
+  border-color: #272b34;
 }
 
 .notion-input {
   background-color: #ffffff;
-  border: 1px solid #cbd5e1;
-  color: #0f172a;
-  border-radius: 6px;
-  padding: 6px 12px;
-  font-size: 0.875rem;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  border: 1px solid #c4c7d0;
+  color: #111317;
+  border-radius: 2px;
+  padding: 6px 10px;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  transition: border-color 0.1s ease, box-shadow 0.1s ease;
 }
 
 html.dark .notion-input {
-  background-color: #000000;
-  border-color: #27272a;
-  color: #ffffff;
+  background-color: #0b0c0e;
+  border-color: #2b303a;
+  color: #f0f2f5;
 }
 
 html.dark select.notion-input option {
-  background-color: #09090b;
+  background-color: #111316;
   color: #ffffff;
 }
 
 html.dark input::placeholder,
 html.dark textarea::placeholder {
-  color: #71717a;
+  color: #6c7380;
   opacity: 1;
 }
 
 .notion-input:focus {
   outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+  border-color: #18191b;
+  box-shadow: 0 0 0 1px #18191b;
 }
 
 html.dark .notion-input:focus {
   border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
+  box-shadow: 0 0 0 1px #3b82f6;
+}
+
+/* Legacy Workstation Status Badges */
+/* Status Badges */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 2px 7px;
+  border-radius: 2px;
+  border-width: 1px;
+}
+
+/* Classic Tactile Buttons */
+.btn-workstation {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  padding: 0.45rem 0.85rem;
+  border-radius: 2px;
+  border-width: 1px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: background-color 0.08s ease, border-color 0.08s ease, transform 0.05s ease, box-shadow 0.05s ease;
+  box-shadow: 1px 1px 0px rgba(0, 0, 0, 0.15);
+}
+
+.btn-workstation:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: none;
+}
+
+.btn-workstation:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-workstation-primary {
+  background-color: #18191b;
+  color: #ffffff;
+  border-color: #000000;
+}
+
+.btn-workstation-primary:hover:not(:disabled) {
+  background-color: #27282b;
+  border-color: #111214;
+}
+
+html.dark .btn-workstation-primary {
+  background-color: #2563eb;
+  color: #ffffff;
+  border-color: #3b82f6;
+  box-shadow: 1px 1px 0px rgba(0, 0, 0, 0.45);
+}
+
+html.dark .btn-workstation-primary:hover:not(:disabled) {
+  background-color: #1d4ed8;
+  border-color: #60a5fa;
+}
+
+.btn-workstation-secondary {
+  background-color: #ffffff;
+  color: #18191b;
+  border-color: #c4c7d0;
+}
+
+.btn-workstation-secondary:hover:not(:disabled) {
+  background-color: #f1f3f6;
+  border-color: #9aa0ac;
+}
+
+html.dark .btn-workstation-secondary {
+  background-color: #14171d;
+  color: #e5e7eb;
+  border-color: #2c313c;
+  box-shadow: 1px 1px 0px rgba(0, 0, 0, 0.45);
+}
+
+html.dark .btn-workstation-secondary:hover:not(:disabled) {
+  background-color: #1d212a;
+  border-color: #424958;
+  color: #ffffff;
+}
+
+.btn-workstation-success {
+  background-color: #059669;
+  color: #ffffff;
+  border-color: #047857;
+}
+
+.btn-workstation-success:hover:not(:disabled) {
+  background-color: #047857;
+}
+
+html.dark .btn-workstation-success {
+  background-color: #10b981;
+  color: #032015;
+  border-color: #34d399;
+}
+
+html.dark .btn-workstation-success:hover:not(:disabled) {
+  background-color: #059669;
+  color: #ffffff;
+}
+
+.btn-workstation-danger {
+  background-color: #dc2626;
+  color: #ffffff;
+  border-color: #b91c1c;
+}
+
+.btn-workstation-danger:hover:not(:disabled) {
+  background-color: #b91c1c;
+}
+
+html.dark .btn-workstation-danger {
+  background-color: #ef4444;
+  color: #250505;
+  border-color: #f87171;
+}
+
+html.dark .btn-workstation-danger:hover:not(:disabled) {
+  background-color: #dc2626;
+  color: #ffffff;
+}
+
+/* Digital clock display */
+.digital-clock-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 2px;
+  background-color: #eaedf2;
+  color: #0f172a;
+  border: 1px solid #c4c7d0;
+  box-shadow: inset 1px 1px 2px rgba(0,0,0,0.06);
+}
+
+html.dark .digital-clock-box {
+  background-color: #060709;
+  color: #38bdf8;
+  border-color: #212631;
+  box-shadow: inset 1px 1px 3px rgba(0,0,0,0.8);
 }
 
 /* Minimalist scrollbars */

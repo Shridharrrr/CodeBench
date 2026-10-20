@@ -769,20 +769,20 @@ Print the single integer answer.
   };
 
   return (
-    <div class="max-w-6xl mx-auto px-6 py-8 space-y-8">
+    <div class="max-w-5xl mx-auto w-full px-6 py-8 space-y-6">
       {/* Top Header */}
-      <div class="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-200 dark:border-slate-800 gap-4">
+      <div class="flex flex-col md:flex-row md:items-center justify-between pb-5 border-b border-[#d4d6dc] dark:border-[#262a32] gap-4">
         <div>
-          <div class="flex items-center gap-3">
-            <span class="px-2.5 py-0.5 text-xs font-semibold bg-slate-900 dark:bg-slate-800 text-white rounded-md">
-              Control Center
+          <div class="flex items-center gap-2.5">
+            <span class="px-2 py-0.5 text-xs font-semibold bg-zinc-900 dark:bg-zinc-800 text-white rounded-[2px]">
+              Admin
             </span>
-            <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-              Admin Operations
+            <h1 class="text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+              Admin Dashboard
             </h1>
           </div>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Manage competition schedules, squad rules, point adjudication, and author custom questions.
+          <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+            Manage competition schedules, problem authoring, score adjustments, and squads.
           </p>
         </div>
 
@@ -790,11 +790,11 @@ Print the single integer answer.
         <div class="flex flex-wrap items-center gap-3">
           <Show when={contests().length > 0}>
             <div class="flex items-center gap-2">
-              <label class="text-xs font-semibold text-slate-500 dark:text-slate-400">Contest:</label>
+              <label class="text-xs font-semibold text-zinc-600 dark:text-zinc-400">Contest:</label>
               <select
                 value={selectedContestId()}
                 onChange={(e) => setSelectedContestId(e.currentTarget.value)}
-                class="notion-input font-medium text-xs min-w-[220px]"
+                class="notion-input font-medium text-xs min-w-[200px]"
               >
                 <For each={contests()}>
                   {(c) => (
@@ -809,76 +809,76 @@ Print the single integer answer.
 
           <button
             onClick={() => setIsCreateContestOpen(true)}
-            class="px-4 py-2 rounded-md text-xs font-bold bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white transition shadow-xs flex items-center gap-2"
+            class="btn-workstation btn-workstation-primary text-xs"
           >
             <IconPlus class="w-3.5 h-3.5" />
-            <span>New Competition</span>
+            <span>New Contest</span>
           </button>
         </div>
       </div>
 
-      {/* Spacious Segmented Tabs Navigation */}
-      <div class="flex flex-wrap items-center gap-2 p-1 bg-slate-100 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800">
+      {/* Segmented Tabs Navigation */}
+      <div class="flex flex-wrap items-center gap-1.5 p-1 bg-[#eaedf1] dark:bg-[#14171d] rounded-[2px] border border-[#d4d6dc] dark:border-[#262a32] text-xs font-medium">
         <button
           onClick={() => setActiveTab('event')}
-          class={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition ${
+          class={`flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] transition ${
             activeTab() === 'event'
-              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              ? 'bg-white dark:bg-[#212530] text-zinc-900 dark:text-white font-semibold border border-[#d4d6dc] dark:border-[#2f3544] shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
+              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
           }`}
         >
-          <IconClock class="w-4 h-4 text-slate-500" />
-          <span>Competition Schedule & Controls</span>
+          <IconClock class="w-3.5 h-3.5 text-zinc-500" />
+          <span>Schedule & Controls</span>
         </button>
 
         <button
           onClick={() => setActiveTab('new_problem')}
-          class={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition ${
+          class={`flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] transition ${
             activeTab() === 'new_problem'
-              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              ? 'bg-white dark:bg-[#212530] text-zinc-900 dark:text-white font-semibold border border-[#d4d6dc] dark:border-[#2f3544] shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
+              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
           }`}
         >
-          <IconFileText class="w-4 h-4 text-slate-500" />
-          <span>Problem Authoring Studio</span>
+          <IconFileText class="w-3.5 h-3.5 text-zinc-500" />
+          <span>Problem Studio</span>
         </button>
 
         <button
           onClick={() => setActiveTab('adjustments')}
-          class={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition ${
+          class={`flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] transition ${
             activeTab() === 'adjustments'
-              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              ? 'bg-white dark:bg-[#212530] text-zinc-900 dark:text-white font-semibold border border-[#d4d6dc] dark:border-[#2f3544] shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
+              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
           }`}
         >
-          <IconShield class="w-4 h-4 text-slate-500" />
-          <span>Score Adjustments & Penalties</span>
+          <IconShield class="w-3.5 h-3.5 text-zinc-500" />
+          <span>Score Adjustments</span>
         </button>
 
         <button
           onClick={() => setActiveTab('rejudge')}
-          class={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition ${
+          class={`flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] transition ${
             activeTab() === 'rejudge'
-              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              ? 'bg-white dark:bg-[#212530] text-zinc-900 dark:text-white font-semibold border border-[#d4d6dc] dark:border-[#2f3544] shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
+              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
           }`}
         >
-          <IconRefresh class="w-4 h-4 text-slate-500" />
-          <span>Cluster & Rejudge</span>
+          <IconRefresh class="w-3.5 h-3.5 text-zinc-500" />
+          <span>Rejudge Batch</span>
         </button>
 
         <button
           onClick={() => { setActiveTab('teams'); fetchTeams(); }}
-          class={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition ${
+          class={`flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] transition ${
             activeTab() === 'teams'
-              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              ? 'bg-white dark:bg-[#212530] text-zinc-900 dark:text-white font-semibold border border-[#d4d6dc] dark:border-[#2f3544] shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
+              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
           }`}
         >
-          <IconUsers class="w-4 h-4 text-slate-500" />
+          <IconUsers class="w-3.5 h-3.5 text-zinc-500" />
           <span>Squads & Rosters</span>
           <Show when={teamsList().length > 0}>
-            <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold">
+            <span class="px-1.5 py-0.2 rounded-[2px] text-[10px] bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-semibold border border-zinc-300 dark:border-zinc-700">
               {teamsList().length}
             </span>
           </Show>
@@ -890,66 +890,63 @@ Print the single integer answer.
         <Show
           when={contests().length > 0}
           fallback={
-            <div class="notion-card p-12 text-center bg-white dark:bg-slate-900 space-y-4">
-              <div class="w-16 h-16 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center mx-auto text-slate-400">
-                <IconSettings class="w-8 h-8" />
+            <div class="notion-card p-10 text-center bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px] space-y-4">
+              <div class="w-12 h-12 rounded-[2px] bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 flex items-center justify-center mx-auto text-zinc-500">
+                <IconSettings class="w-6 h-6" />
               </div>
-              <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">No Competitions Configured Yet</h2>
-              <p class="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-                Initialize your first competition below to set duration, scoring rules, and squad modes. Contests remain in UPCOMING state until you explicitly click "Start Contest Immediately".
+              <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">No contests configured yet</h2>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 max-w-md mx-auto leading-relaxed">
+                Initialize your first competition below to set duration, scoring rules, and squad modes. Contests remain in Upcoming state until you click "Start Contest Now".
               </p>
               <div class="pt-2">
                 <button
                   onClick={() => setIsCreateContestOpen(true)}
-                  class="px-5 py-2.5 rounded-md text-xs font-bold bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white transition shadow-xs inline-flex items-center gap-2"
+                  class="btn-workstation btn-workstation-primary text-xs"
                 >
                   <IconPlus class="w-3.5 h-3.5" />
-                  <span>Create Competition</span>
+                  <span>Create Contest</span>
                 </button>
               </div>
             </div>
           }
         >
-          <div class="space-y-6">
-            {/* Live Competition Hero Status & Control Banner */}
-            <div class="notion-card p-6 bg-gradient-to-r from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900/60 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div class="space-y-5">
+            {/* Live Competition Status & Control Banner */}
+            <div class="notion-card p-5 bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px] shadow-[1px_1px_0px_rgba(0,0,0,0.06)] dark:shadow-[1px_1px_0px_rgba(0,0,0,0.4)] flex flex-col md:flex-row md:items-center justify-between gap-5">
               <div class="space-y-2">
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2.5">
                   <span
-                    class={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                    class={`status-chip ${
                       (selectedContest()?.state || '').toUpperCase() === 'RUNNING' && !isPaused()
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800'
                         : isPaused()
-                        ? 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800'
-                        : 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800'
+                        ? 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800'
+                        : 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800'
                     }`}
                   >
-                    <span class="w-2 h-2 rounded-full bg-current animate-pulse"></span>
-                    <span>{isPaused() ? 'Contest Paused' : selectedContest()?.state || 'UPCOMING'}</span>
+                    {isPaused() ? 'Contest Paused' : (selectedContest()?.state || 'Upcoming')}
                   </span>
-                  <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">
+                  <h2 class="text-base font-bold text-zinc-900 dark:text-zinc-100">
                     {selectedContest()?.title}
                   </h2>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
-                  <span>Scoring: <strong class="text-slate-800 dark:text-slate-200">{scoringMode().toUpperCase()}</strong></span>
-                  <span>Squad Mode: <strong class="text-slate-800 dark:text-slate-200">{isTeamContest() ? `Squads of ${maxTeamSize()}` : 'Solo Mode'}</strong></span>
-                  <span>Registered: <strong class="text-slate-800 dark:text-slate-200">{participants().length} participants</strong></span>
+                <div class="flex flex-wrap items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+                  <span>Scoring: <strong class="text-zinc-900 dark:text-zinc-200 uppercase">{scoringMode()}</strong></span>
+                  <span class="text-zinc-300 dark:text-zinc-700">&bull;</span>
+                  <span>Squads: <strong class="text-zinc-900 dark:text-zinc-200">{isTeamContest() ? `Max ${maxTeamSize()}` : 'Individual'}</strong></span>
+                  <span class="text-zinc-300 dark:text-zinc-700">&bull;</span>
+                  <span>Registered: <strong class="text-zinc-900 dark:text-zinc-200">{participants().length} Participants</strong></span>
                 </div>
               </div>
 
-              {/* Primary Orchestration Action */}
-              <div class="flex items-center gap-3">
+              {/* Primary Actions */}
+              <div class="flex items-center gap-2.5">
                 <button
                   onClick={() => setIsPaused(!isPaused())}
-                  class={`px-4 py-2.5 rounded-md text-xs font-semibold transition border ${
-                    isPaused()
-                      ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600'
-                      : 'bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'
-                  }`}
+                  class="btn-workstation btn-workstation-secondary text-xs"
                 >
-                  {isPaused() ? 'Resume Competition' : 'Pause Competition'}
+                  {isPaused() ? 'Resume Contest' : 'Pause Contest'}
                 </button>
 
                 <Show
@@ -957,19 +954,19 @@ Print the single integer answer.
                   fallback={
                     <button
                       onClick={handleStartContestNow}
-                      class="px-5 py-2.5 rounded-md text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-xs flex items-center gap-2"
+                      class="btn-workstation btn-workstation-primary text-xs"
                     >
                       <IconPlay class="w-3.5 h-3.5 fill-current" />
-                      <span>Start Contest Immediately</span>
+                      <span>Start Contest Now</span>
                     </button>
                   }
                 >
                   <button
                     onClick={handleConcludeContestNow}
-                    class="px-5 py-2.5 rounded-md text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white transition shadow-xs flex items-center gap-2"
+                    class="btn-workstation btn-workstation-danger text-xs font-semibold"
                   >
                     <IconX class="w-3.5 h-3.5" />
-                    <span>Conclude Contest Now</span>
+                    <span>Conclude Contest</span>
                   </button>
                 </Show>
               </div>
@@ -1227,8 +1224,8 @@ Print the single integer answer.
           <form onSubmit={handleCreateDynamicProblem} class="space-y-6">
             {/* Identity & Limits Grid */}
             <div class="p-5 bg-slate-50/70 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/80 space-y-4">
-              <h3 class="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
-                1. Metadata & Execution Bounds
+              <h3 class="text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                1. Metadata & Limits
               </h3>
 
               <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1346,8 +1343,8 @@ Print the single integer answer.
             {/* Markdown Statement with Live Preview Tab */}
             <div class="space-y-2">
               <div class="flex items-center justify-between">
-                <label class="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
-                  2. Statement Formulation
+                <label class="text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                  2. Problem Statement
                 </label>
                 <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-md border border-slate-200 dark:border-slate-700">
                   <button
@@ -1399,8 +1396,8 @@ Print the single integer answer.
             <div class="space-y-4">
               <div class="flex items-center justify-between">
                 <div>
-                  <label class="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider block">
-                    3. Test Cases Studio
+                  <label class="text-xs font-bold text-zinc-900 dark:text-zinc-100 block">
+                    3. Test Cases (Visible & Hidden)
                   </label>
                   <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                     Define multiple public sample test cases (visible in contest arena) and multiple secret hidden test cases (for automated judging).
@@ -1748,20 +1745,20 @@ Print the single integer answer.
         </div>
       </Show>
 
-      {/* Tab 4: Cluster & Rejudge */}
+      {/* Tab 4: Rejudge Batch */}
       <Show when={activeTab() === 'rejudge'}>
-        <div class="notion-card p-8 max-w-2xl space-y-6">
+        <div class="notion-card p-8 w-full space-y-6">
           <div>
-            <h2 class="text-base font-bold text-slate-900 dark:text-slate-100">Cluster Batch Rejudge</h2>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-              Dispatch all past submissions for the selected competition across native judge workers for complete re-evaluation. Use this after modifying test cases, checker logic, or problem limits.
+            <h2 class="text-base font-bold text-zinc-900 dark:text-zinc-100">Batch Rejudge</h2>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
+              Dispatch all past submissions for the selected competition across judge workers for complete re-evaluation. Use this after modifying test cases, checker logic, or problem limits.
             </p>
           </div>
 
           <Show when={rejudgeMsg()}>
             {(msg) => (
               <div
-                class={`p-3 rounded-md text-xs font-medium flex items-center justify-between ${
+                class={`p-3 rounded-[2px] text-xs font-medium flex items-center justify-between ${
                   msg().type === 'success'
                     ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
                     : 'bg-rose-50 text-rose-800 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
@@ -1775,15 +1772,15 @@ Print the single integer answer.
             )}
           </Show>
 
-          <div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 space-y-1">
-            <span class="font-bold text-slate-900 dark:text-slate-100">Target Competition:</span>{' '}
+          <div class="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-[2px] border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-600 dark:text-zinc-300 space-y-1">
+            <span class="font-bold text-zinc-900 dark:text-zinc-100">Target Competition:</span>{' '}
             <span>{selectedContest()?.title || 'None Selected'}</span>
           </div>
 
           <button
             onClick={handleTriggerRejudge}
             disabled={rejudgeRunning() || !selectedContestId()}
-            class="px-5 py-2.5 rounded-md text-xs font-bold bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white transition shadow-xs disabled:opacity-50 flex items-center gap-2"
+            class="btn-workstation btn-workstation-primary text-xs flex items-center gap-2"
           >
             <IconRefresh class={`w-3.5 h-3.5 ${rejudgeRunning() ? 'animate-spin' : ''}`} />
             <span>{rejudgeRunning() ? 'Dispatching Batch...' : 'Dispatch Contest Rejudge'}</span>

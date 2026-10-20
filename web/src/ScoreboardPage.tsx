@@ -97,7 +97,6 @@ export default function ScoreboardPage() {
 
     fetchScoreboard(cid);
 
-    // Setup live SSE updates for leaderboard
     if (sseSource) sseSource.close();
     sseSource = new EventSource(`/api/contests/${cid}/events`);
     sseSource.addEventListener('leaderboard_update', () => {
@@ -143,53 +142,53 @@ export default function ScoreboardPage() {
   };
 
   return (
-    <div class="flex-1 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 py-10 px-6 transition-colors duration-150">
-      <div class="max-w-6xl mx-auto space-y-6">
+    <div class="flex-1 bg-[#f4f5f7] dark:bg-[#090a0c] text-zinc-900 dark:text-zinc-100 py-8 px-6 font-sans transition-colors duration-100">
+      <div class="max-w-5xl mx-auto space-y-5">
         {/* Top Header & Actions */}
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#d4d6dc] dark:border-[#262a32]">
           <div>
-            <div class="flex items-center gap-2 mb-1">
-              <span class="px-2.5 py-0.5 text-xs font-semibold bg-slate-900 dark:bg-slate-800 text-white rounded-md border border-slate-700">
-                Official Standings
+            <div class="flex items-center gap-2 mb-1.5">
+              <span class="status-chip bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 font-semibold border-zinc-900 dark:border-zinc-100">
+                Standings
               </span>
               <Show when={selectedContest()}>
                 {(c) => (
                   <span
-                    class={`px-2 py-0.5 rounded text-[11px] font-bold uppercase ${
+                    class={`status-chip ${
                       c().state === 'RUNNING'
-                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
                         : c().state === 'PAUSED'
-                        ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                        ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800'
                         : c().state === 'FROZEN'
-                        ? 'bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800'
-                        : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                        ? 'bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border-cyan-300 dark:border-cyan-800'
+                        : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800'
                     }`}
                   >
-                    {c().is_paused ? 'Paused' : c().state || 'Scheduled'}
+                    {c().is_paused ? 'Paused' : (c().state === 'RUNNING' ? 'Running' : (c().state === 'FROZEN' ? 'Frozen' : 'Scheduled'))}
                   </span>
                 )}
               </Show>
               <Show when={scoreboard()?.is_frozen}>
-                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-cyan-100 dark:bg-cyan-950/70 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-700">
-                  Scoreboard Frozen
+                <span class="status-chip bg-cyan-100 dark:bg-cyan-950/70 text-cyan-800 dark:text-cyan-300 border-cyan-300 dark:border-cyan-700">
+                  Frozen
                 </span>
               </Show>
             </div>
-            <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            <h1 class="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
               {scoreboard()?.contest_title || 'Competition Scoreboard'}
             </h1>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Rankings and Solve Times · Scoring: <strong class="text-slate-800 dark:text-slate-200 uppercase">{selectedContest()?.scoring || 'ICPC'}</strong>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+              Scoring: <strong class="text-zinc-800 dark:text-zinc-200 uppercase">{selectedContest()?.scoring || 'ICPC'}</strong> &bull; Timezone: Asia/Kolkata (IST)
             </p>
           </div>
 
-          <div class="flex flex-wrap items-center gap-3">
+          <div class="flex flex-wrap items-center gap-2">
             {/* Contest Switcher */}
             <Show when={contests().length > 1}>
               <select
                 value={selectedContestId()}
                 onChange={(e) => setSelectedContestId(e.currentTarget.value)}
-                class="notion-input text-xs font-medium"
+                class="notion-input font-medium text-xs py-1"
               >
                 <For each={contests()}>
                   {(c) => <option value={c.id}>{c.title}</option>}
@@ -203,31 +202,31 @@ export default function ScoreboardPage() {
                 if (selectedContestId()) fetchScoreboard(selectedContestId());
               }}
               disabled={isRefreshing()}
-              class="px-3.5 py-2 rounded-md text-xs font-semibold bg-white dark:bg-slate-850 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 transition shadow-2xs flex items-center gap-1.5 disabled:opacity-50"
+              class="btn-workstation btn-workstation-secondary text-xs"
             >
-              <IconRefresh class={`w-3.5 h-3.5 text-slate-600 dark:text-slate-300 ${isRefreshing() ? 'animate-spin' : ''}`} />
+              <IconRefresh class={`w-3 h-3 text-zinc-600 dark:text-zinc-300 ${isRefreshing() ? 'animate-spin' : ''}`} />
               <span>{isRefreshing() ? 'Updating...' : 'Refresh'}</span>
             </button>
           </div>
         </div>
 
         {/* Filter bar */}
-        <div class="flex items-center justify-between gap-4">
+        <div class="flex items-center justify-between gap-4 text-xs">
           <div class="w-full sm:w-72 relative">
             <input
               type="text"
-              placeholder="Search team or participant..."
+              placeholder="Search competitor or squad..."
               value={searchQuery()}
               onInput={(e) => setSearchQuery(e.currentTarget.value)}
               class="notion-input w-full text-xs pr-8"
             />
-            <span class="absolute right-2.5 top-2.5 text-slate-400 dark:text-slate-500 pointer-events-none">
+            <span class="absolute right-2.5 top-2.5 text-zinc-400 dark:text-zinc-500 pointer-events-none">
               <IconSearch class="w-3.5 h-3.5" />
             </span>
           </div>
 
-          <div class="text-xs text-slate-500 dark:text-slate-400">
-            Showing <strong class="text-slate-900 dark:text-white">{filteredRows().length}</strong> competitors
+          <div class="text-zinc-500 dark:text-zinc-400">
+            Total: <strong class="text-zinc-900 dark:text-white">{filteredRows().length} participants</strong>
           </div>
         </div>
 
@@ -235,36 +234,36 @@ export default function ScoreboardPage() {
         <Show
           when={!loading() && scoreboard() && filteredRows().length > 0}
           fallback={
-            <div class="notion-card p-16 text-center bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
-              <div class="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mx-auto mb-3">
-                <IconTrophy class="w-6 h-6" />
+            <div class="notion-card p-14 text-center bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px]">
+              <div class="w-10 h-10 rounded-[2px] bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 flex items-center justify-center mx-auto mb-3 border border-zinc-300 dark:border-zinc-700">
+                <IconTrophy class="w-5 h-5 text-amber-500" />
               </div>
-              <h3 class="text-base font-bold text-slate-800 dark:text-slate-200">
-                {contests().length === 0 ? 'No Competitions Found' : 'No Submissions Judged Yet'}
+              <h3 class="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                {contests().length === 0 ? 'No competitions registered' : 'No submissions judged yet'}
               </h3>
-              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-sm mx-auto">
                 {contests().length === 0
-                  ? 'An event administrator must configure and launch a competition from the Admin Control Center.'
-                  : 'The scoreboard will display live ranks, solve times, and points once participants begin submitting solutions.'}
+                  ? 'An administrator can configure and launch a competition from the Admin Dashboard.'
+                  : 'The scoreboard will reflect live solve times, points, and penalty logs once participants begin submitting.'}
               </p>
             </div>
           }
         >
-          <div class="notion-card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+          <div class="notion-card bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] overflow-hidden rounded-[2px] shadow-[1px_1px_0px_rgba(0,0,0,0.06)] dark:shadow-[1px_1px_0px_rgba(0,0,0,0.4)]">
             <div class="overflow-x-auto">
-              <table class="w-full text-left text-xs">
-                <thead class="bg-slate-50/90 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider text-[11px]">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead class="bg-[#eaedf1] dark:bg-[#14171d] border-b border-[#d4d6dc] dark:border-[#262a32] text-zinc-700 dark:text-zinc-300 font-semibold text-[11px]">
                   <tr>
-                    <th class="py-3.5 px-4 w-14 text-center">Rank</th>
-                    <th class="py-3.5 px-4 min-w-[200px]">Competitor</th>
-                    <th class="py-3.5 px-4 w-20 text-center">Solved</th>
-                    <th class="py-3.5 px-4 w-28 text-center">Score / Pen</th>
+                    <th class="py-3 px-3 w-14 text-center border-r border-[#d4d6dc] dark:border-[#262a32]">Rank</th>
+                    <th class="py-3 px-4 min-w-[200px] border-r border-[#d4d6dc] dark:border-[#262a32]">Competitor / Squad</th>
+                    <th class="py-3 px-3 w-20 text-center border-r border-[#d4d6dc] dark:border-[#262a32]">Solved</th>
+                    <th class="py-3 px-3 w-28 text-center border-r border-[#d4d6dc] dark:border-[#262a32]">Score / Pen</th>
                     <Show when={scoreboard()?.rows.some((r) => r.adjustment_points && r.adjustment_points !== 0)}>
-                      <th class="py-3.5 px-3 w-28 text-center">Adjustments</th>
+                      <th class="py-3 px-3 w-24 text-center border-r border-[#d4d6dc] dark:border-[#262a32]">Adjust</th>
                     </Show>
                     <For each={problemColumns()}>
                       {(label) => (
-                        <th class="py-3.5 px-3 text-center min-w-[65px] font-mono">
+                        <th class="py-3 px-3 text-center min-w-[65px] font-mono border-r border-[#d4d6dc] dark:border-[#262a32] last:border-r-0">
                           {label}
                         </th>
                       )}
@@ -272,66 +271,66 @@ export default function ScoreboardPage() {
                   </tr>
                 </thead>
 
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
+                <tbody class="divide-y divide-[#d4d6dc] dark:divide-[#262a32] font-mono">
                   <For each={filteredRows()}>
                     {(row) => (
-                      <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition">
+                      <tr class="hover:bg-[#f8f9fa] dark:hover:bg-[#161922] transition">
                         {/* Rank Badge */}
-                        <td class="py-3 px-4 text-center">
+                        <td class="py-2.5 px-3 text-center border-r border-[#d4d6dc] dark:border-[#262a32]">
                           <span
-                            class={`inline-flex items-center justify-center w-6 h-6 rounded-md text-xs font-bold ${
+                            class={`inline-flex items-center justify-center px-1.5 py-0.5 rounded-[2px] text-xs font-bold ${
                               row.rank === 1
-                                ? 'bg-amber-100 dark:bg-amber-950/70 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-600 font-extrabold'
+                                ? 'bg-amber-100 dark:bg-amber-950/80 text-amber-950 dark:text-amber-200 border border-amber-400 dark:border-amber-600 font-black'
                                 : row.rank === 2
-                                ? 'bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-600 font-extrabold'
+                                ? 'bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-300 dark:border-zinc-600 font-bold'
                                 : row.rank === 3
-                                ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-700 font-extrabold'
-                                : 'text-slate-600 dark:text-slate-400 font-bold'
+                                ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-700 font-bold'
+                                : 'text-zinc-600 dark:text-zinc-400 font-bold'
                             }`}
                           >
-                            {row.rank}
+                            #{row.rank}
                           </span>
                         </td>
 
                         {/* Competitor / Team Name */}
-                        <td class="py-3 px-4">
+                        <td class="py-2.5 px-4 border-r border-[#d4d6dc] dark:border-[#262a32]">
                           <div class="flex items-center gap-2">
-                            <span class="font-bold text-slate-900 dark:text-white text-xs">
+                            <span class="font-bold text-zinc-900 dark:text-white text-xs">
                               {row.team_name || row.user_name}
                             </span>
                             <Show when={row.team_name}>
-                              <span class="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                                Team
+                              <span class="status-chip bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800">
+                                Squad
                               </span>
                             </Show>
                           </div>
                         </td>
 
                         {/* Solved Count */}
-                        <td class="py-3 px-4 text-center font-bold text-slate-900 dark:text-white">
+                        <td class="py-2.5 px-3 text-center font-bold text-sm text-zinc-900 dark:text-white border-r border-[#d4d6dc] dark:border-[#262a32]">
                           {row.solved_count}
                         </td>
 
                         {/* Total Penalty / Points */}
-                        <td class="py-3 px-4 text-center font-mono text-slate-700 dark:text-slate-300">
+                        <td class="py-2.5 px-3 text-center font-mono text-zinc-700 dark:text-zinc-300 border-r border-[#d4d6dc] dark:border-[#262a32]">
                           {selectedContest()?.scoring === 'points'
-                            ? `${row.total_points} pts`
-                            : `${row.total_penalty}m`}
+                            ? `${row.total_points} PTS`
+                            : `${row.total_penalty}M`}
                         </td>
 
                         {/* Adjustments Column */}
                         <Show when={scoreboard()?.rows.some((r) => r.adjustment_points && r.adjustment_points !== 0)}>
-                          <td class="py-3 px-3 text-center">
+                          <td class="py-2.5 px-3 text-center border-r border-[#d4d6dc] dark:border-[#262a32]">
                             <Show
                               when={row.adjustment_points && row.adjustment_points !== 0}
-                              fallback={<span class="text-slate-300 dark:text-slate-700">-</span>}
+                              fallback={<span class="text-zinc-300 dark:text-zinc-700">-</span>}
                             >
                               <span
                                 title={row.adjustment_reason || 'Admin Adjustment'}
-                                class={`px-2 py-0.5 rounded text-[10px] font-bold cursor-help ${
+                                class={`px-1.5 py-0.2 rounded-[2px] text-[10px] font-bold ${
                                   (row.adjustment_points || 0) > 0
-                                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                                    : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                                    : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
                                 }`}
                               >
                                 {(row.adjustment_points || 0) > 0 ? `+${row.adjustment_points}` : row.adjustment_points}
@@ -345,22 +344,22 @@ export default function ScoreboardPage() {
                           {(label) => {
                             const res = row.problem_results?.[label];
                             return (
-                              <td class="py-2 px-2 text-center">
+                              <td class="py-2 px-2 text-center border-r border-[#d4d6dc] dark:border-[#262a32] last:border-r-0">
                                 <Show
                                   when={res}
-                                  fallback={<span class="text-slate-300 dark:text-slate-700 text-xs">·</span>}
+                                  fallback={<span class="text-zinc-300 dark:text-zinc-700 text-xs">·</span>}
                                 >
                                   <Show
                                     when={res?.is_solved}
                                     fallback={
                                       <Show when={(res?.attempts || 0) > 0}>
-                                        <div class="p-1 rounded bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-100 dark:border-rose-900/60 font-mono text-[11px]">
+                                        <div class="p-1 rounded-[2px] bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 font-mono text-[11px] font-bold">
                                           -{res?.attempts}
                                         </div>
                                       </Show>
                                     }
                                   >
-                                    <div class="p-1 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 font-mono text-[11px] font-bold">
+                                    <div class="p-1 rounded-[2px] bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/80 font-mono text-[11px] font-bold">
                                       +{(res?.attempts || 1) > 1 ? res?.attempts : ''}
                                       <span class="block text-[9px] font-normal text-emerald-600 dark:text-emerald-400">
                                         {res?.solved_at_minute || res?.penalty_time || 0}m

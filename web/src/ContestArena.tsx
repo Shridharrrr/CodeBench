@@ -627,12 +627,12 @@ export default function ContestArena(props: ContestArenaProps) {
           }
         >
           {/* Contest Top Banner (Only visible when contest is running) */}
-          <header class="h-14 border-b border-slate-200 dark:border-slate-800 px-6 flex items-center justify-between bg-white dark:bg-slate-900 z-20 shadow-xs">
-            <div class="flex items-center gap-4">
+          <header class="h-12 border-b border-[#d4d6dc] dark:border-[#262a32] px-5 flex items-center justify-between bg-white dark:bg-[#111316] z-20">
+            <div class="flex items-center gap-3">
               <Show
                 when={contests().length > 1}
                 fallback={
-                  <span class="font-bold text-sm text-slate-900 dark:text-slate-100 tracking-tight">
+                  <span class="font-mono font-bold text-xs uppercase text-zinc-900 dark:text-zinc-100 tracking-tight">
                     {activeContest()?.title}
                   </span>
                 }
@@ -640,7 +640,7 @@ export default function ContestArena(props: ContestArenaProps) {
                 <select
                   value={selectedContestId()}
                   onChange={(e) => setSelectedContestId(e.currentTarget.value)}
-                  class="notion-input font-bold text-sm bg-white dark:bg-slate-900"
+                  class="notion-input font-mono font-bold text-xs py-1"
                 >
                   <For each={contests()}>
                     {(c) => (
@@ -654,23 +654,23 @@ export default function ContestArena(props: ContestArenaProps) {
 
               <Show when={activeContest()}>
                 {(c) => (
-                  <div class="flex items-center gap-2 text-xs">
+                  <div class="flex items-center gap-2">
                     <span
-                      class={`px-2 py-0.5 rounded font-semibold uppercase text-[10px] ${
-                        c().state === 'running'
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800'
-                          : c().state === 'upcoming'
-                          ? 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800'
+                      class={`status-chip ${
+                        c().state === 'running' || c().state === 'RUNNING'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800'
+                          : c().state === 'upcoming' || c().state === 'UPCOMING'
+                          ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800'
                           : c().state === 'PAUSED'
-                          ? 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800'
-                          : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                          ? 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800'
+                          : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700'
                       }`}
                     >
-                      {c().is_paused ? 'Paused' : c().state}
+                      {c().is_paused ? 'Paused' : (c().state === 'running' || c().state === 'RUNNING' ? 'Running' : 'Upcoming')}
                     </span>
 
-                    <span class="hidden md:inline text-slate-500 dark:text-slate-400">
-                      {c().scoring.toUpperCase()} Scoring &bull; {c().problem_count} Problems
+                    <span class="hidden md:inline font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
+                      {c().scoring.toUpperCase()} &bull; {c().problem_count} Problems
                     </span>
                   </div>
                 )}
@@ -679,13 +679,13 @@ export default function ContestArena(props: ContestArenaProps) {
 
             {/* Central Synced Countdown Clock */}
             <div class="flex items-center gap-3">
-              <div class="px-3.5 py-1 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 flex items-center gap-2">
-                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">{timerStatusLabel()}:</span>
+              <div class="digital-clock-box">
+                <span class="text-[10px] uppercase text-zinc-500 dark:text-zinc-400">{timerStatusLabel()}:</span>
                 <span
-                  class={`font-mono text-sm font-bold tracking-widest ${
+                  class={`text-xs font-bold tracking-widest ${
                     timeRemainingSec() < 300 && timeRemainingSec() > 0
                       ? 'text-rose-600 dark:text-rose-400 animate-pulse'
-                      : 'text-slate-900 dark:text-slate-100'
+                      : 'text-zinc-900 dark:text-sky-400'
                   }`}
                 >
                   {timerText()}
@@ -693,120 +693,121 @@ export default function ContestArena(props: ContestArenaProps) {
               </div>
 
               <Show when={leaderboard()?.is_frozen}>
-                <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-cyan-50 dark:bg-cyan-950/40 text-cyan-800 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-800">
-                  Scoreboard Frozen
+                <span class="status-chip bg-cyan-50 dark:bg-cyan-950/60 text-cyan-800 dark:text-cyan-400 border-cyan-300 dark:border-cyan-800">
+                  Frozen
                 </span>
               </Show>
             </div>
 
-            {/* Header Actions - Standings button removed as requested */}
+            {/* Header Actions */}
             <div class="flex items-center gap-2">
               <Show
                 when={isRegistered()}
                 fallback={
                   <button
                     onClick={handleJoinContest}
-                    class="px-3.5 py-1.5 rounded-md text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white transition shadow-xs"
+                    class="btn-workstation btn-workstation-primary text-xs"
                   >
                     Join Contest
                   </button>
                 }
               >
-                <span class="px-2.5 py-1 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 flex items-center gap-1">
-                  <IconCheck class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span class="status-chip bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800">
+                  <IconCheck class="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                   <span>Registered</span>
                 </span>
               </Show>
             </div>
           </header>
-        {/* Problem Letter Tabs Banner */}
-        <div class="h-11 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 flex items-center gap-1.5 overflow-x-auto">
-          <For each={problems()}>
-            {(p) => {
-              const isSelected = () => selectedLabel() === p.label;
-              const status = () => problemStatuses()[p.label];
-              return (
-                <button
-                  onClick={() => setSelectedLabel(p.label)}
-                  class={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition ${
-                    isSelected()
-                      ? 'bg-slate-900 dark:bg-slate-800 text-white shadow-xs font-bold'
-                      : 'bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300'
-                  }`}
-                >
-                  <span
-                    class={`w-4 h-4 rounded text-[10px] font-bold flex items-center justify-center ${
-                      status() === 'AC'
-                        ? 'bg-emerald-500 text-white'
-                        : status() === 'WA'
-                        ? 'bg-rose-500 text-white'
-                        : isSelected()
-                        ? 'bg-slate-800 dark:bg-slate-700 text-white'
-                        : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+
+          {/* Problem Letter Tabs Banner: Workstation Sharp Tabs */}
+          <div class="h-9 border-b border-[#d4d6dc] dark:border-[#262a32] bg-[#eaedf1] dark:bg-[#14171d] px-4 flex items-center gap-1 overflow-x-auto">
+            <For each={problems()}>
+              {(p) => {
+                const isSelected = () => selectedLabel() === p.label;
+                const status = () => problemStatuses()[p.label];
+                return (
+                  <button
+                    onClick={() => setSelectedLabel(p.label)}
+                    class={`flex items-center gap-1.5 px-3 py-1 text-xs font-mono rounded-[2px] border transition ${
+                      isSelected()
+                        ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 font-bold border-zinc-900 dark:border-zinc-100 shadow-[1px_1px_0px_rgba(0,0,0,0.15)]'
+                        : 'bg-white dark:bg-[#1a1d24] text-zinc-700 dark:text-zinc-300 border-[#d4d6dc] dark:border-[#2a2f3a] hover:bg-zinc-100 dark:hover:bg-[#222731]'
                     }`}
                   >
-                    {status() === 'AC' ? '✓' : p.label}
-                  </span>
-                  <span>{p.title || `Problem ${p.label}`}</span>
-                  <span class={`text-[10px] ${isSelected() ? 'text-slate-300' : 'text-slate-400 dark:text-slate-500'}`}>
-                    ({p.points}p)
-                  </span>
-                </button>
-              );
-            }}
-          </For>
-        </div>
+                    <span
+                      class={`px-1 rounded-[1px] text-[10px] font-bold ${
+                        status() === 'AC'
+                          ? 'bg-emerald-600 text-white'
+                          : status() === 'WA'
+                          ? 'bg-rose-600 text-white'
+                          : isSelected()
+                          ? 'bg-zinc-700 dark:bg-zinc-300 text-white dark:text-zinc-950'
+                          : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300'
+                      }`}
+                    >
+                      {status() === 'AC' ? '✓' : status() === 'WA' ? '×' : p.label}
+                    </span>
+                    <span>{p.title || `Problem ${p.label}`}</span>
+                    <span class={`text-[10px] ${isSelected() ? 'text-zinc-300 dark:text-zinc-700' : 'text-zinc-400 dark:text-zinc-500'}`}>
+                      ({p.points}p)
+                    </span>
+                  </button>
+                );
+              }}
+            </For>
+          </div>
 
         {/* Dual Pane Ergonomic Workspace with Resizable Splitters */}
         <div ref={workspaceRef} class="flex-1 flex min-h-0 overflow-hidden relative">
           {/* Left Pane: Independently Scrollable Problem Statement */}
           <div
             style={{ width: `${splitX()}%` }}
-            class="border-r border-slate-200 dark:border-slate-800 flex flex-col min-w-0 min-h-0 h-full overflow-y-auto bg-white dark:bg-slate-950 p-6 space-y-6"
+            class="border-r border-[#d4d6dc] dark:border-[#262a32] flex flex-col min-w-0 min-h-0 h-full overflow-y-auto bg-white dark:bg-[#0c0d10] p-6 space-y-5"
           >
             <Show when={problemLoading()}>
-              <div class="flex-1 flex items-center justify-center text-slate-400 text-xs">
-                <span>Loading problem details...</span>
+              <div class="flex-1 flex items-center justify-center text-zinc-400 font-mono text-xs">
+                <span>[ LOADING PROBLEM SPECIFICATION... ]</span>
               </div>
             </Show>
 
             <Show when={problemError()}>
-              <div class="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 rounded-lg text-amber-900 dark:text-amber-300 text-xs">
-                <strong>Notice:</strong> {problemError()}
+              <div class="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 rounded-[2px] text-amber-900 dark:text-amber-300 font-mono text-xs">
+                <strong>[NOTICE]:</strong> {problemError()}
               </div>
             </Show>
 
             <Show when={!problemLoading() && !problemError() && problemDetail()}>
               {(p) => (
-                <div class="space-y-6">
+                <div class="space-y-5">
                   {/* Header & Badges */}
-                  <div class="pb-4 border-b border-slate-100 dark:border-slate-850 space-y-2">
+                  <div class="pb-3 border-b border-[#d4d6dc] dark:border-[#262a32] space-y-2">
                     <div class="flex items-center justify-between">
-                      <h1 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
-                        {p().label}. {p().title}
+                      <h1 class="text-lg font-bold text-zinc-900 dark:text-white">
+                        Problem {p().label}. {p().title}
                       </h1>
                       <span
-                        class={`px-2 py-0.5 rounded text-xs font-bold uppercase ${
+                        class={`status-chip ${
                           p().difficulty === 'EASY'
-                            ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
                             : p().difficulty === 'MEDIUM'
-                            ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
-                            : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                            ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+                            : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800'
                         }`}
                       >
                         {p().difficulty}
                       </span>
                     </div>
 
-                    <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                      <span>Time Limit: <strong class="text-slate-800 dark:text-slate-200">{p().time_limit_ms}ms</strong></span>
-                      <span class="text-slate-300 dark:text-slate-700">·</span>
-                      <span>Memory Cap: <strong class="text-slate-800 dark:text-slate-200">{p().memory_mb}MB</strong></span>
-                      <span class="text-slate-300 dark:text-slate-700">·</span>
-                      <span>Points: <strong class="text-slate-800 dark:text-slate-200">{p().points}</strong></span>
+                    <div class="flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                      <span>Time: <strong class="text-zinc-800 dark:text-zinc-200">{p().time_limit_ms}ms</strong></span>
+                      <span class="text-zinc-300 dark:text-zinc-700">&bull;</span>
+                      <span>Memory: <strong class="text-zinc-800 dark:text-zinc-200">{p().memory_mb}MB</strong></span>
+                      <span class="text-zinc-300 dark:text-zinc-700">&bull;</span>
+                      <span>Points: <strong class="text-zinc-800 dark:text-zinc-200">{p().points}</strong></span>
                       <Show when={p().complexity_policy?.time_complexity}>
-                        <span class="text-slate-300 dark:text-slate-700">·</span>
-                        <span class="text-purple-700 dark:text-purple-300 font-semibold bg-purple-50 dark:bg-purple-950/50 px-2 py-0.5 rounded border border-purple-200 dark:border-purple-800">
+                        <span class="text-zinc-300 dark:text-zinc-700">&bull;</span>
+                        <span class="status-chip bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800">
                           Expected: {p().complexity_policy?.time_complexity}
                         </span>
                       </Show>
@@ -816,28 +817,32 @@ export default function ContestArena(props: ContestArenaProps) {
                   {/* Properly Formatted Problem Statement Body */}
                   <MarkdownView content={p().statement_md} />
 
-                  {/* Sample Testcases with Collapsible Cards */}
-                  <div class="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-850">
-                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  {/* Sample Testcases */}
+                  <div class="space-y-3 pt-3 border-t border-[#d4d6dc] dark:border-[#262a32]">
+                    <span class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                       Sample Test Cases
                     </span>
 
                     <For each={p().sample_tests}>
                       {(tc) => (
-                        <div class="p-3.5 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-lg space-y-2">
-                          <div class="flex items-center justify-between text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                            <span>Sample #{tc.ordinal}</span>
+                        <div class="p-3 bg-[#f8f9fa] dark:bg-[#111317] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px] space-y-2">
+                          <div class="flex items-center justify-between text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                            <span>Sample Case {tc.ordinal}</span>
                           </div>
                           <div class="grid grid-cols-2 gap-3">
                             <div>
-                              <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-1 uppercase tracking-wider">Input</div>
-                              <pre class="bg-white dark:bg-[#070a10] p-2 rounded border border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-800 dark:text-slate-200 overflow-x-auto">
+                              <div class="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 mb-1">
+                                Input:
+                              </div>
+                              <pre class="bg-white dark:bg-[#060709] p-2 rounded-[2px] border border-[#d4d6dc] dark:border-[#262a32] text-xs font-mono text-zinc-900 dark:text-zinc-200 overflow-x-auto">
                                 {tc.input_data}
                               </pre>
                             </div>
                             <div>
-                              <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-1 uppercase tracking-wider">Expected Output</div>
-                              <pre class="bg-white dark:bg-[#070a10] p-2 rounded border border-slate-200 dark:border-slate-800 text-xs font-mono text-emerald-700 dark:text-emerald-400 font-semibold overflow-x-auto">
+                              <div class="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 mb-1">
+                                Expected Output:
+                              </div>
+                              <pre class="bg-white dark:bg-[#060709] p-2 rounded-[2px] border border-[#d4d6dc] dark:border-[#262a32] text-xs font-mono text-emerald-700 dark:text-emerald-400 font-bold overflow-x-auto">
                                 {tc.output_data}
                               </pre>
                             </div>
@@ -854,17 +859,17 @@ export default function ContestArena(props: ContestArenaProps) {
           {/* Horizontal Splitter Drag Handle between Problem and Code Panels */}
           <div
             onMouseDown={handleStartDragX}
-            class="w-1.5 shrink-0 bg-slate-200 dark:bg-zinc-800 hover:bg-blue-500 dark:hover:bg-blue-500 cursor-col-resize transition-colors flex items-center justify-center group relative z-10 select-none"
+            class="w-1.5 shrink-0 bg-[#d4d6dc] dark:bg-[#262a32] hover:bg-blue-600 dark:hover:bg-blue-500 cursor-col-resize transition-colors flex items-center justify-center group relative z-10 select-none"
             title="Drag horizontally to resize problem description and code editor"
           >
-            <div class="w-0.5 h-8 rounded-full bg-slate-400 dark:bg-zinc-600 group-hover:bg-white transition-colors" />
+            <div class="w-0.5 h-8 rounded-none bg-zinc-400 dark:bg-zinc-600 group-hover:bg-white transition-colors" />
           </div>
 
           {/* Right Pane: Code Editor & Results Console */}
           <div
             ref={rightPaneRef}
             style={{ width: `${100 - splitX()}%` }}
-            class="flex flex-col min-w-0 min-h-0 h-full overflow-hidden bg-white dark:bg-slate-950"
+            class="flex flex-col min-w-0 min-h-0 h-full overflow-hidden bg-white dark:bg-[#090a0c]"
           >
             {/* Top Sub-Pane: Code Editor (Bounded & Scrollable) */}
             <div
@@ -872,12 +877,12 @@ export default function ContestArena(props: ContestArenaProps) {
               class="flex flex-col min-h-0 min-w-0 overflow-hidden"
             >
               {/* Editor Header Bar */}
-              <div class="h-10 shrink-0 border-b border-slate-200 dark:border-slate-800 px-4 flex items-center justify-between bg-slate-50 dark:bg-slate-900">
+              <div class="h-9 shrink-0 border-b border-[#d4d6dc] dark:border-[#262a32] px-4 flex items-center justify-between bg-[#f0f2f5] dark:bg-[#121419] font-mono text-xs">
                 <div class="flex items-center gap-3">
                   <select
                     value={language()}
                     onChange={(e) => handleLanguageChange(e.currentTarget.value)}
-                    class="notion-input text-xs font-mono py-1"
+                    class="notion-input text-xs font-mono py-0.5 rounded-[2px]"
                   >
                     <option value="cpp23-gcc">C++23 (GCC 14)</option>
                     <option value="cpp23-clang">C++23 (Clang 18)</option>
@@ -890,14 +895,14 @@ export default function ContestArena(props: ContestArenaProps) {
 
                   <button
                     onClick={handleResetBoilerplate}
-                    class="text-xs text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition"
+                    class="text-[11px] text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition"
                   >
                     Reset Starter
                   </button>
                 </div>
 
-                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                  Problem: <strong class="text-slate-900 dark:text-slate-100">{selectedLabel()}</strong>
+                <span class="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                  Problem {selectedLabel()}
                 </span>
               </div>
 
@@ -916,48 +921,48 @@ export default function ContestArena(props: ContestArenaProps) {
             {/* Vertical Splitter Drag Handle between Code Editor and Console */}
             <div
               onMouseDown={handleStartDragY}
-              class="h-1.5 shrink-0 bg-slate-200 dark:bg-zinc-800 hover:bg-blue-500 dark:hover:bg-blue-500 cursor-row-resize transition-colors flex items-center justify-center group relative z-10 select-none"
+              class="h-1.5 shrink-0 bg-[#d4d6dc] dark:bg-[#262a32] hover:bg-blue-600 dark:hover:bg-blue-500 cursor-row-resize transition-colors flex items-center justify-center group relative z-10 select-none"
               title="Drag vertically to resize code editor and console"
             >
-              <div class="h-0.5 w-10 rounded-full bg-slate-400 dark:bg-zinc-600 group-hover:bg-white transition-colors" />
+              <div class="h-0.5 w-10 rounded-none bg-zinc-400 dark:bg-zinc-600 group-hover:bg-white transition-colors" />
             </div>
 
             {/* Bottom Sub-Pane: Console Tabs & Drawer */}
             <div
               style={{ height: `${100 - splitY()}%` }}
-              class="flex flex-col min-h-0 min-w-0 overflow-hidden bg-slate-50/90 dark:bg-slate-900/90 border-t border-slate-200 dark:border-slate-800"
+              class="flex flex-col min-h-0 min-w-0 overflow-hidden bg-[#f8f9fa] dark:bg-[#0c0d10] border-t border-[#d4d6dc] dark:border-[#262a32]"
             >
               {/* Tab Selector */}
-              <div class="flex items-center gap-2 px-4 py-1.5 border-b border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-900 text-xs">
+              <div class="flex items-center gap-1 px-3 py-1 border-b border-[#d4d6dc] dark:border-[#262a32] bg-[#eaedf1] dark:bg-[#121419] text-xs font-medium">
                 <button
                   onClick={() => setActiveTab('cases')}
-                  class={`px-2.5 py-1 rounded font-semibold transition ${
+                  class={`px-3 py-1 rounded-[2px] transition ${
                     activeTab() === 'cases'
-                      ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      ? 'bg-white dark:bg-[#1f232d] text-zinc-900 dark:text-white font-semibold border border-[#d4d6dc] dark:border-[#2e3442] shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
+                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
                   }`}
                 >
-                  Testcases
+                  Test Cases
                 </button>
                 <button
                   onClick={() => setActiveTab('output')}
-                  class={`px-2.5 py-1 rounded font-semibold transition ${
+                  class={`px-3 py-1 rounded-[2px] transition ${
                     activeTab() === 'output'
-                      ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      ? 'bg-white dark:bg-[#1f232d] text-zinc-900 dark:text-white font-semibold border border-[#d4d6dc] dark:border-[#2e3442] shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
+                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
                   }`}
                 >
                   Run Output
                 </button>
                 <button
                   onClick={() => setActiveTab('verdict')}
-                  class={`px-2.5 py-1 rounded font-semibold transition ${
+                  class={`px-3 py-1 rounded-[2px] transition ${
                     activeTab() === 'verdict'
-                      ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      ? 'bg-white dark:bg-[#1f232d] text-zinc-900 dark:text-white font-semibold border border-[#d4d6dc] dark:border-[#2e3442] shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
+                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
                   }`}
                 >
-                  Submission Status
+                  Submissions
                 </button>
               </div>
 
@@ -965,7 +970,7 @@ export default function ContestArena(props: ContestArenaProps) {
               <div class="flex-1 p-4 overflow-y-auto text-xs">
                 {/* 1. Testcases Tab */}
                 <Show when={activeTab() === 'cases'}>
-                  <div class="space-y-3">
+                  <div class="space-y-3 font-mono">
                     <div class="flex items-center gap-2">
                       <For each={problemDetail()?.sample_tests || []}>
                         {(_tc, idx) => (
@@ -974,10 +979,10 @@ export default function ContestArena(props: ContestArenaProps) {
                               setSelectedCaseIndex(idx());
                               setUseCustomInput(false);
                             }}
-                            class={`px-2.5 py-1 rounded text-xs font-semibold border transition ${
+                            class={`px-2.5 py-0.5 rounded-[2px] text-xs font-semibold border transition ${
                               selectedCaseIndex() === idx() && !useCustomInput()
-                                ? 'bg-white dark:bg-slate-800 border-slate-400 dark:border-slate-500 text-slate-900 dark:text-white shadow-xs'
-                                : 'bg-slate-100 dark:bg-slate-900/80 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800'
+                                ? 'bg-zinc-900 text-white dark:bg-zinc-200 dark:text-zinc-950 border-zinc-900 dark:border-zinc-200'
+                                : 'bg-white dark:bg-[#16181f] border-[#d4d6dc] dark:border-[#262a32] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
                             }`}
                           >
                             Case {idx() + 1}
@@ -986,10 +991,10 @@ export default function ContestArena(props: ContestArenaProps) {
                       </For>
                       <button
                         onClick={() => setUseCustomInput(true)}
-                        class={`px-2.5 py-1 rounded text-xs font-semibold border transition ${
+                        class={`px-2.5 py-0.5 rounded-[2px] text-xs font-semibold border transition ${
                           useCustomInput()
-                            ? 'bg-white dark:bg-slate-800 border-slate-400 dark:border-slate-500 text-slate-900 dark:text-white shadow-xs'
-                            : 'bg-slate-100 dark:bg-slate-900/80 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800'
+                            ? 'bg-zinc-900 text-white dark:bg-zinc-200 dark:text-zinc-950 border-zinc-900 dark:border-zinc-200'
+                            : 'bg-white dark:bg-[#16181f] border-[#d4d6dc] dark:border-[#262a32] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
                         }`}
                       >
                         + Custom Input
@@ -1003,14 +1008,18 @@ export default function ContestArena(props: ContestArenaProps) {
                           {(tc) => (
                             <div class="grid grid-cols-2 gap-3">
                               <div>
-                                <span class="font-bold text-slate-600 dark:text-slate-300 mb-1 block uppercase tracking-wider text-[10px]">Input:</span>
-                                <pre class="p-2 bg-white dark:bg-[#070a10] rounded border border-slate-200 dark:border-slate-800 font-mono text-xs text-slate-800 dark:text-slate-200">
+                                <span class="font-semibold text-zinc-600 dark:text-zinc-400 mb-1 block text-xs font-sans">
+                                  Input:
+                                </span>
+                                <pre class="p-2 bg-white dark:bg-[#060709] rounded-[2px] border border-[#d4d6dc] dark:border-[#262a32] font-mono text-xs text-zinc-800 dark:text-zinc-200">
                                   {tc().input_data}
                                 </pre>
                               </div>
                               <div>
-                                <span class="font-bold text-slate-600 dark:text-slate-300 mb-1 block uppercase tracking-wider text-[10px]">Expected Output:</span>
-                                <pre class="p-2 bg-white dark:bg-[#070a10] rounded border border-slate-200 dark:border-slate-800 font-mono text-xs text-emerald-700 dark:text-emerald-400 font-semibold">
+                                <span class="font-semibold text-zinc-600 dark:text-zinc-400 mb-1 block text-xs font-sans">
+                                  Expected Output:
+                                </span>
+                                <pre class="p-2 bg-white dark:bg-[#060709] rounded-[2px] border border-[#d4d6dc] dark:border-[#262a32] font-mono text-xs text-emerald-700 dark:text-emerald-400 font-bold">
                                   {tc().output_data}
                                 </pre>
                               </div>
@@ -1020,7 +1029,7 @@ export default function ContestArena(props: ContestArenaProps) {
                       }
                     >
                       <div>
-                        <span class="font-bold text-slate-700 dark:text-slate-300 mb-1 block">Custom Standard Input:</span>
+                        <span class="font-semibold text-zinc-700 dark:text-zinc-300 mb-1 block text-xs font-sans">Custom Input:</span>
                         <textarea
                           rows="3"
                           value={customInputText()}
@@ -1038,29 +1047,29 @@ export default function ContestArena(props: ContestArenaProps) {
                   <Show
                     when={sampleRunResult()}
                     fallback={
-                      <div class="py-6 text-center text-slate-400 dark:text-slate-500">
-                        Click "Run Code" to test against visible sample testcases.
+                      <div class="py-6 text-center text-zinc-400 dark:text-zinc-500 font-sans text-xs">
+                        Click "Run Code" to test against sample test cases.
                       </div>
                     }
                   >
-                    <div class="space-y-3">
+                    <div class="space-y-3 font-mono">
                       <div class="flex items-center gap-3">
                         <span
-                          class={`px-2 py-0.5 rounded text-xs font-bold uppercase ${
+                          class={`status-chip ${
                             sampleRunResult().verdict === 'AC'
-                              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                              : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                              : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800'
                           }`}
                         >
                           {sampleRunResult().verdict}
                         </span>
-                        <span class="text-slate-600 dark:text-slate-400 text-xs">
-                          Run completed in {sampleRunResult().time_ms || 0}ms &bull; Peak Mem: {sampleRunResult().memory_kb || 0}KB
+                        <span class="text-zinc-600 dark:text-zinc-400 text-xs font-sans">
+                          Time: {sampleRunResult().time_ms || 0}ms &bull; Memory: {sampleRunResult().memory_kb || 0}KB
                         </span>
                       </div>
 
                       <Show when={sampleRunResult().compile_output}>
-                        <pre class="p-2.5 rounded bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 font-mono text-xs">
+                        <pre class="p-2.5 rounded-[2px] bg-rose-50 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 font-mono text-xs">
                           {sampleRunResult().compile_output}
                         </pre>
                       </Show>
@@ -1068,18 +1077,18 @@ export default function ContestArena(props: ContestArenaProps) {
                       <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                         <For each={sampleRunResult().sample_results}>
                           {(sr: any) => (
-                            <div class="p-2.5 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800 space-y-1">
-                              <div class="flex justify-between font-semibold">
-                                <span class="text-slate-800 dark:text-slate-200">Sample #{sr.ordinal}</span>
-                                <span class={sr.verdict === 'AC' ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-rose-600 dark:text-rose-400 font-bold'}>
+                            <div class="p-2.5 bg-white dark:bg-[#12141a] rounded-[2px] border border-[#d4d6dc] dark:border-[#262a32] space-y-1">
+                              <div class="flex justify-between font-semibold text-xs">
+                                <span class="text-zinc-800 dark:text-zinc-200">Sample {sr.ordinal}</span>
+                                <span class={sr.verdict === 'AC' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
                                   {sr.verdict}
                                 </span>
                               </div>
-                              <div class="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                                Output: <code class="text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{sr.actual || '(no output)'}</code>
+                              <div class="text-[11px] text-zinc-500 dark:text-zinc-400">
+                                Output: <code class="text-zinc-800 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 px-1 py-0.2 rounded-[1px]">{sr.actual || '(no output)'}</code>
                               </div>
                               <Show when={sr.verdict !== 'AC'}>
-                                <div class="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono">
+                                <div class="text-[11px] text-emerald-600 dark:text-emerald-400">
                                   Expected: {sr.expected}
                                 </div>
                               </Show>
@@ -1093,55 +1102,55 @@ export default function ContestArena(props: ContestArenaProps) {
 
                 {/* 3. Submission Verdict Tab */}
                 <Show when={activeTab() === 'verdict'}>
-                  <div class="space-y-3">
+                  <div class="space-y-3 font-mono">
                     <Show when={isSubmitting()}>
-                      <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-center space-y-2">
-                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200">
-                          <span class="w-2 h-2 rounded-full bg-blue-600 animate-ping"></span>
-                          <span>Evaluating Hidden Tests: Case {evaluatingTestCount()}/32...</span>
+                      <div class="p-4 bg-white dark:bg-[#12141a] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px] text-center space-y-2">
+                        <div class="inline-flex items-center gap-2 px-2.5 py-0.5 text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-300 dark:border-zinc-700">
+                          <span class="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
+                          <span>Evaluating Test Cases ({evaluatingTestCount()}/32)...</span>
                         </div>
-                        <p class="text-[11px] text-slate-500 dark:text-slate-400">
-                          Judging inside isolated Linux sandbox container with memory and instruction counting...
+                        <p class="text-[11px] text-zinc-500 dark:text-zinc-400 font-sans">
+                          Executing within isolated sandbox environment...
                         </p>
                       </div>
                     </Show>
 
                     <Show when={submissionVerdict()}>
                       {(v) => (
-                        <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg space-y-3">
+                        <div class="p-4 bg-white dark:bg-[#12141a] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px] space-y-3">
                           <div class="flex items-center gap-3">
                             <span
-                              class={`px-3 py-1 rounded-md text-sm font-bold uppercase ${
+                              class={`status-chip text-sm ${
                                 v().verdict === 'AC'
-                                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                                  : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                                  : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800'
                               }`}
                             >
                               {v().verdict}
                             </span>
-                            <span class="text-xs text-slate-600 dark:text-slate-300">
-                              Time: <strong class="text-slate-900 dark:text-white">{v().total_time_ms || 0}ms</strong> &bull; Memory:{' '}
-                              <strong class="text-slate-900 dark:text-white">{Math.round((v().peak_memory_kb || 0) / 1024)}MB</strong>
+                            <span class="text-xs text-zinc-600 dark:text-zinc-300 font-sans">
+                              Time: <strong class="text-zinc-900 dark:text-white">{v().total_time_ms || 0}ms</strong> &bull; Memory:{' '}
+                              <strong class="text-zinc-900 dark:text-white">{Math.round((v().peak_memory_kb || 0) / 1024)}MB</strong>
                             </span>
                           </div>
 
                           <Show when={v().complexity_report}>
                             {(cr) => (
                               <div
-                                class={`p-3 rounded-md text-xs border ${
+                                class={`p-2.5 rounded-[2px] text-xs border ${
                                   cr().passed
-                                    ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                                    : 'bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                                    ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                                    : 'bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800'
                                 }`}
                               >
-                                <div class="font-bold mb-1">Complexity Analysis ({cr().target_complexity || 'Enforced'})</div>
-                                <div>{cr().diagnostic || 'Passes time and query complexity bounds.'}</div>
+                                <div class="font-semibold mb-1">Complexity Analysis ({cr().target_complexity || 'Enforced'})</div>
+                                <div>{cr().diagnostic || 'Passes complexity requirements.'}</div>
                               </div>
                             )}
                           </Show>
 
                           <Show when={v().compile_output}>
-                            <pre class="p-2.5 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 rounded font-mono text-xs">
+                            <pre class="p-2 bg-rose-50 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 rounded-[2px] font-mono text-xs">
                               {v().compile_output}
                             </pre>
                           </Show>
@@ -1154,31 +1163,31 @@ export default function ContestArena(props: ContestArenaProps) {
             </div>
 
             {/* Persistent Sticky Bottom Action Bar */}
-            <div class="sticky-action-bar h-14 px-6 flex items-center justify-between">
-              <div class="text-[11px] text-slate-500 dark:text-slate-400">
+            <div class="sticky-action-bar h-12 px-5 flex items-center justify-between border-t border-[#d4d6dc] dark:border-[#262a32] bg-[#eaedf1] dark:bg-[#111316] text-xs">
+              <div class="text-[11px] text-zinc-500 dark:text-zinc-400">
                 <span>Shortcuts: </span>
-                <kbd class="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded font-mono text-[10px]">Ctrl+Enter</kbd>
-                <span> to Run, </span>
-                <kbd class="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded font-mono text-[10px]">Ctrl+Shift+Enter</kbd>
-                <span> to Submit</span>
+                <kbd class="px-1.5 py-0.5 bg-white dark:bg-[#1f2229] border border-[#d4d6dc] dark:border-[#313744] text-zinc-800 dark:text-zinc-200 rounded-[2px] font-mono text-[10px]">Ctrl+Enter</kbd>
+                <span> Run &bull; </span>
+                <kbd class="px-1.5 py-0.5 bg-white dark:bg-[#1f2229] border border-[#d4d6dc] dark:border-[#313744] text-zinc-800 dark:text-zinc-200 rounded-[2px] font-mono text-[10px]">Ctrl+Shift+Enter</kbd>
+                <span> Submit</span>
               </div>
 
-              <div class="flex items-center gap-3">
+              <div class="flex items-center gap-2.5">
                 <button
                   onClick={handleRunSamples}
                   disabled={isRunning() || isSubmitting()}
-                  class="px-4 py-2 rounded-md text-xs font-semibold bg-white dark:bg-slate-850 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 transition shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+                  class="btn-workstation btn-workstation-secondary text-xs"
                 >
-                  <IconPlay class="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
+                  <IconPlay class="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />
                   <span>{isRunning() ? 'Running...' : 'Run Code'}</span>
                 </button>
 
                 <button
                   onClick={handleContestSubmit}
                   disabled={isSubmitting() || isRunning()}
-                  class="px-5 py-2 rounded-md text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-xs disabled:opacity-50 flex items-center gap-1.5 font-bold"
+                  class="btn-workstation btn-workstation-success text-xs font-semibold"
                 >
-                  <IconCheck class="w-3.5 h-3.5 text-white" />
+                  <IconCheck class="w-3.5 h-3.5" />
                   <span>{isSubmitting() ? 'Evaluating...' : 'Submit Solution'}</span>
                 </button>
               </div>

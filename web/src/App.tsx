@@ -156,60 +156,63 @@ export default function App() {
   };
 
   return (
-    <div class="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans select-none transition-colors duration-150">
-      {/* Top Header Navigation */}
-      <header class="h-14 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 flex items-center justify-between sticky top-0 z-40 shadow-xs">
-        <div class="flex items-center gap-4">
+    <div class="min-h-screen bg-[#f4f5f7] dark:bg-[#090a0c] text-zinc-900 dark:text-zinc-100 flex flex-col font-sans select-none transition-colors duration-100">
+      {/* Top Header Navigation: Classic Workstation Status Bar */}
+      <header class="h-12 border-b border-[#d4d6dc] dark:border-[#262a32] bg-white dark:bg-[#111316] px-5 flex items-center justify-between sticky top-0 z-40">
+        <div class="flex items-center gap-5">
           <div
-            class="flex items-center gap-2.5 cursor-pointer hover:opacity-85 transition"
+            class="flex items-center gap-2 cursor-pointer group"
             onClick={() => setViewMode('home')}
           >
-            <div class="w-7 h-7 rounded-md bg-slate-900 dark:bg-slate-800 flex items-center justify-center font-bold text-white text-xs shadow-xs">
+            <div class="w-6 h-6 rounded-xs bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 flex items-center justify-center font-mono font-black text-xs border border-zinc-700 dark:border-zinc-300 shadow-[1px_1px_0px_rgba(0,0,0,0.2)]">
               CB
             </div>
-            <span class="font-bold text-base tracking-tight text-slate-900 dark:text-slate-100">
-              Codebench
+            <span class="font-mono font-bold text-sm tracking-tight text-zinc-900 dark:text-zinc-100">
+              CODEBENCH
+            </span>
+            <span class="hidden sm:inline-block font-mono text-[9px] px-1.5 py-0.5 rounded-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-300 dark:border-zinc-700">
+              v1.0
             </span>
           </div>
 
-          {/* Clean Segmented Navigation Switcher */}
-          <div class="flex items-center bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+          {/* Clean Classic Navigation Tabs */}
+          <nav class="flex items-center bg-[#eaecf0] dark:bg-[#181a20] p-0.5 rounded-[2px] border border-[#d4d6dc] dark:border-[#272b34] font-medium text-xs">
             <button
               onClick={() => setViewMode('home')}
-              class={`px-3 py-1 rounded-md text-xs font-semibold transition ${
+              class={`px-3 py-1 rounded-[2px] transition ${
                 viewMode() === 'home'
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                  ? 'bg-white dark:bg-[#232731] text-zinc-900 dark:text-white font-semibold shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
               }`}
             >
               Home
             </button>
             <button
               onClick={() => setViewMode('contest')}
-              class={`px-3 py-1 rounded-md text-xs font-semibold transition ${
+              class={`px-3 py-1 rounded-[2px] transition ${
                 viewMode() === 'contest'
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                  ? 'bg-white dark:bg-[#232731] text-zinc-900 dark:text-white font-semibold shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
               }`}
             >
-              Contest Arena
+              Arena
             </button>
             <button
               onClick={() => setViewMode('teams')}
-              class={`px-3 py-1 rounded-md text-xs font-semibold transition ${
+              class={`px-3 py-1 rounded-[2px] transition ${
                 viewMode() === 'teams'
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                  ? 'bg-white dark:bg-[#232731] text-zinc-900 dark:text-white font-semibold shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
               }`}
             >
-              Teams
+              Squads
             </button>
             <button
               onClick={() => setViewMode('scoreboard')}
-              class={`px-3 py-1 rounded-md text-xs font-semibold transition ${
+              class={`px-3 py-1 rounded-[2px] transition ${
                 viewMode() === 'scoreboard'
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                  ? 'bg-white dark:bg-[#232731] text-zinc-900 dark:text-white font-semibold shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
               }`}
             >
               Scoreboard
@@ -217,16 +220,16 @@ export default function App() {
             <Show when={user()?.role === 'admin'}>
               <button
                 onClick={() => setViewMode('admin')}
-                class={`px-3 py-1 rounded-md text-xs font-semibold transition ${
+                class={`px-3 py-1 rounded-[2px] transition ${
                   viewMode() === 'admin'
-                    ? 'bg-slate-900 dark:bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                    ? 'bg-zinc-900 dark:bg-blue-600 text-white font-semibold shadow-[1px_1px_0px_rgba(0,0,0,0.1)]'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
                 }`}
               >
-                Admin Control
+                Admin
               </button>
             </Show>
-          </div>
+          </nav>
         </div>
 
         <div class="flex items-center gap-3">
@@ -234,11 +237,12 @@ export default function App() {
           <button
             onClick={toggleTheme}
             title={theme() === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-            class="p-2 rounded-md text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center justify-center border border-slate-200/60 dark:border-slate-800"
+            class="px-2.5 py-1 rounded-[2px] text-xs font-mono text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-[#ebedf1] dark:hover:bg-[#1c1f26] transition flex items-center gap-1.5 border border-[#d4d6dc] dark:border-[#272b34]"
           >
-            <Show when={theme() === 'dark'} fallback={<IconMoon class="w-4 h-4" />}>
-              <IconSun class="w-4 h-4 text-amber-400" />
+            <Show when={theme() === 'dark'} fallback={<IconMoon class="w-3.5 h-3.5" />}>
+              <IconSun class="w-3.5 h-3.5 text-amber-400" />
             </Show>
+            <span class="text-[10px] uppercase font-bold">{theme()}</span>
           </button>
 
           {/* User Profile / Auth Button */}
@@ -250,29 +254,25 @@ export default function App() {
                   setAuthMode('login');
                   setIsAuthOpen(true);
                 }}
-                class="px-4 py-1.5 rounded-md text-xs font-semibold bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white transition shadow-xs"
+                class="px-3.5 py-1 rounded-[2px] text-xs font-semibold bg-zinc-900 dark:bg-blue-600 hover:bg-zinc-800 dark:hover:bg-blue-500 text-white transition shadow-[1px_1px_0px_rgba(0,0,0,0.15)]"
               >
                 Sign In
               </button>
             }
           >
             {(u) => (
-              <div class="flex items-center gap-3">
-                <div class="flex items-center gap-2 text-xs">
-                  <div class="w-6 h-6 rounded-full bg-slate-900 dark:bg-slate-700 text-white flex items-center justify-center font-bold text-[10px]">
-                    {u().name.charAt(0).toUpperCase()}
-                  </div>
-                  <span class="text-slate-800 dark:text-slate-200 font-medium">{u().name}</span>
-                  <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+              <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1.5 text-xs font-medium">
+                  <span class="text-zinc-800 dark:text-zinc-200 font-semibold">{u().name}</span>
+                  <span class="px-1.5 py-0.2 rounded-[2px] text-[10px] font-semibold uppercase bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700">
                     {u().role}
                   </span>
                 </div>
                 <button
                   onClick={handleLogout}
-                  class="px-2.5 py-1 rounded-md text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-transparent hover:border-rose-200 dark:hover:border-rose-900/60 transition cursor-pointer"
-                  title="Sign out of your account"
+                  class="px-2 py-0.5 rounded-[2px] text-xs text-zinc-500 hover:text-rose-600 dark:text-zinc-400 dark:hover:text-rose-400 border border-transparent hover:border-zinc-300 dark:hover:border-zinc-700 transition"
                 >
-                  Logout
+                  Log out
                 </button>
               </div>
             )}
@@ -324,29 +324,29 @@ export default function App() {
 
       {/* Auth Modal (Login / Register) */}
       <Show when={isAuthOpen()}>
-        <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div class="notion-card w-full max-w-sm p-6 shadow-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100 dark:border-slate-800">
-              <h2 class="text-base font-bold text-slate-900 dark:text-slate-100">
-                {authMode() === 'login' ? 'Sign In to Codebench' : 'Create an Account'}
+        <div class="fixed inset-0 bg-black/60 backdrop-blur-2xs z-50 flex items-center justify-center p-4">
+          <div class="notion-card w-full max-w-sm p-6 shadow-[3px_3px_0px_rgba(0,0,0,0.25)] bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#2b303a]">
+            <div class="flex items-center justify-between mb-4 pb-2.5 border-b border-[#eaecf0] dark:border-[#222630]">
+              <h2 class="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                {authMode() === 'login' ? 'Sign In to CodeBench' : 'Create an Account'}
               </h2>
               <button
                 onClick={() => setIsAuthOpen(false)}
-                class="p-1 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition"
+                class="p-1 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition"
               >
                 <IconX class="w-4 h-4" />
               </button>
             </div>
 
             {/* Mode Switcher */}
-            <div class="flex border-b border-slate-200 dark:border-slate-800 mb-4 text-xs font-semibold">
+            <div class="flex border-b border-[#d4d6dc] dark:border-[#272b34] mb-4 text-xs font-semibold">
               <button
                 type="button"
                 onClick={() => { setAuthMode('login'); setAuthError(''); }}
                 class={`flex-1 pb-2 border-b-2 transition ${
                   authMode() === 'login'
-                    ? 'border-slate-900 dark:border-slate-100 text-slate-900 dark:text-slate-100'
-                    : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                    ? 'border-zinc-900 dark:border-blue-500 text-zinc-900 dark:text-zinc-100'
+                    : 'border-transparent text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'
                 }`}
               >
                 Sign In
@@ -356,8 +356,8 @@ export default function App() {
                 onClick={() => { setAuthMode('register'); setAuthError(''); }}
                 class={`flex-1 pb-2 border-b-2 transition ${
                   authMode() === 'register'
-                    ? 'border-slate-900 dark:border-slate-100 text-slate-900 dark:text-slate-100'
-                    : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                    ? 'border-zinc-900 dark:border-blue-500 text-zinc-900 dark:text-zinc-100'
+                    : 'border-transparent text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'
                 }`}
               >
                 Register
@@ -366,14 +366,14 @@ export default function App() {
 
             <form onSubmit={handleAuthSubmit} class="space-y-3">
               <Show when={authError()}>
-                <div class="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 p-2.5 rounded text-xs text-rose-700 dark:text-rose-300">
+                <div class="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 p-2.5 rounded-[2px] text-xs text-rose-700 dark:text-rose-300">
                   {authError()}
                 </div>
               </Show>
 
               <Show when={authMode() === 'register'}>
                 <div>
-                  <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Full Name</label>
+                  <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Full Name</label>
                   <input
                     type="text"
                     required
@@ -386,19 +386,19 @@ export default function App() {
               </Show>
 
               <div>
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Email</label>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Email Address</label>
                 <input
                   type="email"
                   required
                   value={authEmail()}
                   onInput={(e) => setAuthEmail(e.currentTarget.value)}
-                  placeholder="name@example.com"
+                  placeholder="user@example.com"
                   class="notion-input w-full text-xs"
                 />
               </div>
 
               <div>
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Password</label>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Password</label>
                 <input
                   type="password"
                   required
@@ -413,24 +413,22 @@ export default function App() {
                 <button
                   type="submit"
                   disabled={authSubmitting()}
-                  class="w-full py-2.5 rounded-md text-xs font-semibold bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white transition shadow-xs disabled:opacity-50"
+                  class="btn-workstation btn-workstation-primary w-full text-xs"
                 >
                   {authSubmitting()
-                    ? 'Processing...'
-                    : authMode() === 'login'
-                    ? 'Sign In'
-                    : 'Create Account'}
+                    ? (authMode() === 'login' ? 'Signing in...' : 'Creating Account...')
+                    : (authMode() === 'login' ? 'Sign In' : 'Create Account')}
                 </button>
               </div>
 
-              <div class="text-center pt-3 border-t border-slate-100 dark:border-slate-800">
+              <div class="text-center pt-2 border-t border-[#eaecf0] dark:border-[#222630]">
                 <Show when={authMode() === 'login'}>
-                  <div class="text-[11px] text-slate-500 dark:text-slate-400">
+                  <div class="text-[11px] text-zinc-500 dark:text-zinc-400">
                     Sign in with your registered account credentials.
                   </div>
                 </Show>
                 <Show when={authMode() === 'register'}>
-                  <div class="text-[11px] text-slate-500 dark:text-slate-400">
+                  <div class="text-[11px] text-zinc-500 dark:text-zinc-400">
                     Registration creates a participant account with squad privileges.
                   </div>
                 </Show>

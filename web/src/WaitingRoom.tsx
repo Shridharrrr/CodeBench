@@ -63,7 +63,6 @@ export default function WaitingRoom(props: WaitingRoomProps) {
     fetchMyTeam();
     startCountdown();
 
-    // Listen to contest SSE events for authoritative round launch
     const sse = new EventSource(`/api/contests/${props.contest.id}/events`);
     sse.addEventListener('contest_started', () => {
       props.onContestStarted();
@@ -202,43 +201,63 @@ export default function WaitingRoom(props: WaitingRoomProps) {
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
+  const formatIST = (dateStr: string) => {
+    try {
+      return new Date(dateStr).toLocaleTimeString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      }) + ' IST';
+    } catch {
+      return dateStr;
+    }
+  };
+
   return (
-    <div class="flex-1 flex flex-col items-center justify-center py-12 px-6 max-w-4xl mx-auto w-full text-slate-900 dark:text-slate-100">
+    <div class="flex-1 flex flex-col items-center justify-center py-10 px-6 max-w-4xl mx-auto w-full text-zinc-900 dark:text-zinc-100 font-sans">
       {/* Contest Status Header */}
-      <div class="text-center mb-8">
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-3 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-          <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
-          <span>
-            {props.contest.is_paused ? 'Competition Paused by Organizer' : 'Competition Not Started'}
+      <div class="text-center mb-6">
+        <div class="inline-flex items-center gap-2 mb-2 font-mono">
+          <span class="status-chip bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800">
+            {props.contest.is_paused ? 'Contest Paused' : 'Contest Scheduled'}
           </span>
         </div>
-        <h1 class="text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">{props.contest.title}</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-lg mx-auto">
-          Problem statements and the code editor will unlock once the round is officially started by the event organizer.
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+          {props.contest.title}
+        </h1>
+        <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-lg mx-auto">
+          Problems and the code editor will unlock once the round begins.
         </p>
       </div>
 
       {/* Countdown Timer Card */}
-      <div class="notion-card w-full p-8 text-center mb-8 shadow-xs">
-        <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Scheduled Start</span>
-        <div class="font-mono text-5xl md:text-6xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight my-4">
-          {countdown()}
+      <div class="notion-card w-full p-6 text-center mb-6 bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px] shadow-[1px_1px_0px_rgba(0,0,0,0.06)] dark:shadow-[1px_1px_0px_rgba(0,0,0,0.4)]">
+        <span class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+          Contest Starts In
+        </span>
+        <div class="my-3 flex justify-center">
+          <div class="digital-clock-box px-6 py-2.5">
+            <span class="font-mono text-4xl md:text-5xl font-black text-zinc-900 dark:text-sky-400 tracking-wider">
+              {countdown()}
+            </span>
+          </div>
         </div>
-        <div class="flex flex-wrap items-center justify-center gap-4 text-xs text-slate-500 dark:text-slate-400">
-          <span>Scoring: <strong class="text-slate-800 dark:text-slate-200 uppercase">{props.contest.scoring}</strong></span>
-          <span class="text-slate-300 dark:text-slate-700">·</span>
-          <span>Start (IST): <strong class="text-slate-800 dark:text-slate-200">{new Date(props.contest.starts_at).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true })} IST</strong></span>
-          <span class="text-slate-300 dark:text-slate-700">·</span>
-          <span>End (IST): <strong class="text-slate-800 dark:text-slate-200">{new Date(props.contest.ends_at).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true })} IST</strong></span>
+        <div class="flex flex-wrap items-center justify-center gap-3 text-xs text-zinc-600 dark:text-zinc-400">
+          <span>Scoring: <strong class="text-zinc-900 dark:text-zinc-200 uppercase">{props.contest.scoring}</strong></span>
+          <span class="text-zinc-300 dark:text-zinc-700">&bull;</span>
+          <span>Start: <strong class="text-zinc-900 dark:text-zinc-200">{formatIST(props.contest.starts_at)}</strong></span>
+          <span class="text-zinc-300 dark:text-zinc-700">&bull;</span>
+          <span>End: <strong class="text-zinc-900 dark:text-zinc-200">{formatIST(props.contest.ends_at)}</strong></span>
         </div>
       </div>
 
       {/* Team Registration */}
-      <div class="notion-card w-full p-6 mb-8 dark:bg-slate-900 dark:border-slate-800">
-        <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-100 dark:border-slate-800">
+      <div class="notion-card w-full p-5 mb-6 bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px] shadow-[1px_1px_0px_rgba(0,0,0,0.05)]">
+        <div class="flex items-center justify-between pb-3 mb-3 border-b border-[#d4d6dc] dark:border-[#262a32]">
           <div>
-            <h2 class="text-base font-bold text-slate-900 dark:text-white">Team Registration</h2>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Compete together with teammates or participate individually.</p>
+            <h2 class="text-xs font-bold text-zinc-900 dark:text-white">Squad Status & Roster</h2>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400 font-sans">Compete in a coordinated squad or participate individually.</p>
           </div>
 
           <Show when={props.user && !myTeam()}>
@@ -248,19 +267,19 @@ export default function WaitingRoom(props: WaitingRoomProps) {
                   setTeamError('');
                   setIsCreateModalOpen(true);
                 }}
-                class="px-3 py-1.5 rounded-md text-xs font-semibold bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white transition shadow-xs flex items-center gap-1.5"
+                class="btn-workstation btn-workstation-primary text-xs"
               >
                 <IconPlus class="w-3.5 h-3.5" />
-                <span>Create Team</span>
+                <span>Create Squad</span>
               </button>
               <button
                 onClick={() => {
                   setTeamError('');
                   setIsJoinModalOpen(true);
                 }}
-                class="px-3 py-1.5 rounded-md text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition shadow-xs"
+                class="btn-workstation btn-workstation-secondary text-xs"
               >
-                Join with Code
+                <span>Join with Code</span>
               </button>
             </div>
           </Show>
@@ -269,13 +288,13 @@ export default function WaitingRoom(props: WaitingRoomProps) {
         <Show
           when={props.user}
           fallback={
-            <div class="py-6 text-center">
-              <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">Sign in or register an account to form teams and submit code.</p>
+            <div class="py-6 text-center font-sans">
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Sign in to participate in this contest.</p>
               <button
                 onClick={props.onOpenAuth}
-                class="px-5 py-2 rounded-md text-xs font-semibold bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white transition shadow-xs"
+                class="btn-workstation btn-workstation-primary text-xs"
               >
-                Sign In / Register
+                Sign In
               </button>
             </div>
           }
@@ -283,60 +302,62 @@ export default function WaitingRoom(props: WaitingRoomProps) {
           <Show
             when={myTeam()}
             fallback={
-              <div class="p-6 bg-slate-50 dark:bg-slate-850 rounded-lg border border-slate-200 dark:border-slate-800 text-center">
-                <div class="w-9 h-9 rounded-full bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-300 flex items-center justify-center mx-auto mb-2 border border-slate-200 dark:border-slate-700">
-                  <IconUsers class="w-4 h-4" />
+              <div class="p-4 bg-[#f8f9fa] dark:bg-[#0c0d10] rounded-[2px] border border-[#d4d6dc] dark:border-[#262a32] text-center font-sans">
+                <div class="w-7 h-7 rounded-[2px] bg-zinc-100 dark:bg-zinc-800 text-zinc-500 flex items-center justify-center mx-auto mb-2 border border-zinc-300 dark:border-zinc-700">
+                  <IconUsers class="w-3.5 h-3.5" />
                 </div>
-                <h4 class="text-xs font-bold text-slate-800 dark:text-slate-200">You are competing as an Individual</h4>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
-                  If this is a team competition, create a team above or enter your team captain's 6-character code.
+                <h4 class="text-xs font-semibold text-zinc-800 dark:text-zinc-200">Competing Individually</h4>
+                <p class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 max-w-sm mx-auto">
+                  To compete as a team, create a squad above or enter your captain's invite code.
                 </p>
               </div>
             }
           >
             {(team) => (
-              <div class="space-y-4">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50 dark:bg-slate-850 rounded-lg border border-slate-200 dark:border-slate-800 gap-3">
+              <div class="space-y-3 font-sans">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-[#f8f9fa] dark:bg-[#14171d] rounded-[2px] border border-[#d4d6dc] dark:border-[#262a32] gap-3">
                   <div>
                     <div class="flex items-center gap-2">
-                      <span class="text-xs font-bold text-slate-900 dark:text-white">{team().name}</span>
-                      <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                      <span class="text-xs font-bold text-zinc-900 dark:text-white">{team().name}</span>
+                      <span class="status-chip bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 text-[10px]">
                         Registered
                       </span>
                     </div>
-                    <span class="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
-                      {team().members?.length || 1} team members joined
+                    <span class="text-[11px] text-zinc-500 dark:text-zinc-400 block mt-0.5">
+                      {team().members?.length || 1} squad members
                     </span>
                   </div>
 
                   <div class="flex items-center gap-2">
-                    <span class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Join Code:</span>
-                    <span class="font-mono text-xs font-bold bg-white dark:bg-slate-950 px-2.5 py-1 rounded border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white tracking-wider">
-                      {team().join_code}
-                    </span>
-                    <button
-                      onClick={() => copyCode(team().join_code)}
-                      class="px-2.5 py-1 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition flex items-center gap-1"
-                    >
-                      <Show when={copiedCode()} fallback={<IconCopy class="w-3.5 h-3.5" />}>
-                        <IconCheck class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                      </Show>
-                      <span>{copiedCode() ? 'Copied' : 'Copy'}</span>
-                    </button>
+                    <div class="digital-clock-box">
+                      <span class="text-[10px] uppercase text-zinc-500">Code:</span>
+                      <span class="text-xs font-bold text-zinc-900 dark:text-sky-400 tracking-wider">
+                        {team().join_code}
+                      </span>
+                      <button
+                        onClick={() => copyCode(team().join_code)}
+                        class="text-[10px] text-blue-600 dark:text-blue-400 hover:underline font-semibold transition flex items-center gap-1"
+                      >
+                        <Show when={copiedCode()} fallback={<IconCopy class="w-3 h-3" />}>
+                          <IconCheck class="w-3 h-3 text-emerald-500" />
+                        </Show>
+                        <span>{copiedCode() ? 'Copied' : 'Copy'}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                   <For each={team().members}>
                     {(m) => (
-                      <div class="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md flex items-center gap-2">
-                        <div class="w-6 h-6 rounded-full bg-slate-900 dark:bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">
+                      <div class="p-2 bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px] flex items-center gap-2">
+                        <div class="w-5 h-5 rounded-[2px] bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 flex items-center justify-center text-[10px] font-bold">
                           {m.user_name?.charAt(0).toUpperCase()}
                         </div>
                         <div class="min-w-0 flex-1">
-                          <span class="text-xs font-medium text-slate-800 dark:text-slate-100 truncate block">{m.user_name}</span>
+                          <span class="text-xs font-semibold text-zinc-800 dark:text-zinc-100 truncate block">{m.user_name}</span>
                           <Show when={m.user_id === team().captain_id}>
-                            <span class="text-[9px] font-semibold text-amber-700 dark:text-amber-400 uppercase">Team Captain</span>
+                            <span class="text-[9px] font-semibold text-amber-600 dark:text-amber-400 uppercase">Captain</span>
                           </Show>
                         </div>
                       </div>
@@ -350,18 +371,18 @@ export default function WaitingRoom(props: WaitingRoomProps) {
       </div>
 
       {/* Rules & Requirements */}
-      <div class="notion-card w-full p-6 dark:bg-slate-900 dark:border-slate-800">
-        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
-          <IconShield class="w-3.5 h-3.5" />
-          <span>Round Guidelines & Runtime Quotas</span>
+      <div class="notion-card w-full p-5 bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px] shadow-[1px_1px_0px_rgba(0,0,0,0.05)] text-xs">
+        <h3 class="font-semibold text-zinc-800 dark:text-zinc-200 mb-2.5 flex items-center gap-2">
+          <IconShield class="w-3.5 h-3.5 text-zinc-500" />
+          <span>Contest Rules & Environment</span>
         </h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-600 dark:text-slate-300">
-          <ul class="space-y-1.5 list-disc list-inside">
-            <li>Submissions execute in isolated Linux namespace sandboxes</li>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-zinc-600 dark:text-zinc-400">
+          <ul class="space-y-1 list-disc list-inside">
+            <li>Linux kernel namespace isolation per submission</li>
             <li>Hardware instruction counter enforces deterministic evaluation</li>
-            <li>Supported languages: C++23, C23, Python 3.12, Rust 1.85, Go 1.24</li>
+            <li>Runtimes: C++23, C23, Python 3.12, Rust 1.85, Go 1.24</li>
           </ul>
-          <ul class="space-y-1.5 list-disc list-inside">
+          <ul class="space-y-1 list-disc list-inside">
             <li>Standard memory quota: 256MB, CPU timeout: 1000ms</li>
             <li>Real-time progression during hidden test evaluation</li>
             <li>Server-authoritative timer synchronization across participants</li>
@@ -371,31 +392,31 @@ export default function WaitingRoom(props: WaitingRoomProps) {
 
       {/* Create Team Modal */}
       <Show when={isCreateModalOpen()}>
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div class="notion-card max-w-sm w-full p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl">
-            <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-100 dark:border-slate-800">
-              <h3 class="text-base font-bold text-slate-900 dark:text-white">Create Team</h3>
-              <button onClick={() => setIsCreateModalOpen(false)} class="text-slate-400 hover:text-slate-800 dark:hover:text-white">
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div class="notion-card max-w-sm w-full p-5 bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px] shadow-xl">
+            <div class="flex items-center justify-between pb-2 mb-3 border-b border-[#d4d6dc] dark:border-[#262a32]">
+              <h3 class="text-xs font-bold text-zinc-900 dark:text-white">Create Squad</h3>
+              <button onClick={() => setIsCreateModalOpen(false)} class="text-zinc-400 hover:text-zinc-800 dark:hover:text-white">
                 <IconX class="w-4 h-4" />
               </button>
             </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">You will be designated as captain and receive a shareable invite code.</p>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3 font-sans">You will be designated as squad captain and receive an invite code.</p>
 
             <Show when={teamError()}>
-              <div class="p-2.5 mb-4 text-xs bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 rounded-md">
+              <div class="p-2 mb-3 text-xs bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-900 text-rose-700 dark:text-rose-300 rounded-[2px]">
                 {teamError()}
               </div>
             </Show>
 
-            <form onSubmit={handleCreateTeam} class="space-y-4">
+            <form onSubmit={handleCreateTeam} class="space-y-3">
               <div>
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Team Name</label>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Squad Name</label>
                 <input
                   type="text"
-                  placeholder="Team Name"
+                  placeholder="e.g. Algorithmics"
                   value={teamNameInput()}
                   onInput={(e) => setTeamNameInput(e.currentTarget.value)}
-                  class="notion-input w-full text-xs"
+                  class="notion-input w-full text-xs font-mono uppercase"
                   required
                 />
               </div>
@@ -404,16 +425,16 @@ export default function WaitingRoom(props: WaitingRoomProps) {
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  class="px-4 py-2 rounded-md text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+                  class="btn-workstation btn-workstation-secondary text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={teamLoading()}
-                  class="px-4 py-2 rounded-md text-xs font-semibold bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white transition disabled:opacity-50"
+                  class="btn-workstation btn-workstation-primary text-xs"
                 >
-                  {teamLoading() ? 'Creating...' : 'Create Team'}
+                  {teamLoading() ? 'Creating...' : 'Create Squad'}
                 </button>
               </div>
             </form>
@@ -423,31 +444,31 @@ export default function WaitingRoom(props: WaitingRoomProps) {
 
       {/* Join Team Modal */}
       <Show when={isJoinModalOpen()}>
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div class="notion-card max-w-sm w-full p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl">
-            <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-100 dark:border-slate-800">
-              <h3 class="text-base font-bold text-slate-900 dark:text-white">Join Team</h3>
-              <button onClick={() => setIsJoinModalOpen(false)} class="text-slate-400 hover:text-slate-800 dark:hover:text-white">
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div class="notion-card max-w-sm w-full p-5 bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px] shadow-xl">
+            <div class="flex items-center justify-between pb-2 mb-3 border-b border-[#d4d6dc] dark:border-[#262a32]">
+              <h3 class="text-xs font-bold text-zinc-900 dark:text-white">Join Squad</h3>
+              <button onClick={() => setIsJoinModalOpen(false)} class="text-zinc-400 hover:text-zinc-800 dark:hover:text-white">
                 <IconX class="w-4 h-4" />
               </button>
             </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Enter the 6-character team code provided by your captain.</p>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3 font-sans">Enter the 6-character team code provided by your captain.</p>
 
             <Show when={teamError()}>
-              <div class="p-2.5 mb-4 text-xs bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 rounded-md">
+              <div class="p-2 mb-3 text-xs bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-900 text-rose-700 dark:text-rose-300 rounded-[2px]">
                 {teamError()}
               </div>
             </Show>
 
-            <form onSubmit={handleJoinTeam} class="space-y-4">
+            <form onSubmit={handleJoinTeam} class="space-y-3">
               <div>
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Invite Code</label>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Invite Code</label>
                 <input
                   type="text"
                   placeholder="CB-XXXX"
                   value={joinCodeInput()}
                   onInput={(e) => setJoinCodeInput(e.currentTarget.value.toUpperCase())}
-                  class="notion-input w-full font-mono text-center text-sm font-bold uppercase tracking-widest"
+                  class="notion-input w-full font-mono text-center text-xs font-bold uppercase tracking-widest"
                   required
                 />
               </div>
@@ -456,16 +477,16 @@ export default function WaitingRoom(props: WaitingRoomProps) {
                 <button
                   type="button"
                   onClick={() => setIsJoinModalOpen(false)}
-                  class="px-4 py-2 rounded-md text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+                  class="btn-workstation btn-workstation-secondary text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={teamLoading()}
-                  class="px-4 py-2 rounded-md text-xs font-semibold bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white transition disabled:opacity-50"
+                  class="btn-workstation btn-workstation-primary text-xs"
                 >
-                  {teamLoading() ? 'Joining...' : 'Join Team'}
+                  {teamLoading() ? 'Joining...' : 'Join Squad'}
                 </button>
               </div>
             </form>

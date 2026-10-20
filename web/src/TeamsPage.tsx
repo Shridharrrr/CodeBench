@@ -190,7 +190,7 @@ export default function TeamsPage(props: TeamsPageProps) {
   };
 
   const handleDeleteTeam = async (teamId: string, teamName: string) => {
-    if (!confirm(`Are you sure you want to permanently delete team "${teamName}"? All memberships will be removed immediately.`)) return;
+    if (!confirm(`Are you sure you want to permanently delete squad "${teamName}"? All memberships will be removed immediately.`)) return;
     setErrorMsg('');
     setSuccessMsg('');
     try {
@@ -233,26 +233,21 @@ export default function TeamsPage(props: TeamsPageProps) {
   };
 
   return (
-    <div class="flex-1 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 py-10 px-6 transition-colors duration-150">
-      <div class="max-w-5xl mx-auto space-y-8">
+    <div class="flex-1 bg-[#f4f5f7] dark:bg-[#090a0c] text-zinc-900 dark:text-zinc-100 py-8 px-6 font-sans transition-colors duration-100">
+      <div class="max-w-5xl mx-auto space-y-6">
         {/* Header */}
-        <div>
-          <div class="flex items-center gap-2 mb-2">
-            <span class="px-2.5 py-0.5 text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-md">
-              Team Management
-            </span>
-            <span class="text-slate-300 dark:text-slate-700">·</span>
-            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Participant Squads</span>
-          </div>
-          <h1 class="text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Teams and Rosters</h1>
-          <p class="text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
-            Organize your squad before the competition begins. Share your unique invite code with teammates to register under one team. If all members leave a team, it is automatically removed.
+        <div class="pb-4 border-b border-[#d4d6dc] dark:border-[#262a32]">
+          <h1 class="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
+            Squads & Rosters
+          </h1>
+          <p class="text-xs text-zinc-600 dark:text-zinc-400 mt-1 max-w-2xl leading-relaxed">
+            Form your squad before the contest begins. Captains generate a 6-character invite code to share with teammates.
           </p>
         </div>
 
         {/* Notifications */}
         <Show when={errorMsg()}>
-          <div class="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs font-medium flex items-center justify-between">
+          <div class="p-3 bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300 rounded-[2px] text-xs flex items-center justify-between">
             <span>{errorMsg()}</span>
             <button onClick={() => setErrorMsg('')} class="p-0.5 text-rose-400 hover:text-rose-700">
               <IconX class="w-3.5 h-3.5" />
@@ -260,7 +255,7 @@ export default function TeamsPage(props: TeamsPageProps) {
           </div>
         </Show>
         <Show when={successMsg()}>
-          <div class="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-xs font-medium flex items-center justify-between">
+          <div class="p-3 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 rounded-[2px] text-xs flex items-center justify-between">
             <span>{successMsg()}</span>
             <button onClick={() => setSuccessMsg('')} class="p-0.5 text-emerald-400 hover:text-emerald-700">
               <IconX class="w-3.5 h-3.5" />
@@ -272,19 +267,21 @@ export default function TeamsPage(props: TeamsPageProps) {
         <Show
           when={props.user}
           fallback={
-            <div class="notion-card p-8 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-              <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center mx-auto mb-3">
-                <IconUsers class="w-5 h-5" />
+            <div class="notion-card p-10 text-center bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px] shadow-[1px_1px_0px_rgba(0,0,0,0.06)]">
+              <div class="w-8 h-8 rounded-[2px] bg-zinc-100 dark:bg-zinc-800 text-zinc-500 flex items-center justify-center mx-auto mb-3 border border-zinc-300 dark:border-zinc-700">
+                <IconUsers class="w-4 h-4" />
               </div>
-              <h2 class="text-base font-bold text-slate-900 dark:text-white">Sign In to Manage Your Team</h2>
-              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4 max-w-md mx-auto">
-                Authentication is required to create a team or join an existing squad for the competition.
+              <h2 class="text-sm font-bold text-zinc-900 dark:text-white">
+                Sign in to manage squads
+              </h2>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 mb-4 max-w-md mx-auto">
+                Sign in to create a new squad or join an existing team roster for the competition round.
               </p>
               <button
                 onClick={props.onOpenAuth}
-                class="px-5 py-2.5 rounded-md text-xs font-semibold bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white transition shadow-xs"
+                class="btn-workstation btn-workstation-primary text-xs"
               >
-                Sign In / Register
+                Sign In
               </button>
             </div>
           }
@@ -293,22 +290,24 @@ export default function TeamsPage(props: TeamsPageProps) {
             when={myTeam()}
             fallback={
               /* Not in a team yet: Show Create or Join Cards */
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Create Team Box */}
-                <div class="notion-card p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
-                  <div class="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-                    <div class="w-8 h-8 rounded-lg bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center">
-                      <IconPlus class="w-4 h-4" />
-                    </div>
+                <div class="notion-card p-5 bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px] space-y-4 shadow-[1px_1px_0px_rgba(0,0,0,0.05)]">
+                  <div class="flex items-center gap-2.5 pb-2.5 border-b border-[#d4d6dc] dark:border-[#262a32]">
+                    <span class="status-chip bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 font-bold border-zinc-900 dark:border-zinc-100">
+                      New
+                    </span>
                     <div>
-                      <h2 class="text-sm font-bold text-slate-900 dark:text-white">Create a New Team</h2>
-                      <p class="text-xs text-slate-500 dark:text-slate-400">You will be designated as the team captain.</p>
+                      <h2 class="text-xs font-bold text-zinc-900 dark:text-white">Create a Squad</h2>
+                      <p class="text-[11px] text-zinc-500 dark:text-zinc-400">Designates you as the squad captain.</p>
                     </div>
                   </div>
 
-                  <form onSubmit={handleCreateTeam} class="space-y-4">
+                  <form onSubmit={handleCreateTeam} class="space-y-3">
                     <div>
-                      <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Team Name</label>
+                      <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                        Squad Name
+                      </label>
                       <input
                         type="text"
                         required
@@ -321,28 +320,30 @@ export default function TeamsPage(props: TeamsPageProps) {
                     <button
                       type="submit"
                       disabled={actionLoading() || !createName().trim()}
-                      class="w-full py-2.5 rounded-md text-xs font-semibold bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white transition shadow-xs disabled:opacity-50"
+                      class="btn-workstation btn-workstation-primary w-full text-xs"
                     >
-                      {actionLoading() ? 'Creating...' : 'Create Team & Generate Invite Code'}
+                      {actionLoading() ? 'Creating...' : 'Create Squad & Get Code'}
                     </button>
                   </form>
                 </div>
 
                 {/* Join Team Box */}
-                <div class="notion-card p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
-                  <div class="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-                    <div class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center">
-                      <IconUsers class="w-4 h-4" />
-                    </div>
+                <div class="notion-card p-5 bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px] space-y-4 shadow-[1px_1px_0px_rgba(0,0,0,0.05)]">
+                  <div class="flex items-center gap-2.5 pb-2.5 border-b border-[#d4d6dc] dark:border-[#262a32]">
+                    <span class="status-chip bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border-zinc-300 dark:border-zinc-700">
+                      Join
+                    </span>
                     <div>
-                      <h2 class="text-sm font-bold text-slate-900 dark:text-white">Join Existing Team</h2>
-                      <p class="text-xs text-slate-500 dark:text-slate-400">Enter the 6-character code provided by your captain.</p>
+                      <h2 class="text-xs font-bold text-zinc-900 dark:text-white">Join Existing Squad</h2>
+                      <p class="text-[11px] text-zinc-500 dark:text-zinc-400">Enter the 6-character code from your captain.</p>
                     </div>
                   </div>
 
-                  <form onSubmit={handleJoinTeam} class="space-y-4">
+                  <form onSubmit={handleJoinTeam} class="space-y-3">
                     <div>
-                      <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Team Invite Code</label>
+                      <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                        Invite Code
+                      </label>
                       <input
                         type="text"
                         required
@@ -356,9 +357,9 @@ export default function TeamsPage(props: TeamsPageProps) {
                     <button
                       type="submit"
                       disabled={actionLoading() || !joinCode().trim()}
-                      class="w-full py-2.5 rounded-md text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition shadow-xs disabled:opacity-50"
+                      class="btn-workstation btn-workstation-secondary w-full text-xs"
                     >
-                      {actionLoading() ? 'Joining...' : 'Join Team with Code'}
+                      {actionLoading() ? 'Joining...' : 'Join Squad'}
                     </button>
                   </form>
                 </div>
@@ -367,33 +368,33 @@ export default function TeamsPage(props: TeamsPageProps) {
           >
             {/* Active Team Roster Card */}
             {(team) => (
-              <div class="notion-card p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-6">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-850">
+              <div class="notion-card p-5 bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px] space-y-5 shadow-[1px_1px_0px_rgba(0,0,0,0.05)]">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3 border-b border-[#d4d6dc] dark:border-[#262a32]">
                   <div>
                     <div class="flex items-center gap-2">
-                      <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 uppercase">
-                        Active Team
+                      <span class="status-chip bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800">
+                        Active Squad
                       </span>
-                      <h2 class="text-xl font-bold text-slate-900 dark:text-white">{team().name}</h2>
+                      <h2 class="text-lg font-bold text-zinc-900 dark:text-white">{team().name}</h2>
                     </div>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      Registered for competition · Created {new Date(team().created_at).toLocaleDateString()}
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                      Created {new Date(team().created_at).toLocaleDateString()}
                     </p>
                   </div>
 
                   {/* Team Join Code & Copy Button */}
-                  <div class="flex items-center gap-3">
-                    <div class="px-3 py-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg flex items-center gap-2">
-                      <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Invite Code:</span>
-                      <span class="font-mono text-xs font-bold text-slate-900 dark:text-white tracking-wider">
+                  <div class="flex items-center gap-2">
+                    <div class="digital-clock-box">
+                      <span class="text-[10px] uppercase text-zinc-500 dark:text-zinc-400">Code:</span>
+                      <span class="text-xs font-mono font-bold text-zinc-900 dark:text-sky-400 tracking-wider">
                         {team().join_code}
                       </span>
                       <button
                         onClick={() => copyCode(team().join_code)}
-                        class="text-[11px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-semibold transition flex items-center gap-1"
+                        class="text-[10px] text-blue-600 dark:text-blue-400 hover:underline font-medium transition flex items-center gap-1"
                       >
                         <Show when={copiedCode()} fallback={<IconCopy class="w-3 h-3" />}>
-                          <IconCheck class="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                          <IconCheck class="w-3 h-3 text-emerald-500" />
                         </Show>
                         <span>{copiedCode() ? 'Copied' : 'Copy'}</span>
                       </button>
@@ -401,18 +402,18 @@ export default function TeamsPage(props: TeamsPageProps) {
 
                     <button
                       onClick={handleLeaveTeam}
-                      class="px-3 py-1.5 rounded-md text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition"
+                      class="btn-workstation btn-workstation-secondary text-xs"
                     >
-                      Leave Team
+                      Leave Squad
                     </button>
 
                     <Show when={props.user?.role === 'admin' || team().captain_id === props.user?.id}>
                       <button
                         onClick={() => handleDeleteTeam(team().id, team().name)}
-                        class="px-3 py-1.5 rounded-md text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 transition flex items-center gap-1"
+                        class="btn-workstation btn-workstation-danger text-xs"
                       >
                         <IconTrash class="w-3 h-3" />
-                        <span>Delete Team</span>
+                        <span>Delete</span>
                       </button>
                     </Show>
                   </div>
@@ -420,27 +421,27 @@ export default function TeamsPage(props: TeamsPageProps) {
 
                 {/* Team Members List */}
                 <div>
-                  <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-                    Team Members ({team().members?.length || 0})
+                  <h3 class="text-xs font-semibold tracking-wider text-zinc-600 dark:text-zinc-400 mb-2.5">
+                    Squad Members ({team().members?.length || 0})
                   </h3>
 
-                  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                     <For each={team().members}>
                       {(m) => (
-                        <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-3">
-                          <div class="w-8 h-8 rounded-full bg-slate-800 dark:bg-slate-700 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                        <div class="p-2.5 bg-[#f8f9fa] dark:bg-[#14171d] rounded-[2px] border border-[#d4d6dc] dark:border-[#262a32] flex items-center gap-2.5">
+                          <div class="w-7 h-7 rounded-[2px] bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 flex items-center justify-center font-bold text-xs shrink-0 border border-zinc-700 dark:border-zinc-300">
                             {m.user_name?.charAt(0).toUpperCase()}
                           </div>
                           <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-1.5">
-                              <span class="text-xs font-bold text-slate-900 dark:text-white truncate">{m.user_name}</span>
+                              <span class="text-xs font-bold text-zinc-900 dark:text-white truncate">{m.user_name}</span>
                               <Show when={m.user_id === team().captain_id}>
-                                <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                <span class="status-chip bg-amber-50 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800 text-[9px] py-0 px-1 font-semibold">
                                   Captain
                                 </span>
                               </Show>
                             </div>
-                            <span class="text-[11px] text-slate-500 dark:text-slate-400 truncate block">{m.user_email}</span>
+                            <span class="text-[10px] text-zinc-500 dark:text-zinc-400 truncate block">{m.user_email}</span>
                           </div>
                         </div>
                       )}
@@ -456,18 +457,22 @@ export default function TeamsPage(props: TeamsPageProps) {
         <div class="space-y-4">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 class="text-lg font-bold text-slate-900 dark:text-white">Registered Teams</h2>
-              <p class="text-xs text-slate-500 dark:text-slate-400">All registered squads participating in the competition.</p>
+              <h2 class="text-sm font-bold text-zinc-900 dark:text-white">
+                Participating Squads
+              </h2>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                All registered participant squads active in the competition.
+              </p>
             </div>
             <div class="w-full sm:w-64 relative">
               <input
                 type="text"
-                placeholder="Search team or member..."
+                placeholder="Search squads or members..."
                 value={searchQuery()}
                 onInput={(e) => setSearchQuery(e.currentTarget.value)}
                 class="notion-input w-full text-xs pr-8"
               />
-              <span class="absolute right-2.5 top-2.5 text-slate-400 dark:text-slate-500 pointer-events-none">
+              <span class="absolute right-2.5 top-2.5 text-zinc-400 dark:text-zinc-500 pointer-events-none">
                 <IconSearch class="w-3.5 h-3.5" />
               </span>
             </div>
@@ -476,32 +481,32 @@ export default function TeamsPage(props: TeamsPageProps) {
           <Show
             when={!loading() && filteredTeams().length > 0}
             fallback={
-              <div class="notion-card p-12 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mx-auto mb-2">
-                  <IconShield class="w-5 h-5" />
+              <div class="notion-card p-10 text-center bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px]">
+                <div class="w-8 h-8 rounded-[2px] bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 flex items-center justify-center mx-auto mb-2 border border-zinc-300 dark:border-zinc-700">
+                  <IconShield class="w-4 h-4" />
                 </div>
-                <h3 class="text-sm font-bold text-slate-700 dark:text-slate-300">No Teams Registered Yet</h3>
-                <p class="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-sm mx-auto">
-                  {searchQuery() ? 'No teams matched your search criteria.' : 'Create a team above to begin competing together.'}
+                <h3 class="text-xs font-bold text-zinc-700 dark:text-zinc-300">No squads found</h3>
+                <p class="text-xs text-zinc-400 dark:text-zinc-500 mt-1 max-w-sm mx-auto">
+                  {searchQuery() ? 'No squads matched your search filter.' : 'Register a squad above to begin competing together.'}
                 </p>
               </div>
             }
           >
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <For each={filteredTeams()}>
                 {(t) => (
-                  <div class="notion-card p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3 hover:border-slate-300 dark:hover:border-slate-700 transition">
-                    <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-                      <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">{t.name}</h3>
-                      <div class="flex items-center gap-2">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-                          {t.members?.length || 1} {t.members?.length === 1 ? 'member' : 'members'}
+                  <div class="notion-card p-4 bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px] space-y-2.5 hover:border-zinc-400 dark:hover:border-zinc-600 transition">
+                    <div class="flex items-center justify-between pb-2 border-b border-[#d4d6dc] dark:border-[#262a32]">
+                      <h3 class="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate max-w-[170px]">{t.name}</h3>
+                      <div class="flex items-center gap-1.5">
+                        <span class="status-chip bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 text-[10px]">
+                          {t.members?.length || 1} member{t.members?.length === 1 ? '' : 's'}
                         </span>
                         <Show when={props.user?.role === 'admin'}>
                           <button
                             onClick={() => handleDeleteTeam(t.id, t.name)}
-                            class="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition rounded"
-                            title="Delete Team (Admin)"
+                            class="p-1 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 transition"
+                            title="Delete Squad"
                           >
                             <IconTrash class="w-3.5 h-3.5" />
                           </button>
@@ -509,12 +514,12 @@ export default function TeamsPage(props: TeamsPageProps) {
                       </div>
                     </div>
 
-                    <div class="space-y-1.5">
+                    <div class="space-y-1">
                       <For each={t.members}>
                         {(m) => (
-                          <div class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
-                            <span class="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-600"></span>
-                            <span class="font-medium text-slate-800 dark:text-slate-200">{m.user_name}</span>
+                          <div class="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-400">
+                            <span class="w-1.5 h-1.5 bg-zinc-400 dark:bg-zinc-600 inline-block" />
+                            <span class="font-medium text-zinc-800 dark:text-zinc-200">{m.user_name}</span>
                             <Show when={m.user_id === t.captain_id}>
                               <span class="text-[9px] text-amber-600 dark:text-amber-400 font-bold uppercase">(Captain)</span>
                             </Show>
@@ -523,10 +528,10 @@ export default function TeamsPage(props: TeamsPageProps) {
                       </For>
                     </div>
 
-                    <div class="pt-2 text-[10px] text-slate-400 dark:text-slate-500 border-t border-slate-50 dark:border-slate-800/80 flex items-center justify-between">
-                      <span>Joined {new Date(t.created_at).toLocaleDateString()}</span>
+                    <div class="pt-2 text-[10px] text-zinc-400 dark:text-zinc-500 border-t border-[#d4d6dc] dark:border-[#262a32] flex items-center justify-between">
+                      <span>Created {new Date(t.created_at).toLocaleDateString()}</span>
                       <Show when={props.user && t.members?.some((m) => m.user_id === props.user?.id)}>
-                        <span class="text-emerald-600 dark:text-emerald-400 font-bold">Your Team</span>
+                        <span class="text-emerald-600 dark:text-emerald-400 font-bold">Your squad</span>
                       </Show>
                     </div>
                   </div>
