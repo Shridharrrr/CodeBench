@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -141,6 +142,16 @@ func (s *Server) setupRoutes() {
 		r.Get("/contests/{id}/leaderboard", s.handleGetLeaderboard)
 		r.Get("/contests/{id}/events", s.handleContestEvents)
 
+		// Teams
+		r.Route("/teams", func(r chi.Router) {
+			r.Get("/", s.handleListTeams)
+			r.Post("/create", s.handleCreateTeam)
+			r.Post("/join", s.handleJoinTeam)
+			r.Get("/my", s.handleGetMyTeam)
+			r.Post("/leave", s.handleLeaveTeam)
+			r.Delete("/{id}", s.handleDeleteTeam)
+		})
+
 		// Practice Mode (Mode B)
 		r.Post("/practice/generate", s.handleGeneratePractice)
 		r.Get("/practice/history", s.handlePracticeHistory)
@@ -152,6 +163,15 @@ func (s *Server) setupRoutes() {
 			r.Get("/rejudge/{id}", s.handleGetRejudgeStatus)
 			r.Post("/problems/import", s.handleImportProblem)
 			r.Post("/problems/validate", s.handleValidateProblem)
+			r.Post("/problems/create", s.handleAdminCreateProblem)
+			r.Post("/problems/upload-md", s.handleAdminUploadProblemMD)
+			r.Post("/contests/{id}/state", s.handleAdminUpdateContestState)
+			r.Post("/contests/{id}/start", s.handleAdminStartContestNow)
+			r.Post("/contests/{id}/conclude", s.handleAdminConcludeContestNow)
+			r.Delete("/contests/{id}", s.handleDeleteContest)
+			r.Post("/contests/{id}/adjustments", s.handleAdminAddAdjustment)
+			r.Get("/contests/{id}/adjustments", s.handleAdminGetAdjustments)
+			r.Delete("/teams/{id}", s.handleAdminDeleteTeam)
 		})
 	})
 
@@ -729,6 +749,9 @@ func contextWithTimeout(r *http.Request, d time.Duration) (context.Context, cont
 // Contest Handlers & Server-Authoritative Timing
 
 func getContestState(c *models.Contest, now time.Time) (models.ContestState, int64) {
+	if c.IsPaused {
+		return "PAUSED", c.EndsAt.Sub(now).Milliseconds()
+	}
 	if now.Before(c.StartsAt) {
 		return models.ContestUpcoming, c.StartsAt.Sub(now).Milliseconds()
 	}
@@ -765,6 +788,9 @@ func (s *Server) handleListContests(w http.ResponseWriter, r *http.Request) {
 			"ends_at":           c.EndsAt,
 			"freeze_at":         c.FreezeAt,
 			"scoring":           c.Scoring,
+			"is_paused":         c.IsPaused,
+			"is_team_contest":   c.IsTeamContest,
+			"max_team_size":     c.MaxTeamSize,
 			"server_time":       now,
 			"state":             state,
 			"time_remaining_ms": timeRemaining,
@@ -796,8 +822,10 @@ func (s *Server) handleGetContest(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	isAdmin := user != nil && user.Role == "admin"
 	isRegistered := false
+	var userTeam *models.Team
 	if user != nil {
 		isRegistered, _ = s.db.IsParticipant(r.Context(), id, user.ID)
+		userTeam, _ = s.db.GetTeamForUser(r.Context(), user.ID)
 	}
 
 	probs, err := s.db.GetContestProblems(r.Context(), id)
@@ -806,10 +834,10 @@ func (s *Server) handleGetContest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Pre-contest quarantine: hide problem details if contest is upcoming and caller is not admin
+	// Pre-contest quarantine: hide problem details if contest is upcoming/paused and caller is not admin
 	var problemSummaries []map[string]any
 	for _, p := range probs {
-		if state == models.ContestUpcoming && !isAdmin {
+		if (state == models.ContestUpcoming || state == "PAUSED") && !isAdmin {
 			problemSummaries = append(problemSummaries, map[string]any{
 				"label":  p.Label,
 				"points": p.Points,
@@ -833,6 +861,10 @@ func (s *Server) handleGetContest(w http.ResponseWriter, r *http.Request) {
 		"ends_at":           c.EndsAt,
 		"freeze_at":         c.FreezeAt,
 		"scoring":           c.Scoring,
+		"is_paused":         c.IsPaused,
+		"is_team_contest":   c.IsTeamContest,
+		"max_team_size":     c.MaxTeamSize,
+		"user_team":         userTeam,
 		"server_time":       now,
 		"state":             state,
 		"time_remaining_ms": timeRemaining,
@@ -887,9 +919,9 @@ func (s *Server) handleGetContestProblem(w http.ResponseWriter, r *http.Request)
 	user := auth.UserFromContext(r.Context())
 	isAdmin := user != nil && user.Role == "admin"
 
-	// Pre-contest quarantine: block problem viewing before start
-	if now.Before(c.StartsAt) && !isAdmin {
-		http.Error(w, `{"error":"contest has not started yet"}`, http.StatusForbidden)
+	// Pre-contest quarantine: block problem viewing before start or if paused
+	if (now.Before(c.StartsAt) || c.IsPaused) && !isAdmin {
+		http.Error(w, `{"error":"contest has not started yet or is paused"}`, http.StatusForbidden)
 		return
 	}
 
@@ -943,20 +975,21 @@ func (s *Server) handleContestSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user := auth.UserFromContext(r.Context())
+	if user == nil {
+		http.Error(w, `{"error":"authentication required to submit to contest"}`, http.StatusUnauthorized)
+		return
+	}
+	isAdmin := user.Role == "admin"
+
 	// Server-authoritative timer validation
 	now := time.Now().UTC()
-	if now.Before(c.StartsAt) {
-		http.Error(w, `{"error":"contest has not started yet"}`, http.StatusBadRequest)
+	if (now.Before(c.StartsAt) || c.IsPaused) && !isAdmin {
+		http.Error(w, `{"error":"contest has not started yet or is paused"}`, http.StatusBadRequest)
 		return
 	}
 	if !now.Before(c.EndsAt) {
 		http.Error(w, `{"error":"contest has already ended"}`, http.StatusBadRequest)
-		return
-	}
-
-	user := auth.UserFromContext(r.Context())
-	if user == nil {
-		http.Error(w, `{"error":"authentication required to submit to contest"}`, http.StatusUnauthorized)
 		return
 	}
 
@@ -1103,13 +1136,15 @@ func (s *Server) handleCreateContest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Title    string                  `json:"title"`
-		Mode     string                  `json:"mode"`
-		StartsAt time.Time               `json:"starts_at"`
-		EndsAt   time.Time               `json:"ends_at"`
-		FreezeAt *time.Time              `json:"freeze_at,omitempty"`
-		Scoring  string                  `json:"scoring"`
-		Problems []models.ContestProblem `json:"problems"`
+		Title         string                  `json:"title"`
+		Mode          string                  `json:"mode"`
+		StartsAt      time.Time               `json:"starts_at"`
+		EndsAt        time.Time               `json:"ends_at"`
+		FreezeAt      *time.Time              `json:"freeze_at,omitempty"`
+		Scoring       string                  `json:"scoring"`
+		IsTeamContest bool                    `json:"is_team_contest"`
+		MaxTeamSize   int                     `json:"max_team_size"`
+		Problems      []models.ContestProblem `json:"problems"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, `{"error":"invalid request payload"}`, http.StatusBadRequest)
@@ -1126,17 +1161,30 @@ func (s *Server) handleCreateContest(w http.ResponseWriter, r *http.Request) {
 	if req.Scoring == "" {
 		req.Scoring = "icpc"
 	}
+	if req.StartsAt.IsZero() {
+		// Defaults to upcoming in the future until officially started by admin
+		req.StartsAt = time.Now().UTC().Add(24 * time.Hour)
+	}
+	if req.EndsAt.IsZero() {
+		req.EndsAt = req.StartsAt.Add(3 * time.Hour)
+	}
+	if req.MaxTeamSize <= 0 {
+		req.MaxTeamSize = 3
+	}
 
 	contest := &models.Contest{
-		ID:        uuid.New(),
-		Title:     req.Title,
-		Mode:      req.Mode,
-		StartsAt:  req.StartsAt,
-		EndsAt:    req.EndsAt,
-		FreezeAt:  req.FreezeAt,
-		Scoring:   req.Scoring,
-		OwnerID:   &user.ID,
-		CreatedAt: time.Now().UTC(),
+		ID:            uuid.New(),
+		Title:         req.Title,
+		Mode:          req.Mode,
+		StartsAt:      req.StartsAt,
+		EndsAt:        req.EndsAt,
+		FreezeAt:      req.FreezeAt,
+		Scoring:       req.Scoring,
+		OwnerID:       &user.ID,
+		CreatedAt:     time.Now().UTC(),
+		IsPaused:      false,
+		IsTeamContest: req.IsTeamContest,
+		MaxTeamSize:   req.MaxTeamSize,
 	}
 
 	if err := s.db.CreateContest(r.Context(), contest, req.Problems); err != nil {
@@ -1146,6 +1194,22 @@ func (s *Server) handleCreateContest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusCreated, contest)
+}
+
+func (s *Server) handleDeleteContest(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, `{"error":"invalid contest id"}`, http.StatusBadRequest)
+		return
+	}
+
+	if err := s.db.DeleteContest(r.Context(), id); err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"failed to delete contest: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"status": "deleted"})
 }
 
 func (s *Server) handleGeneratePractice(w http.ResponseWriter, r *http.Request) {
@@ -1188,4 +1252,456 @@ func (s *Server) handlePracticeHistory(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, history)
 }
+
+// ---------------------------------------------------------------------
+// Teams & CTFd Membership Flow
+// ---------------------------------------------------------------------
+
+func (s *Server) handleCreateTeam(w http.ResponseWriter, r *http.Request) {
+	user := auth.UserFromContext(r.Context())
+	if user == nil {
+		http.Error(w, `{"error":"authentication required"}`, http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.TrimSpace(req.Name) == "" {
+		http.Error(w, `{"error":"team name is required"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Generate random 6-character alphanumeric join code (e.g. CB-8A4F)
+	joinCode := fmt.Sprintf("CB-%04X", time.Now().UnixNano()&0xFFFF)
+
+	team, err := s.db.CreateTeam(r.Context(), strings.TrimSpace(req.Name), joinCode, user.ID)
+	if err != nil {
+		slog.Error("Failed to create team", "error", err)
+		http.Error(w, fmt.Sprintf(`{"error":"failed to create team: %v"}`, err), http.StatusBadRequest)
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, team)
+}
+
+func (s *Server) handleJoinTeam(w http.ResponseWriter, r *http.Request) {
+	user := auth.UserFromContext(r.Context())
+	if user == nil {
+		http.Error(w, `{"error":"authentication required"}`, http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		JoinCode string `json:"join_code"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.TrimSpace(req.JoinCode) == "" {
+		http.Error(w, `{"error":"join code is required"}`, http.StatusBadRequest)
+		return
+	}
+
+	team, err := s.db.JoinTeamByCode(r.Context(), strings.TrimSpace(req.JoinCode), user.ID, 4)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"%v"}`, err), http.StatusBadRequest)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, team)
+}
+
+func (s *Server) handleGetMyTeam(w http.ResponseWriter, r *http.Request) {
+	user := auth.UserFromContext(r.Context())
+	if user == nil {
+		http.Error(w, `{"error":"authentication required"}`, http.StatusUnauthorized)
+		return
+	}
+
+	team, err := s.db.GetTeamForUser(r.Context(), user.ID)
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]any{"team": nil})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"team": team})
+}
+
+func (s *Server) handleListTeams(w http.ResponseWriter, r *http.Request) {
+	teams, err := s.db.ListTeams(r.Context())
+	if err != nil {
+		slog.Error("Failed to list teams", "error", err)
+		http.Error(w, `{"error":"failed to list teams"}`, http.StatusInternalServerError)
+		return
+	}
+	if teams == nil {
+		teams = []models.Team{}
+	}
+	writeJSON(w, http.StatusOK, teams)
+}
+
+func (s *Server) handleLeaveTeam(w http.ResponseWriter, r *http.Request) {
+	user := auth.UserFromContext(r.Context())
+	if user == nil {
+		http.Error(w, `{"error":"authentication required"}`, http.StatusUnauthorized)
+		return
+	}
+
+	if err := s.db.LeaveTeam(r.Context(), user.ID); err != nil {
+		slog.Error("Failed to leave team", "error", err)
+		http.Error(w, `{"error":"failed to leave team"}`, http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"status": "left"})
+}
+
+func (s *Server) handleDeleteTeam(w http.ResponseWriter, r *http.Request) {
+	user := auth.UserFromContext(r.Context())
+	if user == nil {
+		http.Error(w, `{"error":"authentication required"}`, http.StatusUnauthorized)
+		return
+	}
+
+	idStr := chi.URLParam(r, "id")
+	teamID, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, `{"error":"invalid team id"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Permission check: Admins or the team's Captain can delete the team
+	if user.Role != "admin" {
+		team, err := s.db.GetTeamForUser(r.Context(), user.ID)
+		if err != nil || team == nil || team.ID != teamID || team.CaptainID != user.ID {
+			http.Error(w, `{"error":"only administrators or team captains can delete this team"}`, http.StatusForbidden)
+			return
+		}
+	}
+
+	if err := s.db.DeleteTeam(r.Context(), teamID); err != nil {
+		slog.Error("Failed to delete team", "error", err)
+		http.Error(w, fmt.Sprintf(`{"error":"failed to delete team: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"status": "deleted", "team_id": teamID})
+}
+
+func (s *Server) handleAdminDeleteTeam(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	teamID, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, `{"error":"invalid team id"}`, http.StatusBadRequest)
+		return
+	}
+
+	if err := s.db.DeleteTeam(r.Context(), teamID); err != nil {
+		slog.Error("Failed to delete team", "error", err)
+		http.Error(w, fmt.Sprintf(`{"error":"failed to delete team: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"status": "deleted", "team_id": teamID})
+}
+
+
+// ---------------------------------------------------------------------
+// Admin Contest Management (State, Time, Points Adjustments)
+// ---------------------------------------------------------------------
+
+func (s *Server) handleAdminUpdateContestState(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, `{"error":"invalid contest id"}`, http.StatusBadRequest)
+		return
+	}
+
+	var req struct {
+		StartsAt      *time.Time `json:"starts_at"`
+		EndsAt        *time.Time `json:"ends_at"`
+		FreezeAt      *time.Time `json:"freeze_at"`
+		Scoring       *string    `json:"scoring"`
+		IsPaused      *bool      `json:"is_paused"`
+		IsTeamContest *bool      `json:"is_team_contest"`
+		MaxTeamSize   *int       `json:"max_team_size"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+
+	if err := s.db.UpdateContestState(r.Context(), id, req.StartsAt, req.EndsAt, req.FreezeAt, req.Scoring, req.IsPaused, req.IsTeamContest, req.MaxTeamSize); err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"failed to update contest: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	// Trigger standings recompute and broadcast
+	if s.standingsMgr != nil {
+		_, _ = s.standingsMgr.RecomputeAndCache(r.Context(), id, true)
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"status": "updated"})
+}
+
+func (s *Server) handleAdminStartContestNow(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, `{"error":"invalid contest id"}`, http.StatusBadRequest)
+		return
+	}
+
+	if err := s.db.StartContestNow(r.Context(), id); err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"failed to start contest: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	if s.standingsMgr != nil {
+		_, _ = s.standingsMgr.RecomputeAndCache(r.Context(), id, true)
+	}
+
+	// Broadcast contest started event to all active clients
+	if s.broker != nil {
+		s.broker.PublishSubmissionStatus(
+			"contest_"+id.String(),
+			models.StatusDone,
+			models.VerdictAC,
+			map[string]any{"event": "contest_started", "contest_id": id},
+		)
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"status": "contest_started"})
+}
+
+func (s *Server) handleAdminConcludeContestNow(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, `{"error":"invalid contest id"}`, http.StatusBadRequest)
+		return
+	}
+
+	if err := s.db.ConcludeContestNow(r.Context(), id); err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"failed to conclude contest: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	if s.standingsMgr != nil {
+		_, _ = s.standingsMgr.RecomputeAndCache(r.Context(), id, true)
+	}
+
+	if s.broker != nil {
+		s.broker.PublishSubmissionStatus(
+			"contest_"+id.String(),
+			models.StatusDone,
+			models.VerdictAC,
+			map[string]any{"event": "contest_concluded", "contest_id": id},
+		)
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"status": "contest_concluded"})
+}
+
+func (s *Server) handleAdminAddAdjustment(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	contestID, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, `{"error":"invalid contest id"}`, http.StatusBadRequest)
+		return
+	}
+
+	adminUser := auth.UserFromContext(r.Context())
+	if adminUser == nil {
+		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		UserID *uuid.UUID `json:"user_id"`
+		TeamID *uuid.UUID `json:"team_id"`
+		Points int        `json:"points"`
+		Reason string     `json:"reason"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.TrimSpace(req.Reason) == "" {
+		http.Error(w, `{"error":"valid points and reason are required"}`, http.StatusBadRequest)
+		return
+	}
+
+	adj, err := s.db.AddScoreAdjustment(r.Context(), contestID, req.UserID, req.TeamID, req.Points, strings.TrimSpace(req.Reason), adminUser.ID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"failed to record adjustment: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	// Instantly update live standings
+	if s.standingsMgr != nil {
+		_, _ = s.standingsMgr.RecomputeAndCache(r.Context(), contestID, true)
+	}
+
+	writeJSON(w, http.StatusCreated, adj)
+}
+
+func (s *Server) handleAdminGetAdjustments(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	contestID, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, `{"error":"invalid contest id"}`, http.StatusBadRequest)
+		return
+	}
+
+	list, err := s.db.GetScoreAdjustmentsForContest(r.Context(), contestID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"failed to fetch adjustments: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, list)
+}
+
+// ---------------------------------------------------------------------
+// Admin Dynamic Problem Authoring
+// ---------------------------------------------------------------------
+
+func (s *Server) handleAdminCreateProblem(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Slug             string                 `json:"slug"`
+		Title            string                 `json:"title"`
+		Statement        string                 `json:"statement_md"`
+		Difficulty       string                 `json:"difficulty"`
+		Tags             []string               `json:"tags"`
+		TimeLimitMS      int                    `json:"time_limit_ms"`
+		MemoryMB         int                    `json:"memory_mb"`
+		CheckerType      string                 `json:"checker_type"`
+		ComplexityPolicy map[string]any         `json:"complexity_policy"`
+		SampleTests      []models.TestCase      `json:"sample_tests"`
+		HiddenTests      []models.TestCase      `json:"hidden_tests"`
+		ContestID        *uuid.UUID             `json:"contest_id"`
+		ContestLabel     string                 `json:"contest_label"`
+		Points           int                    `json:"points"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+
+	if req.Slug == "" || req.Title == "" || req.Statement == "" {
+		http.Error(w, `{"error":"slug, title, and statement are required"}`, http.StatusBadRequest)
+		return
+	}
+	if req.TimeLimitMS <= 0 {
+		req.TimeLimitMS = 1000
+	}
+	if req.MemoryMB <= 0 {
+		req.MemoryMB = 256
+	}
+	if req.Difficulty == "" {
+		req.Difficulty = "Medium"
+	}
+	if req.CheckerType == "" {
+		req.CheckerType = "token"
+	}
+
+	prob, ver, err := s.db.CreateDynamicProblem(
+		r.Context(),
+		req.Slug, req.Title, req.Statement, req.Difficulty, req.Tags,
+		req.TimeLimitMS, req.MemoryMB, req.CheckerType, req.ComplexityPolicy,
+		req.SampleTests, req.HiddenTests,
+		req.ContestID, req.ContestLabel, req.Points,
+	)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"failed to create problem: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, map[string]any{
+		"problem": prob,
+		"version": ver,
+	})
+}
+
+func (s *Server) handleAdminUploadProblemMD(w http.ResponseWriter, r *http.Request) {
+	var rawMD string
+	var contestID *uuid.UUID
+	var contestLabel string
+	var points int
+
+	contentType := r.Header.Get("Content-Type")
+	if strings.HasPrefix(contentType, "multipart/form-data") {
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
+			http.Error(w, `{"error":"failed to parse multipart form"}`, http.StatusBadRequest)
+			return
+		}
+		file, _, err := r.FormFile("file")
+		if err != nil {
+			http.Error(w, `{"error":"missing problem file"}`, http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
+		contentBytes, err := io.ReadAll(file)
+		if err != nil {
+			http.Error(w, `{"error":"failed to read uploaded file"}`, http.StatusBadRequest)
+			return
+		}
+		rawMD = string(contentBytes)
+		if cidStr := r.FormValue("contest_id"); cidStr != "" {
+			if id, err := uuid.Parse(cidStr); err == nil {
+				contestID = &id
+			}
+		}
+		contestLabel = r.FormValue("contest_label")
+		if ptsStr := r.FormValue("points"); ptsStr != "" {
+			if p, err := strconv.Atoi(ptsStr); err == nil {
+				points = p
+			}
+		}
+	} else {
+		var req struct {
+			Markdown     string     `json:"markdown"`
+			ContestID    *uuid.UUID `json:"contest_id"`
+			ContestLabel string     `json:"contest_label"`
+			Points       int        `json:"points"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+			return
+		}
+		rawMD = req.Markdown
+		contestID = req.ContestID
+		contestLabel = req.ContestLabel
+		points = req.Points
+	}
+
+	parsed, err := ParseProblemMarkdown(rawMD)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"failed to parse problem markdown: %v"}`, err), http.StatusBadRequest)
+		return
+	}
+
+	if contestLabel != "" {
+		parsed.ContestLabel = contestLabel
+	}
+	if points > 0 {
+		parsed.Points = points
+	}
+
+	prob, ver, err := s.db.CreateDynamicProblem(
+		r.Context(),
+		parsed.Slug, parsed.Title, parsed.StatementMD, parsed.Difficulty, parsed.Tags,
+		parsed.TimeLimitMS, parsed.MemoryMB, parsed.CheckerType, nil,
+		parsed.SampleTests, parsed.HiddenTests,
+		contestID, parsed.ContestLabel, parsed.Points,
+	)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"failed to create problem: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, map[string]any{
+		"problem": prob,
+		"version": ver,
+		"parsed":  parsed,
+	})
+}
+
+
 

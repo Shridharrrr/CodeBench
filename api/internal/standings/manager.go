@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sort"
 	"sync"
 	"time"
 
@@ -98,6 +99,13 @@ func (m *StandingsManager) RecomputeAndCache(ctx context.Context, contestID uuid
 	publicBoard := scorer.ComputeStandings(contest, problems, participants, submissions, now, true)
 	adminBoard := scorer.ComputeStandings(contest, problems, participants, submissions, now, false)
 
+	// Incorporate manual admin score adjustments (penalties or bonuses)
+	adjustments, err := m.db.GetScoreAdjustmentsForContest(ctx, contestID)
+	if err == nil && len(adjustments) > 0 {
+		applyAdjustments(publicBoard, adjustments)
+		applyAdjustments(adminBoard, adjustments)
+	}
+
 	m.mu.Lock()
 	m.cache[contestID] = publicBoard
 	m.adminCache[contestID] = adminBoard
@@ -121,6 +129,35 @@ func (m *StandingsManager) RecomputeAndCache(ctx context.Context, contestID uuid
 		return adminBoard, nil
 	}
 	return publicBoard, nil
+}
+
+func applyAdjustments(board *models.Leaderboard, adjustments []models.ScoreAdjustment) {
+	if board == nil || len(board.Rows) == 0 {
+		return
+	}
+	userAdj := make(map[uuid.UUID]int)
+	for _, adj := range adjustments {
+		if adj.UserID != nil {
+			userAdj[*adj.UserID] += adj.Points
+		}
+	}
+	for i := range board.Rows {
+		uid := board.Rows[i].UserID
+		if pts, ok := userAdj[uid]; ok {
+			board.Rows[i].Score += pts
+			board.Rows[i].Adjustments += pts
+		}
+	}
+	// Re-sort rows by Score DESC, Penalty ASC
+	sort.Slice(board.Rows, func(i, j int) bool {
+		if board.Rows[i].Score != board.Rows[j].Score {
+			return board.Rows[i].Score > board.Rows[j].Score
+		}
+		return board.Rows[i].Penalty < board.Rows[j].Penalty
+	})
+	for i := range board.Rows {
+		board.Rows[i].Rank = i + 1
+	}
 }
 
 // RebuildAll pre-warms in-memory standings from PostgreSQL on startup

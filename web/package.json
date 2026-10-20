@@ -9,7 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@types/prismjs": "^1.26.6",
     "clsx": "^2.1.1",
+    "marked": "^18.1.1",
+    "prismjs": "^1.30.0",
     "solid-js": "^1.9.5"
   },
   "devDependencies": {

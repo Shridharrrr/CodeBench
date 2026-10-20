@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/codebench/codebench/api/internal/database"
 	"github.com/codebench/codebench/api/internal/models"
@@ -93,6 +94,12 @@ func RequireCSRF(next http.Handler) http.Handler {
 			return
 		}
 
+		// Auth lifecycle endpoints (login, register, logout) do not require CSRF token
+		if r.URL.Path == "/api/auth/login" || r.URL.Path == "/api/auth/register" || r.URL.Path == "/api/auth/logout" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		sess := SessionFromContext(r.Context())
 		if sess != nil {
 			csrfHeader := r.Header.Get("X-CSRF-Token")
@@ -126,6 +133,7 @@ func ClearSessionCookie(w http.ResponseWriter) {
 		Value:    "",
 		Path:     "/",
 		MaxAge:   -1,
+		Expires:  time.Unix(0, 0),
 		HttpOnly: true,
 		Secure:   false,
 		SameSite: http.SameSiteLaxMode,

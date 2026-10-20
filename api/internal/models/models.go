@@ -83,15 +83,48 @@ const (
 )
 
 type Contest struct {
-	ID        uuid.UUID  `json:"id"`
-	Title     string     `json:"title"`
-	Mode      string     `json:"mode"`       // "fixed" or "practice"
-	StartsAt  time.Time  `json:"starts_at"`
-	EndsAt    time.Time  `json:"ends_at"`
-	FreezeAt  *time.Time `json:"freeze_at,omitempty"`
-	Scoring   string     `json:"scoring"`    // "icpc" or "points"
-	OwnerID   *uuid.UUID `json:"owner_id,omitempty"`
-	CreatedAt time.Time  `json:"created_at"`
+	ID            uuid.UUID  `json:"id"`
+	Title         string     `json:"title"`
+	Mode          string     `json:"mode"`       // "fixed" or "practice"
+	StartsAt      time.Time  `json:"starts_at"`
+	EndsAt        time.Time  `json:"ends_at"`
+	FreezeAt      *time.Time `json:"freeze_at,omitempty"`
+	Scoring       string     `json:"scoring"`    // "icpc", "points", or "ctfd"
+	OwnerID       *uuid.UUID `json:"owner_id,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
+	IsPaused      bool       `json:"is_paused"`
+	IsTeamContest bool       `json:"is_team_contest"`
+	MaxTeamSize   int        `json:"max_team_size"`
+}
+
+type Team struct {
+	ID        uuid.UUID    `json:"id"`
+	Name      string       `json:"name"`
+	JoinCode  string       `json:"join_code"`
+	CaptainID uuid.UUID    `json:"captain_id"`
+	CreatedAt time.Time    `json:"created_at"`
+	Members   []TeamMember `json:"members,omitempty"`
+}
+
+type TeamMember struct {
+	TeamID    uuid.UUID `json:"team_id"`
+	UserID    uuid.UUID `json:"user_id"`
+	UserName  string    `json:"user_name,omitempty"`
+	UserEmail string    `json:"user_email,omitempty"`
+	JoinedAt  time.Time `json:"joined_at"`
+}
+
+type ScoreAdjustment struct {
+	ID         uuid.UUID  `json:"id"`
+	ContestID  uuid.UUID  `json:"contest_id"`
+	TeamID     *uuid.UUID `json:"team_id,omitempty"`
+	UserID     *uuid.UUID `json:"user_id,omitempty"`
+	UserName   string     `json:"user_name,omitempty"`
+	Points     int        `json:"points"`
+	Reason     string     `json:"reason"`
+	AdjustedBy uuid.UUID  `json:"adjusted_by"`
+	AdminName  string     `json:"admin_name,omitempty"`
+	CreatedAt  time.Time  `json:"created_at"`
 }
 
 type ContestProblem struct {
@@ -99,6 +132,8 @@ type ContestProblem struct {
 	ProblemVersionID uuid.UUID `json:"problem_version_id"`
 	Label            string    `json:"label"` // 'A', 'B', 'C', ...
 	Points           int       `json:"points"`
+	MinPoints        int       `json:"min_points,omitempty"`
+	DecayRate        int       `json:"decay_rate,omitempty"`
 	Title            string    `json:"title,omitempty"`
 	Slug             string    `json:"slug,omitempty"`
 	Difficulty       string    `json:"difficulty,omitempty"`
@@ -122,13 +157,16 @@ type ProblemCell struct {
 }
 
 type LeaderboardRow struct {
-	Rank     int                    `json:"rank"`
-	UserID   uuid.UUID              `json:"user_id"`
-	UserName string                 `json:"user_name"`
-	Score    int                    `json:"score"`   // Solved count (ICPC) or Points
-	Penalty  int64                  `json:"penalty"` // Minutes
-	LastACTime *time.Time           `json:"last_ac_time,omitempty"`
-	Problems map[string]ProblemCell `json:"problems"`
+	Rank        int                    `json:"rank"`
+	UserID      uuid.UUID              `json:"user_id"`
+	UserName    string                 `json:"user_name"`
+	TeamID      *uuid.UUID             `json:"team_id,omitempty"`
+	TeamName    string                 `json:"team_name,omitempty"`
+	Score       int                    `json:"score"`   // Solved count (ICPC) or Points
+	Penalty     int64                  `json:"penalty"` // Minutes
+	Adjustments int                    `json:"adjustments,omitempty"`
+	LastACTime  *time.Time             `json:"last_ac_time,omitempty"`
+	Problems    map[string]ProblemCell `json:"problems"`
 }
 
 type Leaderboard struct {
@@ -137,6 +175,7 @@ type Leaderboard struct {
 	UpdatedAt time.Time        `json:"updated_at"`
 	Rows      []LeaderboardRow `json:"rows"`
 }
+
 
 type Submission struct {
 	ID               uuid.UUID         `json:"id"`

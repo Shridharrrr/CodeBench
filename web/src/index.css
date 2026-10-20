@@ -2,47 +2,398 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  color-scheme: dark;
+@layer base {
+  :root {
+    font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    color-scheme: light;
+    --background: #f8fafc;
+    --foreground: #0f172a;
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+    --border: #e2e8f0;
+    --muted: #f1f5f9;
+    --muted-foreground: #64748b;
+    --accent: #2563eb;
+    --accent-foreground: #ffffff;
+  }
+
+  html.dark {
+    color-scheme: dark;
+    --background: #000000;
+    --foreground: #ffffff;
+    --card: #09090b;
+    --card-foreground: #ffffff;
+    --border: #27272a;
+    --muted: #121214;
+    --muted-foreground: #a1a1aa;
+    --accent: #3b82f6;
+    --accent-foreground: #ffffff;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--background);
+    color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-feature-settings: "liga" 0;
+  }
 }
 
-body {
-  margin: 0;
-  padding: 0;
-  background-color: #0b0f19;
-  color: #f1f5f9;
+/* =====================================================================
+   Notion & High-Contrast Obsidian Dark Cards
+   ===================================================================== */
+.notion-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
-code, pre, .font-mono {
-  font-family: 'Fira Code', monospace;
+html.dark .notion-card {
+  background-color: #09090b;
+  border-color: #27272a;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 4px 24px -2px rgba(0, 0, 0, 0.95);
 }
 
-/* Glassmorphism utilities */
-.glass-panel {
-  background: rgba(17, 24, 39, 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+.notion-card-subtle {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
 }
 
-.glass-panel-subtle {
-  background: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+html.dark .notion-card-subtle {
+  background-color: #121214;
+  border-color: #27272a;
 }
 
-/* Custom scrollbars */
+.notion-input {
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+html.dark .notion-input {
+  background-color: #000000;
+  border-color: #27272a;
+  color: #ffffff;
+}
+
+html.dark select.notion-input option {
+  background-color: #09090b;
+  color: #ffffff;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #71717a;
+  opacity: 1;
+}
+
+.notion-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+html.dark .notion-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
+}
+
+/* Minimalist scrollbars */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
+
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
+  background: #cbd5e1;
+  border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #94a3b8;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #27272a;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+/* Diff formatting */
+.diff-added {
+  background-color: #ecfdf5;
+  color: #065f46;
+  border-left: 3px solid #10b981;
+}
+
+.diff-removed {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border-left: 3px solid #ef4444;
+}
+
+html.dark .diff-added {
+  background-color: rgba(5, 46, 22, 0.6);
+  color: #4ade80;
+  border-left: 3px solid #22c55e;
+}
+
+html.dark .diff-removed {
+  background-color: rgba(69, 10, 10, 0.6);
+  color: #f87171;
+  border-left: 3px solid #ef4444;
+}
+
+/* Sticky Action Bar */
+.sticky-action-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
+  background-color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid #e2e8f0;
+}
+
+html.dark .sticky-action-bar {
+  background-color: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(12px);
+  border-top-color: #27272a;
+}
+
+/* Problem Prose Typography */
+.problem-prose h1, .problem-prose h2, .problem-prose h3, .problem-prose h4 {
+  font-weight: 700;
+  color: #0f172a;
+  margin-top: 1rem;
+  margin-bottom: 0.35rem;
+  letter-spacing: -0.015em;
+}
+.problem-prose h1 { font-size: 1.15rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.25rem; }
+.problem-prose h2 { font-size: 1rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.2rem; }
+.problem-prose h3 { font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; }
+.problem-prose h4 { font-size: 0.75rem; }
+.problem-prose p {
+  margin-top: 0.4rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+.problem-prose ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+.problem-prose ol {
+  list-style-type: decimal;
+  padding-left: 1.25rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+.problem-prose li {
+  margin-top: 0.2rem;
+  margin-bottom: 0.2rem;
+  line-height: 1.5;
+}
+.problem-prose code:not(pre code) {
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
+  font-size: 0.75rem;
+}
+.problem-prose pre {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.problem-prose pre code {
+  font-size: 0.75rem;
+  color: #0f172a;
+  background: transparent;
+  padding: 0;
+  border: none;
+}
+.problem-prose blockquote {
+  border-left: 3px solid #cbd5e1;
+  padding-left: 0.75rem;
+  color: #64748b;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+html.dark .problem-prose h1, html.dark .problem-prose h2, html.dark .problem-prose h3, html.dark .problem-prose h4 {
+  color: #ffffff;
+}
+html.dark .problem-prose h1 { border-bottom-color: #27272a; }
+html.dark .problem-prose h2 { border-bottom-color: #27272a; }
+html.dark .problem-prose h3 { color: #e4e4e7; font-weight: 700; }
+html.dark .problem-prose p, html.dark .problem-prose li { color: #e4e4e7; }
+html.dark .problem-prose strong { color: #ffffff; }
+html.dark .problem-prose code:not(pre code) {
+  background-color: #18181b;
+  border-color: #27272a;
+  color: #60a5fa;
+  font-weight: 600;
+}
+html.dark .problem-prose pre {
+  background-color: #050505;
+  border-color: #27272a;
+}
+html.dark .problem-prose pre code {
+  color: #f4f4f5;
+  font-weight: 500;
+}
+html.dark .problem-prose blockquote {
+  border-left-color: #3b82f6;
+  color: #d4d4d8;
+  background-color: rgba(18, 18, 20, 0.7);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0 4px 4px 0;
+}
+
+/* =====================================================================
+   Prism.js Syntax Highlighting - Light & Pure Obsidian Dark Modes
+   ===================================================================== */
+.token.comment, .token.prolog, .token.doctype, .token.cdata { color: #64748b; font-style: italic; }
+.token.punctuation { color: #475569; }
+.token.namespace { opacity: 0.7; }
+.token.property, .token.tag, .token.boolean, .token.number, .token.constant, .token.symbol { color: #b45309; }
+.token.selector, .token.attr-name, .token.string, .token.char, .token.builtin { color: #059669; }
+.token.operator, .token.entity, .token.url, .token.variable { color: #0284c7; }
+.token.atrule, .token.attr-value, .token.keyword { color: #7c3aed; font-weight: 600; }
+.token.function, .token.class-name { color: #2563eb; font-weight: 600; }
+.token.regex, .token.important { color: #dc2626; }
+.token.important, .token.bold { font-weight: bold; }
+.token.italic { font-style: italic; }
+
+html.dark .token.comment, html.dark .token.prolog, html.dark .token.doctype, html.dark .token.cdata { color: #71717a; font-style: italic; }
+html.dark .token.punctuation { color: #a1a1aa; }
+html.dark .token.property, html.dark .token.tag, html.dark .token.boolean, html.dark .token.number, html.dark .token.constant, html.dark .token.symbol { color: #fbbf24; }
+html.dark .token.selector, html.dark .token.attr-name, html.dark .token.string, html.dark .token.char, html.dark .token.builtin { color: #4ade80; }
+html.dark .token.operator, html.dark .token.entity, html.dark .token.url, html.dark .token.variable { color: #38bdf8; }
+html.dark .token.atrule, html.dark .token.attr-value, html.dark .token.keyword { color: #c084fc; font-weight: 600; }
+html.dark .token.function, html.dark .token.class-name { color: #60a5fa; font-weight: 600; }
+html.dark .token.regex, html.dark .token.important { color: #f87171; }
+
+/* Interactive Code Editor with Line Numbers & Real-Time Highlighting */
+.code-editor-root {
+  display: flex;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.75rem;
+  line-height: 1.5rem;
+  tab-size: 2;
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+}
+
+html.dark .code-editor-root {
+  background-color: #000000;
+}
+
+.code-editor-gutter {
+  user-select: none;
+  text-align: right;
+  padding: 1rem 0.5rem 1rem 0.75rem;
+  min-width: 2.75rem;
+  border-right: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  height: 100%;
+}
+
+html.dark .code-editor-gutter {
+  border-color: #27272a;
+  background-color: #050505;
+  color: #71717a;
+}
+
+.code-editor-surface {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.code-editor-textarea {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  padding: 1rem;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: transparent;
+  caret-color: #0f172a;
+  white-space: pre;
+  overflow-y: auto;
+  overflow-x: auto;
+  resize: none;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  tab-size: inherit;
+  z-index: 2;
+  outline: none;
+}
+
+html.dark .code-editor-textarea {
+  caret-color: #ffffff;
+}
+
+.code-editor-highlight {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  padding: 1rem;
+  margin: 0;
+  border: none;
+  background: transparent;
+  pointer-events: none;
+  white-space: pre;
+  overflow: hidden;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  tab-size: inherit;
+  z-index: 1;
 }

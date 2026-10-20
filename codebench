@@ -115,9 +115,8 @@ cmd_up() {
     echo ""
     echo "=========================================================="
     echo " Codebench is running!"
-    echo " Web UI & API:        http://localhost:8080"
-    echo " Default Admin User:  admin@codebench.local"
-    echo " Default Password:    codebench123"
+    echo " Web UI & REST API:   http://localhost:8080"
+    echo " Status:              Online & Sandboxed"
     echo "=========================================================="
 }
 

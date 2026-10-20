@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"crypto/sha256"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -59,7 +60,13 @@ func (db *DB) Migrate(ctx context.Context) error {
 	slog.Info("Running PostgreSQL schema migrations...")
 	_, err := db.pool.Exec(ctx, migrations.InitSchemaSQL)
 	if err != nil {
-		return fmt.Errorf("migration failed: %w", err)
+		return fmt.Errorf("migration init schema failed: %w", err)
+	}
+	if migrations.EvolutionSchemaSQL != "" {
+		_, err = db.pool.Exec(ctx, migrations.EvolutionSchemaSQL)
+		if err != nil {
+			return fmt.Errorf("migration evolution schema failed: %w", err)
+		}
 	}
 	slog.Info("PostgreSQL migrations applied successfully.")
 	return nil
@@ -733,10 +740,10 @@ func (db *DB) CreateContest(ctx context.Context, c *models.Contest, problems []m
 	}
 
 	queryContest := `
-		INSERT INTO contests (id, title, mode, starts_at, ends_at, freeze_at, scoring, owner_id, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		INSERT INTO contests (id, title, mode, starts_at, ends_at, freeze_at, scoring, owner_id, created_at, is_paused, is_team_contest, max_team_size)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 	`
-	_, err = tx.Exec(ctx, queryContest, c.ID, c.Title, c.Mode, c.StartsAt, c.EndsAt, c.FreezeAt, c.Scoring, c.OwnerID, c.CreatedAt)
+	_, err = tx.Exec(ctx, queryContest, c.ID, c.Title, c.Mode, c.StartsAt, c.EndsAt, c.FreezeAt, c.Scoring, c.OwnerID, c.CreatedAt, c.IsPaused, c.IsTeamContest, c.MaxTeamSize)
 	if err != nil {
 		return err
 	}
@@ -755,15 +762,22 @@ func (db *DB) CreateContest(ctx context.Context, c *models.Contest, problems []m
 	return tx.Commit(ctx)
 }
 
+func (db *DB) DeleteContest(ctx context.Context, contestID uuid.UUID) error {
+	_, err := db.pool.Exec(ctx, `DELETE FROM contests WHERE id = $1`, contestID)
+	return err
+}
+
 func (db *DB) GetContest(ctx context.Context, id uuid.UUID) (*models.Contest, error) {
 	query := `
-		SELECT id, title, mode, starts_at, ends_at, freeze_at, scoring, owner_id, created_at
+		SELECT id, title, mode, starts_at, ends_at, freeze_at, scoring, owner_id, created_at,
+		       COALESCE(is_paused, FALSE), COALESCE(is_team_contest, FALSE), COALESCE(max_team_size, 3)
 		FROM contests
 		WHERE id = $1
 	`
 	var c models.Contest
 	err := db.pool.QueryRow(ctx, query, id).Scan(
 		&c.ID, &c.Title, &c.Mode, &c.StartsAt, &c.EndsAt, &c.FreezeAt, &c.Scoring, &c.OwnerID, &c.CreatedAt,
+		&c.IsPaused, &c.IsTeamContest, &c.MaxTeamSize,
 	)
 	if err != nil {
 		return nil, err
@@ -773,7 +787,8 @@ func (db *DB) GetContest(ctx context.Context, id uuid.UUID) (*models.Contest, er
 
 func (db *DB) ListContests(ctx context.Context, mode string) ([]models.Contest, error) {
 	query := `
-		SELECT id, title, mode, starts_at, ends_at, freeze_at, scoring, owner_id, created_at
+		SELECT id, title, mode, starts_at, ends_at, freeze_at, scoring, owner_id, created_at,
+		       COALESCE(is_paused, FALSE), COALESCE(is_team_contest, FALSE), COALESCE(max_team_size, 3)
 		FROM contests
 		WHERE ($1 = '' OR mode = $1)
 		ORDER BY starts_at DESC
@@ -787,7 +802,10 @@ func (db *DB) ListContests(ctx context.Context, mode string) ([]models.Contest, 
 	list := make([]models.Contest, 0)
 	for rows.Next() {
 		var c models.Contest
-		if err := rows.Scan(&c.ID, &c.Title, &c.Mode, &c.StartsAt, &c.EndsAt, &c.FreezeAt, &c.Scoring, &c.OwnerID, &c.CreatedAt); err == nil {
+		if err := rows.Scan(
+			&c.ID, &c.Title, &c.Mode, &c.StartsAt, &c.EndsAt, &c.FreezeAt, &c.Scoring, &c.OwnerID, &c.CreatedAt,
+			&c.IsPaused, &c.IsTeamContest, &c.MaxTeamSize,
+		); err == nil {
 			list = append(list, c)
 		}
 	}
@@ -1312,5 +1330,403 @@ func (db *DB) GetQueueDepths(ctx context.Context) (map[string]int64, error) {
 	}
 	return depths, nil
 }
+
+// ---------------------------------------------------------------------
+// Teams & Membership
+// ---------------------------------------------------------------------
+
+func (db *DB) CreateTeam(ctx context.Context, name, joinCode string, captainID uuid.UUID) (*models.Team, error) {
+	tx, err := db.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	var team models.Team
+	query := `
+		INSERT INTO teams (name, join_code, captain_id)
+		VALUES ($1, $2, $3)
+		RETURNING id, name, join_code, captain_id, created_at
+	`
+	if err := tx.QueryRow(ctx, query, name, joinCode, captainID).Scan(
+		&team.ID, &team.Name, &team.JoinCode, &team.CaptainID, &team.CreatedAt,
+	); err != nil {
+		return nil, err
+	}
+
+	memberQuery := `
+		INSERT INTO team_members (team_id, user_id)
+		VALUES ($1, $2)
+		ON CONFLICT (team_id, user_id) DO NOTHING
+	`
+	if _, err := tx.Exec(ctx, memberQuery, team.ID, captainID); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	team.Members = []models.TeamMember{
+		{TeamID: team.ID, UserID: captainID, JoinedAt: time.Now().UTC()},
+	}
+	return &team, nil
+}
+
+func (db *DB) JoinTeamByCode(ctx context.Context, joinCode string, userID uuid.UUID, maxTeamSize int) (*models.Team, error) {
+	var team models.Team
+	query := `
+		SELECT id, name, join_code, captain_id, created_at
+		FROM teams
+		WHERE join_code = $1
+	`
+	if err := db.pool.QueryRow(ctx, query, joinCode).Scan(
+		&team.ID, &team.Name, &team.JoinCode, &team.CaptainID, &team.CreatedAt,
+	); err != nil {
+		return nil, fmt.Errorf("invalid team code")
+	}
+
+	var count int
+	if err := db.pool.QueryRow(ctx, `SELECT COUNT(*) FROM team_members WHERE team_id = $1`, team.ID).Scan(&count); err != nil {
+		return nil, err
+	}
+	if maxTeamSize > 0 && count >= maxTeamSize {
+		return nil, fmt.Errorf("team is already full (maximum %d members)", maxTeamSize)
+	}
+
+	memberQuery := `
+		INSERT INTO team_members (team_id, user_id)
+		VALUES ($1, $2)
+		ON CONFLICT (team_id, user_id) DO NOTHING
+	`
+	if _, err := db.pool.Exec(ctx, memberQuery, team.ID, userID); err != nil {
+		return nil, err
+	}
+
+	members, _ := db.GetTeamMembers(ctx, team.ID)
+	team.Members = members
+	return &team, nil
+}
+
+func (db *DB) GetTeamForUser(ctx context.Context, userID uuid.UUID) (*models.Team, error) {
+	query := `
+		SELECT t.id, t.name, t.join_code, t.captain_id, t.created_at
+		FROM teams t
+		JOIN team_members tm ON tm.team_id = t.id
+		WHERE tm.user_id = $1
+		LIMIT 1
+	`
+	var team models.Team
+	if err := db.pool.QueryRow(ctx, query, userID).Scan(
+		&team.ID, &team.Name, &team.JoinCode, &team.CaptainID, &team.CreatedAt,
+	); err != nil {
+		return nil, err
+	}
+	members, _ := db.GetTeamMembers(ctx, team.ID)
+	team.Members = members
+	return &team, nil
+}
+
+func (db *DB) GetTeamMembers(ctx context.Context, teamID uuid.UUID) ([]models.TeamMember, error) {
+	query := `
+		SELECT tm.team_id, tm.user_id, u.name, u.email, tm.joined_at
+		FROM team_members tm
+		JOIN users u ON u.id = tm.user_id
+		WHERE tm.team_id = $1
+		ORDER BY tm.joined_at ASC
+	`
+	rows, err := db.pool.Query(ctx, query, teamID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var members []models.TeamMember
+	for rows.Next() {
+		var m models.TeamMember
+		if err := rows.Scan(&m.TeamID, &m.UserID, &m.UserName, &m.UserEmail, &m.JoinedAt); err == nil {
+			members = append(members, m)
+		}
+	}
+	return members, nil
+}
+
+// ---------------------------------------------------------------------
+// Score Adjustments (Manual Admin Awards / Penalties)
+// ---------------------------------------------------------------------
+
+func (db *DB) AddScoreAdjustment(ctx context.Context, contestID uuid.UUID, userID, teamID *uuid.UUID, points int, reason string, adjustedBy uuid.UUID) (*models.ScoreAdjustment, error) {
+	query := `
+		INSERT INTO score_adjustments (contest_id, user_id, team_id, points, reason, adjusted_by)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id, contest_id, user_id, team_id, points, reason, adjusted_by, created_at
+	`
+	var sa models.ScoreAdjustment
+	if err := db.pool.QueryRow(ctx, query, contestID, userID, teamID, points, reason, adjustedBy).Scan(
+		&sa.ID, &sa.ContestID, &sa.UserID, &sa.TeamID, &sa.Points, &sa.Reason, &sa.AdjustedBy, &sa.CreatedAt,
+	); err != nil {
+		return nil, err
+	}
+	return &sa, nil
+}
+
+func (db *DB) GetScoreAdjustmentsForContest(ctx context.Context, contestID uuid.UUID) ([]models.ScoreAdjustment, error) {
+	query := `
+		SELECT sa.id, sa.contest_id, sa.user_id, sa.team_id, sa.points, sa.reason, sa.adjusted_by, sa.created_at,
+		       COALESCE(u.name, ''), COALESCE(adm.name, '')
+		FROM score_adjustments sa
+		LEFT JOIN users u ON u.id = sa.user_id
+		LEFT JOIN users adm ON adm.id = sa.adjusted_by
+		WHERE sa.contest_id = $1
+		ORDER BY sa.created_at DESC
+	`
+	rows, err := db.pool.Query(ctx, query, contestID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []models.ScoreAdjustment
+	for rows.Next() {
+		var sa models.ScoreAdjustment
+		if err := rows.Scan(&sa.ID, &sa.ContestID, &sa.UserID, &sa.TeamID, &sa.Points, &sa.Reason, &sa.AdjustedBy, &sa.CreatedAt, &sa.UserName, &sa.AdminName); err == nil {
+			list = append(list, sa)
+		}
+	}
+	return list, nil
+}
+
+// ---------------------------------------------------------------------
+// Contest State Management (Start Now, Pause, Resume, Mode)
+// ---------------------------------------------------------------------
+
+func (db *DB) UpdateContestState(ctx context.Context, contestID uuid.UUID, startsAt, endsAt, freezeAt *time.Time, scoring *string, isPaused, isTeamContest *bool, maxTeamSize *int) error {
+	query := `
+		UPDATE contests
+		SET starts_at = COALESCE($2, starts_at),
+		    ends_at = COALESCE($3, ends_at),
+		    freeze_at = COALESCE($4, freeze_at),
+		    scoring = COALESCE($5, scoring),
+		    is_paused = COALESCE($6, is_paused),
+		    is_team_contest = COALESCE($7, is_team_contest),
+		    max_team_size = COALESCE($8, max_team_size)
+		WHERE id = $1
+	`
+	_, err := db.pool.Exec(ctx, query, contestID, startsAt, endsAt, freezeAt, scoring, isPaused, isTeamContest, maxTeamSize)
+	return err
+}
+
+func (db *DB) ListTeams(ctx context.Context) ([]models.Team, error) {
+	// Purge any empty orphaned teams where all members have left
+	_, _ = db.pool.Exec(ctx, `DELETE FROM teams WHERE id NOT IN (SELECT DISTINCT team_id FROM team_members)`)
+
+	query := `
+		SELECT t.id, t.name, t.join_code, t.captain_id, t.created_at
+		FROM teams t
+		ORDER BY t.created_at DESC
+	`
+	rows, err := db.pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var teams []models.Team
+	for rows.Next() {
+		var t models.Team
+		if err := rows.Scan(&t.ID, &t.Name, &t.JoinCode, &t.CaptainID, &t.CreatedAt); err == nil {
+			members, _ := db.GetTeamMembers(ctx, t.ID)
+			t.Members = members
+			teams = append(teams, t)
+		}
+	}
+	return teams, nil
+}
+
+func (db *DB) DeleteTeam(ctx context.Context, teamID uuid.UUID) error {
+	_, err := db.pool.Exec(ctx, `DELETE FROM teams WHERE id = $1`, teamID)
+	return err
+}
+
+func (db *DB) LeaveTeam(ctx context.Context, userID uuid.UUID) error {
+	// 1. Identify which team the user belongs to
+	var teamID uuid.UUID
+	err := db.pool.QueryRow(ctx, `SELECT team_id FROM team_members WHERE user_id = $1 LIMIT 1`, userID).Scan(&teamID)
+	if err != nil {
+		// User is not in any team
+		return nil
+	}
+
+	// 2. Remove the user from the team
+	if _, err := db.pool.Exec(ctx, `DELETE FROM team_members WHERE team_id = $1 AND user_id = $2`, teamID, userID); err != nil {
+		return err
+	}
+
+	// 3. Count remaining team members
+	var remainingCount int
+	if err := db.pool.QueryRow(ctx, `SELECT COUNT(*) FROM team_members WHERE team_id = $1`, teamID).Scan(&remainingCount); err != nil {
+		return err
+	}
+
+	// 4. If all members have left (0 remaining), delete the team instantly!
+	if remainingCount == 0 {
+		_, _ = db.pool.Exec(ctx, `DELETE FROM teams WHERE id = $1`, teamID)
+	} else {
+		// If the departed user was the captain, promote another member to captain
+		var currentCaptain uuid.UUID
+		_ = db.pool.QueryRow(ctx, `SELECT captain_id FROM teams WHERE id = $1`, teamID).Scan(&currentCaptain)
+		if currentCaptain == userID {
+			var newCaptain uuid.UUID
+			if err := db.pool.QueryRow(ctx, `SELECT user_id FROM team_members WHERE team_id = $1 ORDER BY joined_at ASC LIMIT 1`, teamID).Scan(&newCaptain); err == nil {
+				_, _ = db.pool.Exec(ctx, `UPDATE teams SET captain_id = $2 WHERE id = $1`, teamID, newCaptain)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (db *DB) StartContestNow(ctx context.Context, contestID uuid.UUID) error {
+	now := time.Now().UTC()
+	query := `
+		UPDATE contests
+		SET ends_at = CASE 
+			WHEN ends_at > starts_at THEN $2::timestamptz + (ends_at - starts_at)
+			ELSE $2::timestamptz + INTERVAL '2 hours'
+		END,
+		starts_at = $2::timestamptz, 
+		is_paused = FALSE
+		WHERE id = $1
+	`
+	_, err := db.pool.Exec(ctx, query, contestID, now)
+	return err
+}
+
+func (db *DB) ConcludeContestNow(ctx context.Context, contestID uuid.UUID) error {
+	now := time.Now().UTC()
+	query := `
+		UPDATE contests
+		SET ends_at = $2::timestamptz,
+		is_paused = FALSE
+		WHERE id = $1
+	`
+	_, err := db.pool.Exec(ctx, query, contestID, now)
+	return err
+}
+
+// ---------------------------------------------------------------------
+// Dynamic Problem Authoring
+// ---------------------------------------------------------------------
+
+func (db *DB) CreateDynamicProblem(
+	ctx context.Context,
+	slug, title, statement, difficulty string,
+	tags []string,
+	timeLimitMs, memoryMb int,
+	checkerType string,
+	complexityPolicy map[string]any,
+	sampleTests, hiddenTests []models.TestCase,
+	contestID *uuid.UUID,
+	label string,
+	points int,
+) (*models.Problem, *models.ProblemVersion, error) {
+	tx, err := db.pool.Begin(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	// 1. Problem
+	var prob models.Problem
+	err = tx.QueryRow(ctx, `
+		INSERT INTO problems (slug) VALUES ($1)
+		ON CONFLICT (slug) DO UPDATE SET slug = EXCLUDED.slug
+		RETURNING id, slug, created_at
+	`, slug).Scan(&prob.ID, &prob.Slug, &prob.CreatedAt)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to insert problem: %w", err)
+	}
+
+	// 2. Next version
+	var maxVer *int
+	_ = tx.QueryRow(ctx, `SELECT MAX(version) FROM problem_versions WHERE problem_id = $1`, prob.ID).Scan(&maxVer)
+	nextVer := 1
+	if maxVer != nil {
+		nextVer = *maxVer + 1
+	}
+
+	policyBytes, _ := json.Marshal(complexityPolicy)
+	h := sha256.New()
+	h.Write([]byte(statement + slug))
+	pkgHash := fmt.Sprintf("%x", h.Sum(nil))
+
+	var ver models.ProblemVersion
+	verQuery := `
+		INSERT INTO problem_versions (
+			problem_id, version, title, statement_md, difficulty, tags,
+			time_limit_ms, memory_mb, checker_type, complexity_policy, package_hash
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		RETURNING id, problem_id, version, title, statement_md, difficulty, tags,
+		          time_limit_ms, memory_mb, checker_type, package_hash, published_at
+	`
+	err = tx.QueryRow(ctx, verQuery,
+		prob.ID, nextVer, title, statement, difficulty, tags,
+		timeLimitMs, memoryMb, checkerType, policyBytes, pkgHash,
+	).Scan(
+		&ver.ID, &ver.ProblemID, &ver.Version, &ver.Title, &ver.StatementMD, &ver.Difficulty, &ver.Tags,
+		&ver.TimeLimitMS, &ver.MemoryMB, &ver.CheckerType, &ver.PackageHash, &ver.PublishedAt,
+	)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to insert version: %w", err)
+	}
+
+	// 3. Testcases (Sample + Hidden)
+	insertTC := `
+		INSERT INTO test_cases (problem_version_id, group_name, ordinal, input_data, output_data, is_sample)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`
+	ordinal := 1
+	for _, tc := range sampleTests {
+		group := tc.GroupName
+		if group == "" {
+			group = "sample"
+		}
+		if _, err := tx.Exec(ctx, insertTC, ver.ID, group, ordinal, tc.InputData, tc.OutputData, true); err != nil {
+			return nil, nil, fmt.Errorf("failed to insert sample test: %w", err)
+		}
+		ordinal++
+	}
+	for _, tc := range hiddenTests {
+		group := tc.GroupName
+		if group == "" {
+			group = "hidden"
+		}
+		if _, err := tx.Exec(ctx, insertTC, ver.ID, group, ordinal, tc.InputData, tc.OutputData, false); err != nil {
+			return nil, nil, fmt.Errorf("failed to insert hidden test: %w", err)
+		}
+		ordinal++
+	}
+
+	// 4. Optionally associate with contest
+	if contestID != nil && label != "" {
+		if points <= 0 {
+			points = 100
+		}
+		probQuery := `
+			INSERT INTO contest_problems (contest_id, problem_version_id, label, points)
+			VALUES ($1, $2, $3, $4)
+			ON CONFLICT (contest_id, problem_version_id) DO UPDATE SET label = EXCLUDED.label, points = EXCLUDED.points
+		`
+		if _, err := tx.Exec(ctx, probQuery, *contestID, ver.ID, label, points); err != nil {
+			return nil, nil, fmt.Errorf("failed to link problem to contest: %w", err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, nil, err
+	}
+	return &prob, &ver, nil
+}
+
 
 

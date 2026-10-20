@@ -152,9 +152,8 @@ function Invoke-Up {
     Write-Host ""
     Write-Host "==========================================================" -ForegroundColor Green
     Write-Host " Codebench is running!" -ForegroundColor Green
-    Write-Host " Web UI & API:        http://localhost:8080" -ForegroundColor Green
-    Write-Host " Default Admin User:  admin@codebench.local" -ForegroundColor Green
-    Write-Host " Default Password:    codebench123" -ForegroundColor Green
+    Write-Host " Web UI & REST API:   http://localhost:8080" -ForegroundColor Green
+    Write-Host " Status:              Online & Sandboxed" -ForegroundColor Green
     Write-Host "==========================================================" -ForegroundColor Green
 }
 

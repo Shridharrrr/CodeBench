@@ -136,8 +136,9 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) HandleLogout(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie(SessionCookieName)
-	if err == nil && cookie != nil && cookie.Value != "" {
+	if sess := SessionFromContext(r.Context()); sess != nil {
+		_ = h.db.DeleteSession(r.Context(), sess.TokenHash)
+	} else if cookie, err := r.Cookie(SessionCookieName); err == nil && cookie != nil && cookie.Value != "" {
 		tokenHash := HashToken(cookie.Value)
 		_ = h.db.DeleteSession(r.Context(), tokenHash)
 	}
