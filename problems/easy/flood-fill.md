@@ -21,13 +21,6 @@ You are also given three integers `sr`, `sc`, and `color`. You should perform a 
 
 To perform a flood fill, consider the starting pixel, plus any pixels connected 4-directionally to the starting pixel of the same color as the starting pixel, plus any pixels connected 4-directionally to those pixels (also with the same color), and so on. Replace the color of all of the aforementioned pixels with `color`.
 
-### Input Format
-The first line contains `m` and `n`.
-The next `m` lines contain `n` integers each.
-The last line contains three integers: `sr`, `sc`, and `color`.
-
-### Output Format
-Print the modified `m x n` grid.
 
 ### Constraints
 - 1 <= m, n <= 50

@@ -17,12 +17,6 @@ checker_type: token
 
 Given the root of a binary search tree, and an integer `k`, return the `k`-th smallest value (1-indexed) of all the values of the nodes in the tree.
 
-### Input Format
-The first line contains `n` and `k`.
-The second line contains `n` space-separated level-order tokens.
-
-### Output Format
-Print the k-th smallest element as an integer.
 
 ### Constraints
 - 1 <= k <= n <= 10^4

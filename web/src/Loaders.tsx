@@ -1,5 +1,5 @@
 import { createSignal, onMount, onCleanup, Show, For } from 'solid-js';
-import { IconAlertCircle, IconRefresh, IconServer } from './icons';
+import { IconAlertCircle, IconRefresh, IconServer, IconCheck } from './icons';
 
 /**
  * High-performance inline button spinner for tactile workstation buttons
@@ -30,21 +30,21 @@ export function ButtonSpinner(props: { class?: string }) {
 }
 
 /**
- * Top neon edge progress bar that glows during background refreshes or API syncing
+ * Top edge progress bar that displays during background refreshes or API syncing
  */
 export function TopProgressBar(props: { active: boolean }) {
   return (
     <Show when={props.active}>
-      <div class="fixed top-0 left-0 right-0 h-[2px] z-50 bg-blue-500/20 overflow-hidden">
-        <div class="h-full bg-blue-500 animate-[shimmerWave_1.2s_infinite_linear] w-full origin-left shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+      <div class="fixed top-0 left-0 right-0 h-[2px] z-50 bg-neutral-200 dark:bg-neutral-800 overflow-hidden">
+        <div class="h-full bg-black dark:bg-white animate-[shimmerWave_1.2s_infinite_linear] w-full origin-left" />
       </div>
     </Show>
   );
 }
 
 /**
- * Authentic CRT Terminal Sandbox Compilation & Execution Loader
- * Simulates real kernel-level sandbox and compiler pipeline stages.
+ * Modern Sandbox Compilation & Execution Loader
+ * Displays pipeline stages for container namespace and sandbox test judging.
  */
 export function CrtTerminalLoader(props: {
   mode: 'run' | 'submit';
@@ -55,21 +55,21 @@ export function CrtTerminalLoader(props: {
 }) {
   const [activeStep, setActiveStep] = createSignal(1);
   const [elapsedMs, setElapsedMs] = createSignal(40);
-  const glyphs = ['|', '/', '—', '\\'];
+  const glyphs = ['|', '/', '-', '\\'];
   const [glyphIdx, setGlyphIdx] = createSignal(0);
 
   const steps = () =>
     props.mode === 'submit'
       ? [
-          { num: 1, title: 'Allocating Linux Sandbox Namespace', desc: 'CLONE_NEWPID | CLONE_NEWNET | CLONE_NEWNS' },
+          { num: 1, title: 'Allocating Linux Sandbox Namespace', desc: 'CLONE_NEWPID, CLONE_NEWNET, CLONE_NEWNS' },
           { num: 2, title: 'Invoking Compiler Toolchain', desc: `${props.language || 'Toolchain'} with -O3 -Wall -Wextra` },
           { num: 3, title: 'Enforcing cgroups v2 Quotas', desc: 'memory.max=256MB, cpu.max=1000000 1000000' },
-          { num: 4, title: `Judging Test Suite (${props.testCount || 1}/${props.totalTests || 32})`, desc: 'Seccomp-BPF syscall whitelist verification' },
+          { num: 4, title: `Judging Test Suite (${props.testCount || 1}/${props.totalTests || 32})`, desc: 'Seccomp-BPF syscall filter verification' },
         ]
       : [
           { num: 1, title: 'Spawning Isolated Process Sandbox', desc: 'Restricted UID:GID 10001:10001' },
           { num: 2, title: 'Compiling Source Binary', desc: `${props.language || 'Compiler'} build target` },
-          { num: 3, title: 'Executing Against Sample Vectors', desc: 'Pipes stdin / captures stdout under strict timer' },
+          { num: 3, title: 'Executing Against Sample Vectors', desc: 'Pipes stdin and captures stdout under strict timer' },
           { num: 4, title: 'Comparing Validator Output', desc: 'Tokenized whitespace-invariant diffing' },
         ];
 
@@ -90,18 +90,18 @@ export function CrtTerminalLoader(props: {
   });
 
   return (
-    <div class="p-4 bg-[#0a0c10] border border-zinc-800 rounded-[2px] font-mono text-xs text-zinc-300 shadow-[2px_2px_0px_rgba(0,0,0,0.5)]">
-      {/* Terminal Title Bar */}
-      <div class="flex items-center justify-between pb-2 mb-3 border-b border-zinc-800 text-[11px] text-zinc-400">
+    <div class="p-4 bg-white dark:bg-[#09090b] border border-neutral-300 dark:border-neutral-800 font-sans text-xs text-neutral-800 dark:text-neutral-200 shadow-xl">
+      {/* Title Bar */}
+      <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-neutral-200 dark:border-neutral-800 text-[11px] text-neutral-500">
         <div class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-          <span class="font-bold text-zinc-200">
-            {props.mode === 'submit' ? 'JUDGE_PIPELINE // OFFICIAL_SUBMISSION' : 'RUNNER // SAMPLE_EXECUTION'}
+          <span class="w-2 h-2 bg-black dark:bg-white" />
+          <span class="font-bold text-neutral-900 dark:text-white">
+            {props.mode === 'submit' ? 'Sandbox Execution : Official Submission' : 'Sandbox Execution : Sample Tests'}
           </span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="text-zinc-500">{elapsedMs()}ms</span>
-          <span class="text-amber-400 font-bold">{glyphs[glyphIdx()]}</span>
+          <span class="text-neutral-500 font-medium">{elapsedMs()}ms</span>
+          <span class="text-neutral-900 dark:text-white font-bold">{glyphs[glyphIdx()]}</span>
         </div>
       </div>
 
@@ -113,33 +113,33 @@ export function CrtTerminalLoader(props: {
             const isCurrent = () => activeStep() === step.num;
             return (
               <div
-                class={`flex items-start gap-2.5 p-1.5 rounded-[2px] transition-colors ${
+                class={`flex items-start gap-2.5 p-2 transition-colors border ${
                   isCurrent()
-                    ? 'bg-zinc-900 border border-zinc-700 text-white'
+                    ? 'bg-neutral-100 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-white'
                     : isDone()
-                    ? 'text-zinc-400'
-                    : 'text-zinc-600 opacity-60'
+                    ? 'border-transparent text-neutral-400'
+                    : 'border-transparent text-neutral-400 opacity-60'
                 }`}
               >
-                <div class="w-4 h-4 rounded-xs shrink-0 flex items-center justify-center font-bold text-[10px]">
+                <div class="w-4 h-4 shrink-0 flex items-center justify-center font-bold text-[10px] mt-0.5">
                   {isDone() ? (
-                    <span class="text-emerald-400 font-bold">✓</span>
+                    <IconCheck class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                   ) : isCurrent() ? (
-                    <span class="text-amber-400 animate-pulse">▶</span>
+                    <span class="w-2 h-2 bg-black dark:bg-white animate-ping" />
                   ) : (
-                    <span class="text-zinc-600">{step.num}</span>
+                    <span class="text-neutral-500 font-semibold">{step.num}</span>
                   )}
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center justify-between">
-                    <span class="font-semibold text-[11px]">{step.title}</span>
+                    <span class="font-semibold text-xs">{step.title}</span>
                     <Show when={isCurrent()}>
-                      <span class="text-[9px] px-1 py-0.2 rounded-xs bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      <span class="text-[9px] px-1.5 py-0.5 bg-neutral-200 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-700 font-semibold">
                         PROCESSING
                       </span>
                     </Show>
                   </div>
-                  <div class="text-[10px] text-zinc-500 truncate">{step.desc}</div>
+                  <div class="text-[11px] text-neutral-500 truncate mt-0.5">{step.desc}</div>
                 </div>
               </div>
             );
@@ -148,16 +148,16 @@ export function CrtTerminalLoader(props: {
       </div>
 
       {/* Progress Bar */}
-      <div class="w-full bg-zinc-900 h-1.5 rounded-[1px] overflow-hidden border border-zinc-800">
+      <div class="w-full bg-neutral-100 dark:bg-neutral-900 h-1.5 overflow-hidden border border-neutral-200 dark:border-neutral-800">
         <div
-          class="h-full bg-gradient-to-r from-amber-500 via-emerald-500 to-cyan-500 transition-all duration-300"
+          class="h-full bg-black dark:bg-white transition-all duration-300"
           style={{ width: `${(activeStep() / 4) * 100}%` }}
         />
       </div>
 
-      <div class="mt-2.5 flex items-center justify-between text-[10px] text-zinc-500">
-        <span>Kernel: Linux seccomp-bpf isolated</span>
-        <span>Awaiting judge socket verdict<span class="terminal-cursor" /></span>
+      <div class="mt-2.5 flex items-center justify-between text-[11px] text-neutral-500">
+        <span>Linux seccomp-bpf isolated</span>
+        <span>Awaiting judge socket verdict</span>
       </div>
     </div>
   );
@@ -172,39 +172,39 @@ export function ProblemSkeletonLoader() {
       {/* Title & Metadata Skeleton */}
       <div class="space-y-2">
         <div class="flex items-center gap-2">
-          <div class="h-5 w-8 rounded-[2px] skeleton-shimmer" />
-          <div class="h-6 w-56 rounded-[2px] skeleton-shimmer" />
-          <div class="h-5 w-16 rounded-[2px] skeleton-shimmer ml-auto" />
+          <div class="h-5 w-8 skeleton-shimmer" />
+          <div class="h-6 w-56 skeleton-shimmer" />
+          <div class="h-5 w-16 skeleton-shimmer ml-auto" />
         </div>
         <div class="flex items-center gap-3">
-          <div class="h-4 w-28 rounded-[2px] skeleton-shimmer" />
-          <div class="h-4 w-32 rounded-[2px] skeleton-shimmer" />
-          <div class="h-4 w-24 rounded-[2px] skeleton-shimmer" />
+          <div class="h-4 w-28 skeleton-shimmer" />
+          <div class="h-4 w-32 skeleton-shimmer" />
+          <div class="h-4 w-24 skeleton-shimmer" />
         </div>
       </div>
 
       {/* Resource Quota Box */}
-      <div class="h-16 w-full rounded-[2px] border border-[#d4d6dc] dark:border-[#272b34] skeleton-shimmer" />
+      <div class="h-16 w-full border border-neutral-200 dark:border-neutral-800 skeleton-shimmer" />
 
       {/* Paragraph blocks */}
       <div class="space-y-2.5 pt-2">
-        <div class="h-3.5 w-full rounded-[2px] skeleton-shimmer" />
-        <div class="h-3.5 w-11/12 rounded-[2px] skeleton-shimmer" />
-        <div class="h-3.5 w-4/5 rounded-[2px] skeleton-shimmer" />
-        <div class="h-3.5 w-9/12 rounded-[2px] skeleton-shimmer" />
+        <div class="h-3.5 w-full skeleton-shimmer" />
+        <div class="h-3.5 w-11/12 skeleton-shimmer" />
+        <div class="h-3.5 w-4/5 skeleton-shimmer" />
+        <div class="h-3.5 w-9/12 skeleton-shimmer" />
       </div>
 
       <div class="space-y-2 pt-2">
-        <div class="h-4 w-32 rounded-[2px] skeleton-shimmer" />
-        <div class="h-3.5 w-full rounded-[2px] skeleton-shimmer" />
-        <div class="h-3.5 w-3/4 rounded-[2px] skeleton-shimmer" />
+        <div class="h-4 w-32 skeleton-shimmer" />
+        <div class="h-3.5 w-full skeleton-shimmer" />
+        <div class="h-3.5 w-3/4 skeleton-shimmer" />
       </div>
 
       {/* Sample Cases Box */}
       <div class="space-y-3 pt-3">
-        <div class="h-4 w-36 rounded-[2px] skeleton-shimmer" />
-        <div class="h-28 w-full rounded-[2px] border border-[#d4d6dc] dark:border-[#272b34] skeleton-shimmer" />
-        <div class="h-28 w-full rounded-[2px] border border-[#d4d6dc] dark:border-[#272b34] skeleton-shimmer" />
+        <div class="h-4 w-36 skeleton-shimmer" />
+        <div class="h-28 w-full border border-neutral-200 dark:border-neutral-800 skeleton-shimmer" />
+        <div class="h-28 w-full border border-neutral-200 dark:border-neutral-800 skeleton-shimmer" />
       </div>
     </div>
   );
@@ -217,26 +217,26 @@ export function TableSkeletonLoader(props: { rows?: number; columns?: number }) 
   const rowCount = () => props.rows || 6;
 
   return (
-    <div class="notion-card bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#262a32] overflow-hidden rounded-[2px]">
+    <div class="bg-white dark:bg-[#09090b] border border-neutral-200 dark:border-neutral-800 overflow-hidden">
       {/* Header bar skeleton */}
-      <div class="h-10 bg-[#eaedf1] dark:bg-[#14171d] border-b border-[#d4d6dc] dark:border-[#262a32] flex items-center px-4 gap-4">
-        <div class="h-3 w-12 rounded-[1px] skeleton-shimmer" />
-        <div class="h-3 w-40 rounded-[1px] skeleton-shimmer" />
-        <div class="h-3 w-20 rounded-[1px] skeleton-shimmer ml-auto" />
-        <div class="h-3 w-24 rounded-[1px] skeleton-shimmer" />
+      <div class="h-10 bg-neutral-50 dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800 flex items-center px-4 gap-4">
+        <div class="h-3 w-12 skeleton-shimmer" />
+        <div class="h-3 w-40 skeleton-shimmer" />
+        <div class="h-3 w-20 skeleton-shimmer ml-auto" />
+        <div class="h-3 w-24 skeleton-shimmer" />
       </div>
 
       {/* Body rows skeleton */}
-      <div class="divide-y divide-[#d4d6dc] dark:divide-[#262a32]">
+      <div class="divide-y divide-neutral-100 dark:divide-neutral-900">
         <For each={Array.from({ length: rowCount() })}>
           {() => (
             <div class="py-3 px-4 flex items-center gap-4">
-              <div class="h-5 w-7 rounded-[2px] skeleton-shimmer shrink-0" />
-              <div class="h-4 w-44 rounded-[2px] skeleton-shimmer" />
+              <div class="h-5 w-7 skeleton-shimmer shrink-0" />
+              <div class="h-4 w-44 skeleton-shimmer" />
               <div class="flex-1 flex justify-end gap-3">
-                <div class="h-4 w-14 rounded-[2px] skeleton-shimmer" />
-                <div class="h-4 w-20 rounded-[2px] skeleton-shimmer" />
-                <div class="h-4 w-12 rounded-[2px] skeleton-shimmer" />
+                <div class="h-4 w-14 skeleton-shimmer" />
+                <div class="h-4 w-20 skeleton-shimmer" />
+                <div class="h-4 w-12 skeleton-shimmer" />
               </div>
             </div>
           )}
@@ -254,10 +254,10 @@ export function AdminMetricsSkeleton() {
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
       <For each={[1, 2, 3, 4]}>
         {() => (
-          <div class="p-4 bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#272b34] rounded-[2px] space-y-2">
-            <div class="h-3 w-20 rounded-[1px] skeleton-shimmer" />
-            <div class="h-7 w-28 rounded-[2px] skeleton-shimmer" />
-            <div class="h-2.5 w-36 rounded-[1px] skeleton-shimmer" />
+          <div class="p-4 bg-white dark:bg-[#09090b] border border-neutral-200 dark:border-neutral-800 space-y-2">
+            <div class="h-3 w-20 skeleton-shimmer" />
+            <div class="h-7 w-28 skeleton-shimmer" />
+            <div class="h-2.5 w-36 skeleton-shimmer" />
           </div>
         )}
       </For>
@@ -274,14 +274,14 @@ export function ErrorStateCard(props: {
   onRetry?: () => void;
 }) {
   return (
-    <div class="notion-card p-8 bg-white dark:bg-[#111316] border border-rose-300 dark:border-rose-900/60 rounded-[2px] text-center max-w-md mx-auto my-6 space-y-3">
-      <div class="w-10 h-10 rounded-[2px] bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto border border-rose-200 dark:border-rose-900">
+    <div class="p-8 bg-white dark:bg-[#09090b] border border-neutral-300 dark:border-neutral-800 text-center max-w-md mx-auto my-6 space-y-3">
+      <div class="w-10 h-10 bg-neutral-100 dark:bg-neutral-900 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto border border-neutral-300 dark:border-neutral-700">
         <IconAlertCircle class="w-5 h-5" />
       </div>
-      <h3 class="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+      <h3 class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
         {props.title || 'Engine Synchronization Error'}
       </h3>
-      <p class="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed font-sans">
+      <p class="text-xs text-neutral-500 leading-relaxed font-sans">
         {props.message ||
           'Failed to retrieve remote state. The server connection may have timed out or the judge worker pool is rebalancing.'}
       </p>
@@ -336,57 +336,57 @@ export function SystemHeartbeatPill() {
       <button
         onClick={() => setIsOpen(!isOpen())}
         title="View System Telemetry & Cluster Status"
-        class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] font-mono text-[10px] bg-zinc-100 dark:bg-[#16181f] text-zinc-600 dark:text-zinc-400 border border-[#d4d6dc] dark:border-[#272b34] hover:border-zinc-400 dark:hover:border-zinc-600 transition"
+        class="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium bg-neutral-100 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-neutral-700 hover:border-black dark:hover:border-white transition"
       >
         <span
-          class={`w-1.5 h-1.5 rounded-full ${
-            isHealthy() ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
+          class={`w-1.5 h-1.5 ${
+            isHealthy() ? 'bg-emerald-500' : 'bg-rose-500'
           }`}
         />
-        <span class="font-bold text-zinc-800 dark:text-zinc-200">
-          {isHealthy() ? `${latencyMs()}ms` : 'OFFLINE'}
+        <span class="font-medium text-neutral-900 dark:text-white">
+          {isHealthy() ? `${latencyMs()}ms` : 'Offline'}
         </span>
       </button>
 
       {/* Flyout Telemetry Card */}
       <Show when={isOpen()}>
-        <div class="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-[#111316] border border-[#d4d6dc] dark:border-[#272b34] rounded-[2px] p-3 shadow-lg z-50 text-xs font-mono space-y-2.5">
-          <div class="flex items-center justify-between pb-1.5 border-b border-[#eaecf0] dark:border-[#222630]">
-            <span class="font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-              <IconServer class="w-3.5 h-3.5 text-blue-500" />
+        <div class="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-[#09090b] border border-neutral-300 dark:border-neutral-800 p-3.5 shadow-2xl z-50 text-xs font-sans space-y-2.5">
+          <div class="flex items-center justify-between pb-2 border-b border-neutral-200 dark:border-neutral-800">
+            <span class="font-semibold text-neutral-900 dark:text-white flex items-center gap-1.5">
+              <IconServer class="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400" />
               <span>Node Telemetry</span>
             </span>
             <span
-              class={`text-[9px] px-1 py-0.2 rounded-xs font-bold ${
+              class={`text-[10px] px-1.5 py-0.5 font-semibold tracking-wide border ${
                 isHealthy()
-                  ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800'
-                  : 'bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-800'
+                  ? 'bg-neutral-100 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 border-neutral-300 dark:border-neutral-700'
+                  : 'bg-neutral-100 dark:bg-neutral-900 text-rose-600 dark:text-rose-400 border-rose-300 dark:border-rose-800'
               }`}
             >
-              {isHealthy() ? 'ALL SYSTEMS OPERATIONAL' : 'DEGRADED'}
+              {isHealthy() ? 'OPERATIONAL' : 'DEGRADED'}
             </span>
           </div>
 
-          <div class="space-y-1 text-[11px] text-zinc-600 dark:text-zinc-400">
+          <div class="space-y-1 text-[11px] text-neutral-600 dark:text-neutral-400">
             <div class="flex justify-between">
               <span>HTTP RTT:</span>
-              <strong class="text-zinc-900 dark:text-zinc-200">{latencyMs()}ms</strong>
+              <strong class="text-neutral-900 dark:text-white">{latencyMs()}ms</strong>
             </div>
             <div class="flex justify-between">
               <span>Event Broker:</span>
-              <strong class="text-zinc-900 dark:text-zinc-200">NATS JetStream (Embed)</strong>
+              <strong class="text-neutral-900 dark:text-white">NATS JetStream (Embed)</strong>
             </div>
             <div class="flex justify-between">
               <span>Judge Worker:</span>
-              <strong class="text-emerald-600 dark:text-emerald-400">cgroups v2 Strict</strong>
+              <strong class="text-neutral-900 dark:text-white">cgroups v2 Strict</strong>
             </div>
             <div class="flex justify-between">
               <span>Timing Canary:</span>
-              <strong class="text-zinc-900 dark:text-zinc-200">Active (15% Jitter Tol)</strong>
+              <strong class="text-neutral-900 dark:text-white">Active (15% Jitter Tol)</strong>
             </div>
           </div>
 
-          <div class="pt-1 border-t border-[#eaecf0] dark:border-[#222630] text-[10px] text-zinc-500">
+          <div class="pt-1 border-t border-neutral-200 dark:border-neutral-800 text-[10px] text-neutral-500">
             Monotonic host clock synchronized with API server.
           </div>
         </div>

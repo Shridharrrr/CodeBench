@@ -19,11 +19,6 @@ A message containing letters from A-Z can be encoded into numbers using the foll
 
 To decode an encoded message, all the digits must be grouped then mapped back into letters using the reverse of the mapping. Given a string `s` containing only digits, return the number of ways to decode it.
 
-### Input Format
-A single line containing the string `s`.
-
-### Output Format
-Print the number of ways to decode `s`.
 
 ### Constraints
 - 1 <= s.length <= 100

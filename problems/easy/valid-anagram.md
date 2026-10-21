@@ -19,11 +19,6 @@ Given two strings `s` and `t`, return `true` if `t` is an anagram of `s`, and `f
 
 An Anagram is a word or phrase formed by rearranging the letters of a different word or phrase, typically using all the original letters exactly once.
 
-### Input Format
-Two lines: the first contains `s` and the second contains `t`.
-
-### Output Format
-Print `true` if anagram, otherwise `false`.
 
 ### Constraints
 - 1 <= s.length, t.length <= 5 * 10^4

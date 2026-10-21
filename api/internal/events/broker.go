@@ -119,6 +119,64 @@ func (b *Broker) PublishSubmissionStatus(submissionID string, status models.Subm
 	}
 }
 
+func (b *Broker) PublishLeaderboardUpdate(targetID string, payload any) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	b.counter++
+	event := Event{
+		ID:        b.counter,
+		Type:      "leaderboard_update",
+		TargetID:  targetID,
+		Payload:   payload,
+		CreatedAt: time.Now().UTC(),
+	}
+
+	b.history = append(b.history, event)
+	if len(b.history) > b.historyCap {
+		b.history = b.history[1:]
+	}
+
+	if subs, exists := b.subscribers[targetID]; exists {
+		for ch := range subs {
+			select {
+			case ch <- event:
+			default:
+				slog.Warn("Subscriber channel full, dropping leaderboard event", "target_id", targetID, "event_id", event.ID)
+			}
+		}
+	}
+}
+
+func (b *Broker) PublishEvent(targetID string, eventType string, payload any) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	b.counter++
+	event := Event{
+		ID:        b.counter,
+		Type:      eventType,
+		TargetID:  targetID,
+		Payload:   payload,
+		CreatedAt: time.Now().UTC(),
+	}
+
+	b.history = append(b.history, event)
+	if len(b.history) > b.historyCap {
+		b.history = b.history[1:]
+	}
+
+	if subs, exists := b.subscribers[targetID]; exists {
+		for ch := range subs {
+			select {
+			case ch <- event:
+			default:
+				slog.Warn("Subscriber channel full, dropping event", "target_id", targetID, "type", eventType, "event_id", event.ID)
+			}
+		}
+	}
+}
+
 func (b *Broker) StreamSSE(ctx context.Context, targetID string, lastEventID int64, sendFunc func(id int64, eventType string, data []byte) error) error {
 	ch, unsubscribe := b.Subscribe(targetID, lastEventID)
 	defer unsubscribe()

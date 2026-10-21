@@ -20,12 +20,6 @@ Given the array `nums` after the possible rotation and an integer `target`, retu
 
 You must write an algorithm with $O(\log n)$ runtime complexity.
 
-### Input Format
-The first line contains `n` and `target`.
-The second line contains `n` space-separated integers.
-
-### Output Format
-Print the 0-based index of target, or -1.
 
 ### Constraints
 - 1 <= n <= 5000

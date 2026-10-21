@@ -21,12 +21,6 @@ Return the fewest number of coins that you need to make up that amount. If that 
 
 You may assume that you have an infinite number of each kind of coin.
 
-### Input Format
-The first line contains `n` and `amount`.
-The second line contains `n` space-separated coin denominations.
-
-### Output Format
-Print the minimum number of coins, or -1.
 
 ### Constraints
 - 1 <= n <= 12

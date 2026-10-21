@@ -16,12 +16,6 @@ checker_type: token
 
 Given the head of a singly linked list, reverse the list, and return the reversed list.
 
-### Input Format
-The first line contains an integer `n` representing the number of elements.
-The second line contains `n` space-separated integers representing the list nodes.
-
-### Output Format
-Print the reversed list as space-separated integers.
 
 ### Constraints
 - 0 <= n <= 5000

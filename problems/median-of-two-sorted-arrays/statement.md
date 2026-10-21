@@ -1,46 +1,23 @@
 # Median of Two Sorted Arrays
 
-Given two sorted arrays `nums1` and `nums2` of size $m$ and $n$ respectively, return the **median** of the two sorted arrays.
+Given two sorted arrays `nums1` and `nums2` of size `m` and `n` respectively, return **the median** of the two sorted arrays.
 
-The overall run time complexity should be $O(\log(m+n))$.
+The overall run time complexity should be $O(\log (m+n))$.
 
-## Input Format
-- Line 1: integer $m$
-- Line 2: $m$ space-separated integers for `nums1`
-- Line 3: integer $n$
-- Line 4: $n$ space-separated integers for `nums2`
+### Example 1:
+**Input:** nums1 = [1,3], nums2 = [2]  
+**Output:** 2.00000  
+**Explanation:** merged array = [1,2,3] and median is 2.
 
-## Output Format
-Print a single floating-point number representing the median. Answers within an absolute or relative error of $10^{-5}$ will be accepted.
+### Example 2:
+**Input:** nums1 = [1,2], nums2 = [3,4]  
+**Output:** 2.50000  
+**Explanation:** merged array = [1,2,3,4] and median is (2 + 3) / 2 = 2.5.
 
-## Constraints
-- $0 \le m \le 10^5$
-- $0 \le n \le 10^5$
-- $1 \le m + n \le 2 \cdot 10^5$
-- $-10^6 \le nums1[i], nums2[i] \le 10^6$
-
-## Sample 1
-### Input
-```text
-2
-1 3
-1
-2
-```
-### Output
-```text
-2.0
-```
-
-## Sample 2
-### Input
-```text
-2
-1 2
-2
-3 4
-```
-### Output
-```text
-2.5
-```
+### Constraints:
+- `nums1.length == m`
+- `nums2.length == n`
+- `0 <= m <= 1000`
+- `0 <= n <= 1000`
+- `1 <= m + n <= 2000`
+- `-10^6 <= nums1[i], nums2[i] <= 10^6`

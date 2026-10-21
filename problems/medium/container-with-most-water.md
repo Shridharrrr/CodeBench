@@ -19,12 +19,6 @@ You are given an integer array `height` of length `n`. There are `n` vertical li
 
 Find two lines that together with the x-axis form a container, such that the container contains the most water. Return the maximum amount of water a container can store.
 
-### Input Format
-The first line contains `n`.
-The second line contains `n` space-separated integers representing heights.
-
-### Output Format
-Print the maximum area of water.
 
 ### Constraints
 - 2 <= n <= 10^5

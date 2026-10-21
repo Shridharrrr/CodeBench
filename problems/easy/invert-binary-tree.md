@@ -17,12 +17,6 @@ checker_type: token
 
 Given the root of a binary tree, invert the tree (swap the left and right children of every node), and return its level-order traversal representation.
 
-### Input Format
-The first line contains an integer `n` representing the number of nodes in level-order traversal.
-The second line contains `n` space-separated tokens where integers represent node values and `null` represents absent children.
-
-### Output Format
-Print the level-order traversal of the inverted tree as space-separated tokens.
 
 ### Constraints
 - 0 <= n <= 100

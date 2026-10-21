@@ -18,12 +18,6 @@ Given an array of distinct integers `candidates` and a target integer `target`, 
 
 The same number may be chosen from `candidates` an unlimited number of times. Two combinations are unique if the frequency of at least one of the chosen numbers is different.
 
-### Input Format
-The first line contains `n` and `target`.
-The second line contains `n` distinct space-separated integers.
-
-### Output Format
-Print each combination on a new line with space-separated values sorted ascending.
 
 ### Constraints
 - 1 <= n <= 30

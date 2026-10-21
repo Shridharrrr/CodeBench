@@ -18,12 +18,6 @@ Given a non-empty array of integers `nums`, every element appears twice except f
 
 You must implement a solution with a linear runtime complexity and use only constant extra space.
 
-### Input Format
-The first line contains `n`.
-The second line contains `n` space-separated integers.
-
-### Output Format
-Print the single unique integer.
 
 ### Constraints
 - 1 <= n <= 3 * 10^4

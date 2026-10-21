@@ -16,12 +16,6 @@ checker_type: token
 
 Given an array `nums` of distinct integers, return all the possible permutations. Output each permutation on a new line in lexicographical order.
 
-### Input Format
-The first line contains `n`.
-The second line contains `n` space-separated distinct integers.
-
-### Output Format
-Print each permutation on a new line.
 
 ### Constraints
 - 1 <= n <= 6

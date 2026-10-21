@@ -22,13 +22,6 @@ A transformation sequence from word `beginWord` to word `endWord` using a dictio
 
 Given two words, `beginWord` and `endWord`, and a dictionary `wordList`, return the number of words in the shortest transformation sequence from `beginWord` to `endWord`, or `0` if no such sequence exists.
 
-### Input Format
-The first line contains `beginWord` and `endWord`.
-The second line contains `n`.
-The third line contains `n` space-separated words in `wordList`.
-
-### Output Format
-Print the length of the shortest transformation sequence, or 0.
 
 ### Constraints
 - 1 <= beginWord.length <= 10

@@ -19,12 +19,6 @@ You are given an array of `k` linked-lists `lists`, each linked-list is sorted i
 
 Merge all the linked-lists into one sorted linked-list and return it.
 
-### Input Format
-The first line contains `k`.
-The next `k` lines describe each list: the first integer `len` denotes list length, followed by `len` space-separated sorted integers.
-
-### Output Format
-Print the merged sorted integers separated by spaces.
 
 ### Constraints
 - 0 <= k <= 10^4

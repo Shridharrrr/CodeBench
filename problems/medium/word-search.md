@@ -19,13 +19,6 @@ Given an `m x n` grid of characters `board` and a string `word`, return `true` i
 
 The word can be constructed from letters of sequentially adjacent cells, where adjacent cells are horizontally or vertically neighboring. The same letter cell may not be used more than once.
 
-### Input Format
-The first line contains `m` and `n`.
-The next `m` lines contain `n` characters separated by spaces.
-The last line contains the string `word`.
-
-### Output Format
-Print `true` if word exists, otherwise `false`.
 
 ### Constraints
 - 1 <= m, n <= 6

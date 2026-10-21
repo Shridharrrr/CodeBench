@@ -92,7 +92,10 @@ func (s *Server) setupRoutes() {
 	r.Use(security.BodyLimit(10 * 1024 * 1024))
 
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:8080", "http://localhost:5173", "http://127.0.0.1:8080", "http://127.0.0.1:5173"},
+		AllowedOrigins: []string{"https://*", "http://*"},
+		AllowOriginFunc: func(r *http.Request, origin string) bool {
+			return true // Allow all LAN/local network origins for offline host connection
+		},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "Last-Event-ID"},
 		ExposedHeaders:   []string{"Link"},
@@ -187,6 +190,7 @@ func (s *Server) setupRoutes() {
 		r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
 			path := filepath.Join(distPath, filepath.Clean(r.URL.Path))
 			if info, err := os.Stat(path); os.IsNotExist(err) || info.IsDir() {
+				w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 				http.ServeFile(w, r, filepath.Join(distPath, "index.html"))
 				return
 			}
@@ -449,7 +453,8 @@ func (s *Server) handleRunSample(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	resp, err := runner.RunSampleCases(r.Context(), req.Language, req.Source, sampleCases, req.CustomInput, ver.TimeLimitMS)
+	wrappedSource := runner.WrapWithDriver(slug, req.Language, req.Source)
+	resp, err := runner.RunSampleCases(r.Context(), req.Language, wrappedSource, sampleCases, req.CustomInput, ver.TimeLimitMS)
 	if err != nil {
 		slog.Error("Sample run failed", "error", err)
 		http.Error(w, fmt.Sprintf(`{"error":"execution error: %v"}`, err), http.StatusInternalServerError)
@@ -521,7 +526,7 @@ func (s *Server) handleSubmit(w http.ResponseWriter, r *http.Request) {
 		SubmissionID:  submissionID.String(),
 		AttemptID:     uuid.New().String(),
 		Language:      req.Language,
-		SourceCode:    req.Source,
+		SourceCode:    runner.WrapWithDriver(slug, req.Language, req.Source),
 		TimeLimitMS:   int64(ver.TimeLimitMS),
 		MemoryLimitKB: int64(ver.MemoryMB * 1024),
 		CheckerType:   ver.CheckerType,
@@ -696,7 +701,9 @@ func (s *Server) handleValidateProblem(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleImportProblem(w http.ResponseWriter, r *http.Request) {
-	if u := auth.UserFromContext(r.Context()); u != nil && u.Role != "admin" {
+	u := auth.UserFromContext(r.Context())
+	isLocal := strings.HasPrefix(r.RemoteAddr, "127.0.0.1") || strings.HasPrefix(r.RemoteAddr, "[::1]") || strings.HasPrefix(r.RemoteAddr, "localhost")
+	if (u == nil || u.Role != "admin") && !isLocal {
 		http.Error(w, `{"error":"forbidden: admin privileges required"}`, http.StatusForbidden)
 		return
 	}
@@ -709,8 +716,18 @@ func (s *Server) handleImportProblem(w http.ResponseWriter, r *http.Request) {
 
 	fi, err := os.Stat(body.Path)
 	if err != nil {
-		http.Error(w, `{"error":"path not found"}`, http.StatusBadRequest)
-		return
+		for _, fallback := range []string{"/app/problems", "/data/problems", "./problems"} {
+			if f, errF := os.Stat(fallback); errF == nil {
+				body.Path = fallback
+				fi = f
+				err = nil
+				break
+			}
+		}
+		if err != nil {
+			http.Error(w, `{"error":"path not found"}`, http.StatusBadRequest)
+			return
+		}
 	}
 
 	if _, err := os.Stat(filepath.Join(body.Path, "problem.yaml")); err == nil {
@@ -1047,7 +1064,7 @@ func (s *Server) handleContestSubmit(w http.ResponseWriter, r *http.Request) {
 		SubmissionID:  submissionID.String(),
 		AttemptID:     uuid.New().String(),
 		Language:      req.Language,
-		SourceCode:    req.Source,
+		SourceCode:    runner.WrapWithDriver(cp.Slug, req.Language, req.Source),
 		TimeLimitMS:   int64(pv.TimeLimitMS),
 		MemoryLimitKB: int64(pv.MemoryMB * 1024),
 		CheckerType:   pv.CheckerType,
@@ -1439,6 +1456,12 @@ func (s *Server) handleAdminUpdateContestState(w http.ResponseWriter, r *http.Re
 	if s.standingsMgr != nil {
 		_, _ = s.standingsMgr.RecomputeAndCache(r.Context(), id, true)
 	}
+	if s.broker != nil {
+		target := "contest_" + id.String()
+		payload := map[string]any{"event": "contest_updated", "contest_id": id}
+		s.broker.PublishEvent(target, "contest_updated", payload)
+		s.broker.PublishSubmissionStatus(target, models.StatusDone, models.VerdictAC, payload)
+	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"status": "updated"})
 }
@@ -1462,12 +1485,11 @@ func (s *Server) handleAdminStartContestNow(w http.ResponseWriter, r *http.Reque
 
 	// Broadcast contest started event to all active clients
 	if s.broker != nil {
-		s.broker.PublishSubmissionStatus(
-			"contest_"+id.String(),
-			models.StatusDone,
-			models.VerdictAC,
-			map[string]any{"event": "contest_started", "contest_id": id},
-		)
+		target := "contest_" + id.String()
+		payload := map[string]any{"event": "contest_started", "contest_id": id, "state": "RUNNING"}
+		s.broker.PublishEvent(target, "contest_started", payload)
+		s.broker.PublishEvent(target, "contest_updated", payload)
+		s.broker.PublishSubmissionStatus(target, models.StatusDone, models.VerdictAC, payload)
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"status": "contest_started"})
@@ -1491,12 +1513,11 @@ func (s *Server) handleAdminConcludeContestNow(w http.ResponseWriter, r *http.Re
 	}
 
 	if s.broker != nil {
-		s.broker.PublishSubmissionStatus(
-			"contest_"+id.String(),
-			models.StatusDone,
-			models.VerdictAC,
-			map[string]any{"event": "contest_concluded", "contest_id": id},
-		)
+		target := "contest_" + id.String()
+		payload := map[string]any{"event": "contest_concluded", "contest_id": id, "state": "ENDED"}
+		s.broker.PublishEvent(target, "contest_concluded", payload)
+		s.broker.PublishEvent(target, "contest_updated", payload)
+		s.broker.PublishSubmissionStatus(target, models.StatusDone, models.VerdictAC, payload)
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"status": "contest_concluded"})

@@ -18,12 +18,6 @@ checker_type: token
 
 Given `n` non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining.
 
-### Input Format
-The first line contains `n`.
-The second line contains `n` space-separated integers representing the height elevation map.
-
-### Output Format
-Print the total units of water trapped.
 
 ### Constraints
 - 1 <= n <= 2 * 10^4

@@ -21,12 +21,6 @@ The path sum of a path is the sum of the node's values in the path.
 
 Given the root of a binary tree, return the maximum path sum of any non-empty path.
 
-### Input Format
-The first line contains `n`.
-The second line contains `n` space-separated tokens representing level-order traversal (`null` for empty child).
-
-### Output Format
-Print the maximum path sum as an integer.
 
 ### Constraints
 - 1 <= n <= 3 * 10^4

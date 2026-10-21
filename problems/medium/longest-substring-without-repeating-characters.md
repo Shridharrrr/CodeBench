@@ -17,11 +17,6 @@ checker_type: token
 
 Given a string `s`, find the length of the longest substring without duplicate characters.
 
-### Input Format
-A single line containing the string `s`.
-
-### Output Format
-Print an integer representing the maximum length.
 
 ### Constraints
 - 0 <= s.length <= 5 * 10^4

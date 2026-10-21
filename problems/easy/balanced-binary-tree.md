@@ -18,12 +18,6 @@ Given a binary tree, determine if it is height-balanced.
 
 A height-balanced binary tree is defined as a binary tree in which the left and right subtrees of every node differ in height by no more than 1.
 
-### Input Format
-The first line contains `n`, the number of elements in level-order representation.
-The second line contains `n` space-separated elements (integers or `null`).
-
-### Output Format
-Print `true` if balanced, otherwise `false`.
 
 ### Constraints
 - 0 <= n <= 5000

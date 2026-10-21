@@ -16,12 +16,6 @@ checker_type: token
 
 Given the root of a binary tree, return the level order traversal of its nodes' values (i.e., from left to right, level by level). Print each level on a new line.
 
-### Input Format
-The first line contains `n`.
-The second line contains `n` space-separated tokens (`null` for empty node).
-
-### Output Format
-Print each level on a new line with space-separated node values.
 
 ### Constraints
 - 0 <= n <= 2000

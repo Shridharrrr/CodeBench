@@ -19,11 +19,6 @@ Given a string `s` which consists of lowercase or uppercase letters, return the 
 
 Letters are case-sensitive, for example, `"Aa"` is not considered a palindrome.
 
-### Input Format
-A single line containing the string `s`.
-
-### Output Format
-Print an integer representing the maximum length of a palindrome that can be built.
 
 ### Constraints
 - 1 <= s.length <= 2000

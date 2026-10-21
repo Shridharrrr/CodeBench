@@ -17,12 +17,6 @@ checker_type: token
 
 You are given an `n x n` 2D matrix representing an image, rotate the image by 90 degrees (clockwise) in-place.
 
-### Input Format
-The first line contains `n`.
-The next `n` lines contain `n` space-separated integers each.
-
-### Output Format
-Print the rotated `n x n` matrix with rows on separate lines.
 
 ### Constraints
 - 1 <= n <= 20

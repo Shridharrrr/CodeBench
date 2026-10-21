@@ -25,10 +25,13 @@ type ParsedProblemMD struct {
 }
 
 var (
-	frontmatterRegex = regexp.MustCompile(`(?s)^---\r?\n(.*?)\r?\n---\r?\n`)
-	codeBlockRegex   = regexp.MustCompile("(?s)```(?:[a-zA-Z0-9_-]+)?\\s*\\r?\\n(.*?)\\r?\\n```")
-	inputBlockRegex  = regexp.MustCompile("(?is)```input\\s*\\r?\\n(.*?)\\r?\\n```")
-	outputBlockRegex = regexp.MustCompile("(?is)```output\\s*\\r?\\n(.*?)\\r?\\n```")
+	frontmatterRegex     = regexp.MustCompile(`(?s)^---\r?\n(.*?)\r?\n---\r?\n`)
+	codeBlockRegex       = regexp.MustCompile("(?s)```(?:[a-zA-Z0-9_-]+)?\\s*\\r?\\n(.*?)\\r?\\n```")
+	inputBlockRegex      = regexp.MustCompile("(?is)```input\\s*\\r?\\n(.*?)\\r?\\n```")
+	outputBlockRegex     = regexp.MustCompile("(?is)```output\\s*\\r?\\n(.*?)\\r?\\n```")
+	headingSplitterRegex = regexp.MustCompile(`(?m)(^#{2,3}\s+)`)
+	h1Regex              = regexp.MustCompile(`(?m)^#\s+(.+)$`)
+	slugCleanRegex       = regexp.MustCompile(`[^a-z0-9]+`)
 )
 
 func ParseProblemMarkdown(content string) (*ParsedProblemMD, error) {
@@ -59,8 +62,7 @@ func ParseProblemMarkdown(content string) (*ParsedProblemMD, error) {
 
 	// 2. Parse Test Case Sections and Statement
 	// Split by Markdown Headings H2-H3 so subheadings (like #### Input) remain inside
-	headingSplitter := regexp.MustCompile(`(?m)(^#{2,3}\s+)`)
-	indices := headingSplitter.FindAllStringIndex(body, -1)
+	indices := headingSplitterRegex.FindAllStringIndex(body, -1)
 
 	var sections []string
 	if len(indices) == 0 {
@@ -146,11 +148,13 @@ func ParseProblemMarkdown(content string) (*ParsedProblemMD, error) {
 
 			if isSample {
 				// Keep sample cases in statement prose for contestants to view
-				statementBuilder.WriteString("\n\n" + secTrim)
+				statementBuilder.WriteString("\n\n")
+				statementBuilder.WriteString(secTrim)
 			}
 			// Do NOT append hidden tests to public statement!
 		} else {
-			statementBuilder.WriteString("\n\n" + secTrim)
+			statementBuilder.WriteString("\n\n")
+			statementBuilder.WriteString(secTrim)
 		}
 	}
 
@@ -158,7 +162,6 @@ func ParseProblemMarkdown(content string) (*ParsedProblemMD, error) {
 
 	// If title is missing from frontmatter, derive from H1 heading
 	if result.Title == "" {
-		h1Regex := regexp.MustCompile(`(?m)^#\s+(.+)$`)
 		if h1Match := h1Regex.FindStringSubmatch(result.StatementMD); len(h1Match) > 1 {
 			result.Title = strings.TrimSpace(h1Match[1])
 		}
@@ -167,7 +170,7 @@ func ParseProblemMarkdown(content string) (*ParsedProblemMD, error) {
 	// Slug derivation
 	if result.Slug == "" && result.Title != "" {
 		slugClean := strings.ToLower(result.Title)
-		slugClean = regexp.MustCompile(`[^a-z0-9]+`).ReplaceAllString(slugClean, "-")
+		slugClean = slugCleanRegex.ReplaceAllString(slugClean, "-")
 		slugClean = strings.Trim(slugClean, "-")
 		result.Slug = slugClean
 	}

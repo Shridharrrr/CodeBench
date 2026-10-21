@@ -1367,9 +1367,8 @@ func (db *DB) CreateTeam(ctx context.Context, name, joinCode string, captainID u
 		return nil, err
 	}
 
-	team.Members = []models.TeamMember{
-		{TeamID: team.ID, UserID: captainID, JoinedAt: time.Now().UTC()},
-	}
+	members, _ := db.GetTeamMembers(ctx, team.ID)
+	team.Members = members
 	return &team, nil
 }
 

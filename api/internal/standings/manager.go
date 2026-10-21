@@ -113,16 +113,14 @@ func (m *StandingsManager) RecomputeAndCache(ctx context.Context, contestID uuid
 
 	// Broadcast live leaderboard update event to SSE subscribers
 	if m.broker != nil {
-		m.broker.PublishSubmissionStatus(
-			"contest_"+contestID.String(),
-			models.StatusDone,
-			models.VerdictAC,
-			map[string]any{
-				"contest_id": contestID,
-				"is_frozen":  publicBoard.IsFrozen,
-				"top_rows":   publicBoard.Rows,
-			},
-		)
+		target := "contest_" + contestID.String()
+		payload := map[string]any{
+			"contest_id": contestID,
+			"is_frozen":  publicBoard.IsFrozen,
+			"top_rows":   publicBoard.Rows,
+		}
+		m.broker.PublishLeaderboardUpdate(target, payload)
+		m.broker.PublishSubmissionStatus(target, models.StatusDone, models.VerdictAC, payload)
 	}
 
 	if isAdmin {

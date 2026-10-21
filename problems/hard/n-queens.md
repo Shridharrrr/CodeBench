@@ -18,11 +18,6 @@ The n-queens puzzle is the problem of placing `n` queens on an `n x n` chessboar
 
 Given an integer `n`, return the total number of distinct solutions to the n-queens puzzle.
 
-### Input Format
-A single line containing the integer `n`.
-
-### Output Format
-Print the number of distinct solutions as an integer.
 
 ### Constraints
 - 1 <= n <= 12

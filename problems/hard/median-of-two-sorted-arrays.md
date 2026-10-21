@@ -19,13 +19,6 @@ Given two sorted arrays `nums1` and `nums2` of size `m` and `n` respectively, re
 
 The overall run time complexity should be $O(\log (m+n))$. Print the median formatted to 5 decimal places.
 
-### Input Format
-The first line contains `m` and `n`.
-The second line contains `m` space-separated integers for `nums1`.
-The third line contains `n` space-separated integers for `nums2`.
-
-### Output Format
-Print the median rounded to 5 decimal places (e.g. `2.00000`).
 
 ### Constraints
 - 0 <= m, n <= 1000

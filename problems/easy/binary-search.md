@@ -18,12 +18,6 @@ Given an array of integers `nums` which is sorted in ascending order, and an int
 
 You must write an algorithm with $O(\log n)$ runtime complexity.
 
-### Input Format
-The first line contains two integers `n` and `target`.
-The second line contains `n` space-separated sorted integers.
-
-### Output Format
-Print the index of `target`, or -1 if not found.
 
 ### Constraints
 - 1 <= n <= 10^4

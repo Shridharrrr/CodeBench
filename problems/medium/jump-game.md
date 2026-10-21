@@ -19,12 +19,6 @@ You are given an integer array `nums`. You are initially positioned at the array
 
 Return `true` if you can reach the last index, or `false` otherwise.
 
-### Input Format
-The first line contains `n`.
-The second line contains `n` space-separated integers.
-
-### Output Format
-Print `true` if you can reach the last index, otherwise `false`.
 
 ### Constraints
 - 1 <= n <= 10^4

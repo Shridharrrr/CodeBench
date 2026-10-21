@@ -20,12 +20,6 @@ The product of any prefix or suffix of `nums` is guaranteed to fit in a 32-bit i
 
 You must write an algorithm that runs in $O(n)$ time and without using the division operation.
 
-### Input Format
-The first line contains `n`.
-The second line contains `n` space-separated integers.
-
-### Output Format
-Print `answer` as space-separated integers.
 
 ### Constraints
 - 2 <= n <= 10^5

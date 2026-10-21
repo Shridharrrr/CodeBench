@@ -5,6 +5,7 @@ import MarkdownView from './MarkdownView';
 import CodeEditor from './CodeEditor';
 import {
   IconCheck,
+  IconX,
   IconPlay,
   IconClock,
 } from './icons';
@@ -108,6 +109,7 @@ interface ContestArenaProps {
   user: UserProfile | null;
   csrfToken: string;
   onOpenAuth: () => void;
+  onContestLockChange?: (locked: boolean) => void;
 }
 
 export default function ContestArena(props: ContestArenaProps) {
@@ -157,59 +159,71 @@ export default function ContestArena(props: ContestArenaProps) {
 
   // Responsive Viewports & Mobile Pane Mode
   const [mobileView, setMobileView] = createSignal<'statement' | 'editor' | 'console'>('statement');
-  const [isDesktop, setIsDesktop] = createSignal<boolean>(typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
+  const [isDesktop, setIsDesktop] = createSignal<boolean>(typeof window !== 'undefined' ? window.innerWidth >= 768 : true);
 
   let workspaceRef: HTMLDivElement | undefined;
   let rightPaneRef: HTMLDivElement | undefined;
 
-  const handleStartDragX = (e: MouseEvent) => {
+  const handleStartDragX = (e: PointerEvent) => {
     e.preventDefault();
+    const target = e.currentTarget as HTMLElement;
+    target.setPointerCapture(e.pointerId);
     setIsDraggingX(true);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
 
-    const onMouseMove = (moveEvent: MouseEvent) => {
+    const onPointerMove = (moveEvent: PointerEvent) => {
       if (!workspaceRef) return;
       const rect = workspaceRef.getBoundingClientRect();
+      if (rect.width <= 0) return;
       const newPercent = ((moveEvent.clientX - rect.left) / rect.width) * 100;
       setSplitX(Math.max(20, Math.min(80, newPercent)));
     };
 
-    const onMouseUp = () => {
+    const onPointerUp = (upEvent: PointerEvent) => {
+      try { target.releasePointerCapture(upEvent.pointerId); } catch {}
       setIsDraggingX(false);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
     };
 
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
   };
 
-  const handleStartDragY = (e: MouseEvent) => {
+  const handleStartDragY = (e: PointerEvent) => {
     e.preventDefault();
+    const target = e.currentTarget as HTMLElement;
+    target.setPointerCapture(e.pointerId);
     setIsDraggingY(true);
     document.body.style.cursor = 'row-resize';
     document.body.style.userSelect = 'none';
 
-    const onMouseMove = (moveEvent: MouseEvent) => {
+    const onPointerMove = (moveEvent: PointerEvent) => {
       if (!rightPaneRef) return;
       const rect = rightPaneRef.getBoundingClientRect();
+      if (rect.height <= 0) return;
       const newPercent = ((moveEvent.clientY - rect.top) / rect.height) * 100;
-      setSplitY(Math.max(20, Math.min(85, newPercent)));
+      setSplitY(Math.max(15, Math.min(85, newPercent)));
     };
 
-    const onMouseUp = () => {
+    const onPointerUp = (upEvent: PointerEvent) => {
+      try { target.releasePointerCapture(upEvent.pointerId); } catch {}
       setIsDraggingY(false);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
     };
 
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
   };
 
   let countdownInterval: any = null;
@@ -218,7 +232,7 @@ export default function ContestArena(props: ContestArenaProps) {
   onMount(() => {
     fetchContests();
 
-    const handleResize = () => setIsDesktop(window.innerWidth >= 1024);
+    const handleResize = () => setIsDesktop(window.innerWidth >= 768);
     window.addEventListener('resize', handleResize);
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -233,9 +247,21 @@ export default function ContestArena(props: ContestArenaProps) {
     };
     window.addEventListener('keydown', handleKeyDown);
 
+    // Periodic sync interval ensures questions appear automatically when admin starts contest without refresh
+    const autoSyncInterval = setInterval(() => {
+      const id = selectedContestId();
+      if (id) {
+        const c = activeContest();
+        if (!c || c.state === 'upcoming' || c.state === 'UPCOMING' || problems().length === 0) {
+          fetchContestDetail(id);
+        }
+      }
+    }, 2500);
+
     onCleanup(() => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('keydown', handleKeyDown);
+      clearInterval(autoSyncInterval);
       if (countdownInterval) clearInterval(countdownInterval);
       if (contestEventSource) contestEventSource.close();
     });
@@ -268,7 +294,13 @@ export default function ContestArena(props: ContestArenaProps) {
     contestEventSource.addEventListener('submission_update', () => {
       fetchLeaderboard(id);
     });
+    contestEventSource.addEventListener('leaderboard_update', () => {
+      fetchLeaderboard(id);
+    });
     contestEventSource.addEventListener('contest_started', () => {
+      fetchContestDetail(id);
+    });
+    contestEventSource.addEventListener('contest_updated', () => {
       fetchContestDetail(id);
     });
   });
@@ -283,8 +315,17 @@ export default function ContestArena(props: ContestArenaProps) {
         setIsRegistered(data.is_registered);
         setProblems(data.problems || []);
 
-        if (data.problems && data.problems.length > 0 && !selectedLabel()) {
-          setSelectedLabel(data.problems[0].label);
+        // Notify parent whether contest is actively locked
+        const st = String(data.state || '').toUpperCase();
+        const isLive = (st === 'RUNNING' || st === 'FROZEN') && !data.is_paused;
+        props.onContestLockChange?.(isLive);
+
+        // Auto-select first question if none selected or invalid label (eliminates blank state!)
+        if (data.problems && data.problems.length > 0) {
+          const currentValid = data.problems.some((p) => p.label === selectedLabel());
+          const targetLabel = currentValid && problemDetail() ? selectedLabel() : data.problems[0].label;
+          setSelectedLabel(targetLabel);
+          fetchProblemDetail(id, targetLabel);
         }
         setupTimer(data);
       }
@@ -605,21 +646,21 @@ export default function ContestArena(props: ContestArenaProps) {
     const isAdmin = props.user?.role === 'admin';
     if (isAdmin) return true; // Admin can preview problems
     const state = (c.state || '').toUpperCase();
-    return state === 'RUNNING' && !c.is_paused;
+    return (state === 'RUNNING' || state === 'FROZEN') && !c.is_paused;
   };
 
   return (
-    <div class="flex-1 flex flex-col h-[calc(100vh-57px)] overflow-hidden bg-slate-50 dark:bg-slate-950 relative">
+    <div class="flex-1 flex flex-col h-[calc(100vh-57px)] overflow-hidden bg-white dark:bg-black relative">
       <TopProgressBar active={isRunning() || isSubmitting()} />
       <Show
         when={contests().length > 0 && activeContest()}
         fallback={
-          <div class="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50 dark:bg-slate-950">
-            <div class="w-16 h-16 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mx-auto mb-4 shadow-xs">
+          <div class="flex-1 flex flex-col items-center justify-center p-8 text-center bg-white dark:bg-black">
+            <div class="w-16 h-16 rounded-none bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-800 text-neutral-400 dark:text-neutral-500 flex items-center justify-center mx-auto mb-4">
               <IconClock class="w-8 h-8" />
             </div>
-            <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Competition Not Started</h2>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-md mx-auto leading-relaxed">
+            <h2 class="text-xl font-bold text-neutral-900 dark:text-neutral-100 tracking-tight">Competition Not Started</h2>
+            <p class="text-sm text-neutral-500 dark:text-neutral-400 mt-2 max-w-md mx-auto leading-relaxed">
               There is currently no active competition running. The arena will unlock once a round is configured and launched by the organizer.
             </p>
           </div>
@@ -640,12 +681,12 @@ export default function ContestArena(props: ContestArenaProps) {
           }
         >
           {/* Contest Top Banner (Only visible when contest is running) */}
-          <header class="min-h-11 sm:h-12 py-1 sm:py-0 border-b border-[#d4d6dc] dark:border-[#262a32] px-3 sm:px-5 flex items-center justify-between bg-white dark:bg-[#111316] z-20 gap-2">
+          <header class="min-h-11 sm:h-12 py-1.5 sm:py-0 border-b border-neutral-200 dark:border-neutral-800 px-3 sm:px-5 flex items-center justify-between bg-white dark:bg-black z-20 gap-2">
             <div class="flex items-center gap-2 sm:gap-3 min-w-0">
               <Show
                 when={contests().length > 1}
                 fallback={
-                  <span class="font-mono font-bold text-xs uppercase text-zinc-900 dark:text-zinc-100 tracking-tight truncate max-w-[120px] sm:max-w-none">
+                  <span class="font-bold text-xs uppercase text-neutral-900 dark:text-white tracking-tight truncate max-w-[140px] sm:max-w-none">
                     {activeContest()?.title}
                   </span>
                 }
@@ -653,7 +694,7 @@ export default function ContestArena(props: ContestArenaProps) {
                 <select
                   value={selectedContestId()}
                   onChange={(e) => setSelectedContestId(e.currentTarget.value)}
-                  class="notion-input font-mono font-bold text-xs py-1"
+                  class="notion-input font-semibold text-xs py-1 rounded-none"
                 >
                   <For each={contests()}>
                     {(c) => (
@@ -669,20 +710,20 @@ export default function ContestArena(props: ContestArenaProps) {
                 {(c) => (
                   <div class="flex items-center gap-2">
                     <span
-                      class={`status-chip ${
+                      class={`px-2.5 py-0.5 rounded-none text-xs font-semibold uppercase tracking-wider ${
                         c().state === 'running'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800'
+                          ? 'bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 border border-neutral-300 dark:border-neutral-700'
                           : c().state === 'upcoming'
-                          ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800'
+                          ? 'bg-neutral-100 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-neutral-700'
                           : c().state === 'PAUSED'
-                          ? 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800'
-                          : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700'
+                          ? 'bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 border border-neutral-300 dark:border-neutral-700'
+                          : 'bg-neutral-100 dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-700'
                       }`}
                     >
                       {c().is_paused ? 'Paused' : (c().state === 'running' ? 'Running' : 'Upcoming')}
                     </span>
 
-                    <span class="hidden md:inline font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
+                    <span class="hidden md:inline text-[11px] text-neutral-500 dark:text-neutral-400 font-medium">
                       {c().scoring.toUpperCase()} &bull; {c().problem_count} Problems
                     </span>
                   </div>
@@ -693,12 +734,12 @@ export default function ContestArena(props: ContestArenaProps) {
             {/* Central Synced Countdown Clock */}
             <div class="flex items-center gap-3">
               <div class="digital-clock-box">
-                <span class="text-[10px] uppercase text-zinc-500 dark:text-zinc-400">{timerStatusLabel()}:</span>
+                <span class="text-[10px] uppercase font-semibold text-neutral-500 dark:text-neutral-400">{timerStatusLabel()}:</span>
                 <span
-                  class={`text-xs font-bold tracking-widest ${
+                  class={`text-xs font-bold tracking-wider ${
                     timeRemainingSec() < 300 && timeRemainingSec() > 0
-                      ? 'text-rose-600 dark:text-rose-400 animate-pulse'
-                      : 'text-zinc-900 dark:text-sky-400'
+                      ? 'text-neutral-900 dark:text-white underline'
+                      : 'text-neutral-900 dark:text-white'
                   }`}
                 >
                   {timerText()}
@@ -706,7 +747,7 @@ export default function ContestArena(props: ContestArenaProps) {
               </div>
 
               <Show when={leaderboard()?.is_frozen}>
-                <span class="status-chip bg-cyan-50 dark:bg-cyan-950/60 text-cyan-800 dark:text-cyan-400 border-cyan-300 dark:border-cyan-800">
+                <span class="px-2.5 py-0.5 rounded-none text-xs font-semibold bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 border border-neutral-300 dark:border-neutral-700 uppercase tracking-wider">
                   Frozen
                 </span>
               </Show>
@@ -719,22 +760,22 @@ export default function ContestArena(props: ContestArenaProps) {
                 fallback={
                   <button
                     onClick={handleJoinContest}
-                    class="btn-workstation btn-workstation-primary text-xs"
+                    class="btn-workstation-primary px-3.5 py-1.5 rounded-none text-xs font-semibold"
                   >
                     Join Contest
                   </button>
                 }
               >
-                <span class="status-chip bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800">
-                  <IconCheck class="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                <span class="px-2.5 py-0.5 rounded-none text-xs font-semibold bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 border border-neutral-300 dark:border-neutral-700 inline-flex items-center gap-1.5">
+                  <IconCheck class="w-3 h-3 text-neutral-900 dark:text-neutral-100" />
                   <span>Registered</span>
                 </span>
               </Show>
             </div>
           </header>
 
-          {/* Problem Letter Tabs Banner: Workstation Sharp Tabs */}
-          <div class="h-9 border-b border-[#d4d6dc] dark:border-[#262a32] bg-[#eaedf1] dark:bg-[#14171d] px-3 sm:px-4 flex items-center gap-1 overflow-x-auto no-scrollbar">
+          {/* Problem Letter Tabs Banner */}
+          <div class="h-10 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-950 px-3 sm:px-4 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             <For each={problems()}>
               {(p) => {
                 const isSelected = () => selectedLabel() === p.label;
@@ -745,27 +786,36 @@ export default function ContestArena(props: ContestArenaProps) {
                       setSelectedLabel(p.label);
                       setMobileView('statement');
                     }}
-                    class={`flex items-center gap-1.5 px-3 py-1 text-xs font-mono rounded-[2px] border transition shrink-0 ${
+                    class={`flex items-center gap-2 px-3 py-1 text-xs rounded-none border transition shrink-0 ${
                       isSelected()
-                        ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 font-bold border-zinc-900 dark:border-zinc-100 shadow-[1px_1px_0px_rgba(0,0,0,0.15)]'
-                        : 'bg-white dark:bg-[#1a1d24] text-zinc-700 dark:text-zinc-300 border-[#d4d6dc] dark:border-[#2a2f3a] hover:bg-zinc-100 dark:hover:bg-[#222731]'
+                        ? 'bg-black dark:bg-white text-white dark:text-black font-semibold border-black dark:border-white'
+                        : 'bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800'
                     }`}
                   >
                     <span
-                      class={`px-1 rounded-[1px] text-[10px] font-bold ${
+                      class={`px-1.5 py-0.5 rounded-none text-[10px] font-bold border ${
                         status() === 'AC'
-                          ? 'bg-emerald-600 text-white'
+                          ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white'
                           : status() === 'WA'
-                          ? 'bg-rose-600 text-white'
+                          ? 'bg-neutral-200 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 border-neutral-300 dark:border-neutral-700'
                           : isSelected()
-                          ? 'bg-zinc-700 dark:bg-zinc-300 text-white dark:text-zinc-950'
-                          : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300'
+                          ? 'bg-neutral-800 dark:bg-neutral-200 text-white dark:text-black border-transparent'
+                          : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-neutral-700'
                       }`}
                     >
-                      {status() === 'AC' ? '✓' : status() === 'WA' ? '×' : p.label}
+                      <Show
+                        when={status() === 'AC'}
+                        fallback={
+                          <Show when={status() === 'WA'} fallback={p.label}>
+                            <IconX class="w-3 h-3 text-current inline-block" />
+                          </Show>
+                        }
+                      >
+                        <IconCheck class="w-3 h-3 text-current inline-block" />
+                      </Show>
                     </span>
-                    <span>{p.title || `Problem ${p.label}`}</span>
-                    <span class={`text-[10px] ${isSelected() ? 'text-zinc-300 dark:text-zinc-700' : 'text-zinc-400 dark:text-zinc-500'}`}>
+                    <span class="font-semibold">{p.title || `Problem ${p.label}`}</span>
+                    <span class={`text-[10px] ${isSelected() ? 'text-neutral-300 dark:text-neutral-600' : 'text-neutral-400 dark:text-neutral-500'}`}>
                       ({p.points}p)
                     </span>
                   </button>
@@ -775,34 +825,34 @@ export default function ContestArena(props: ContestArenaProps) {
           </div>
 
           {/* Mobile View Mode Switcher (< lg only) */}
-          <div class="flex lg:hidden items-center justify-between px-3 py-1.5 bg-[#eaedf1] dark:bg-[#121419] border-b border-[#d4d6dc] dark:border-[#262a32] text-xs">
-            <div class="flex items-center gap-1 bg-white dark:bg-[#181b22] p-0.5 rounded-[2px] border border-[#d4d6dc] dark:border-[#272b34] w-full font-medium">
+          <div class="flex lg:hidden items-center justify-between px-3 py-1.5 bg-neutral-100 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 text-xs">
+            <div class="flex items-center gap-1 bg-white dark:bg-black p-0.5 rounded-none border border-neutral-300 dark:border-neutral-800 w-full font-medium">
               <button
                 onClick={() => setMobileView('statement')}
-                class={`flex-1 py-1 text-center rounded-[2px] transition ${
+                class={`flex-1 py-1 text-center rounded-none transition ${
                   mobileView() === 'statement'
-                    ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 font-bold shadow-xs'
-                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                    ? 'bg-black dark:bg-white text-white dark:text-black font-semibold'
+                    : 'text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white'
                 }`}
               >
                 Problem
               </button>
               <button
                 onClick={() => setMobileView('editor')}
-                class={`flex-1 py-1 text-center rounded-[2px] transition ${
+                class={`flex-1 py-1 text-center rounded-none transition ${
                   mobileView() === 'editor'
-                    ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 font-bold shadow-xs'
-                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                    ? 'bg-black dark:bg-white text-white dark:text-black font-semibold'
+                    : 'text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white'
                 }`}
               >
                 Code Editor
               </button>
               <button
                 onClick={() => setMobileView('console')}
-                class={`flex-1 py-1 text-center rounded-[2px] transition ${
+                class={`flex-1 py-1 text-center rounded-none transition ${
                   mobileView() === 'console'
-                    ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 font-bold shadow-xs'
-                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                    ? 'bg-black dark:bg-white text-white dark:text-black font-semibold'
+                    : 'text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white'
                 }`}
               >
                 Console & Runs
@@ -815,7 +865,7 @@ export default function ContestArena(props: ContestArenaProps) {
           {/* Left Pane: Independently Scrollable Problem Statement */}
           <div
             style={{ width: isDesktop() ? `${splitX()}%` : '100%' }}
-            class={`border-r border-[#d4d6dc] dark:border-[#262a32] flex-col min-w-0 min-h-0 h-full overflow-y-auto bg-white dark:bg-[#0c0d10] p-4 sm:p-6 space-y-5 ${
+            class={`border-r border-neutral-200 dark:border-neutral-800 flex-col min-w-0 min-h-0 h-full overflow-y-auto bg-white dark:bg-black p-4 sm:p-6 space-y-5 ${
               isDesktop() || mobileView() === 'statement' ? 'flex' : 'hidden'
             }`}
           >
@@ -826,8 +876,8 @@ export default function ContestArena(props: ContestArenaProps) {
             </Show>
 
             <Show when={problemError()}>
-              <div class="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 rounded-[2px] text-amber-900 dark:text-amber-300 font-mono text-xs">
-                <strong>[NOTICE]:</strong> {problemError()}
+              <div class="p-3.5 bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-800 rounded-none text-neutral-900 dark:text-neutral-100 text-xs font-sans">
+                <strong>Notice:</strong> {problemError()}
               </div>
             </Show>
 
@@ -835,33 +885,27 @@ export default function ContestArena(props: ContestArenaProps) {
               {(p) => (
                 <div class="space-y-5">
                   {/* Header & Badges */}
-                  <div class="pb-3 border-b border-[#d4d6dc] dark:border-[#262a32] space-y-2">
+                  <div class="pb-3 border-b border-neutral-200 dark:border-neutral-800 space-y-2">
                     <div class="flex items-center justify-between">
-                      <h1 class="text-lg font-bold text-zinc-900 dark:text-white">
+                      <h1 class="text-lg font-bold text-neutral-900 dark:text-white">
                         Problem {p().label}. {p().title}
                       </h1>
                       <span
-                        class={`status-chip ${
-                          p().difficulty === 'EASY'
-                            ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
-                            : p().difficulty === 'MEDIUM'
-                            ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800'
-                            : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800'
-                        }`}
+                        class="status-chip bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 border-neutral-300 dark:border-neutral-700"
                       >
                         {p().difficulty}
                       </span>
                     </div>
 
-                    <div class="flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-                      <span>Time: <strong class="text-zinc-800 dark:text-zinc-200">{p().time_limit_ms}ms</strong></span>
-                      <span class="text-zinc-300 dark:text-zinc-700">&bull;</span>
-                      <span>Memory: <strong class="text-zinc-800 dark:text-zinc-200">{p().memory_mb}MB</strong></span>
-                      <span class="text-zinc-300 dark:text-zinc-700">&bull;</span>
-                      <span>Points: <strong class="text-zinc-800 dark:text-zinc-200">{p().points}</strong></span>
+                    <div class="flex flex-wrap items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+                      <span>Time: <strong class="text-neutral-800 dark:text-neutral-200">{p().time_limit_ms}ms</strong></span>
+                      <span class="text-neutral-300 dark:text-neutral-700">&bull;</span>
+                      <span>Memory: <strong class="text-neutral-800 dark:text-neutral-200">{p().memory_mb}MB</strong></span>
+                      <span class="text-neutral-300 dark:text-neutral-700">&bull;</span>
+                      <span>Points: <strong class="text-neutral-800 dark:text-neutral-200">{p().points}</strong></span>
                       <Show when={p().complexity_policy?.time_complexity}>
-                        <span class="text-zinc-300 dark:text-zinc-700">&bull;</span>
-                        <span class="status-chip bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800">
+                        <span class="text-neutral-300 dark:text-neutral-700">&bull;</span>
+                        <span class="status-chip bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 border-neutral-300 dark:border-neutral-700">
                           Expected: {p().complexity_policy?.time_complexity}
                         </span>
                       </Show>
@@ -872,31 +916,31 @@ export default function ContestArena(props: ContestArenaProps) {
                   <MarkdownView content={p().statement_md} />
 
                   {/* Sample Testcases */}
-                  <div class="space-y-3 pt-3 border-t border-[#d4d6dc] dark:border-[#262a32]">
-                    <span class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                  <div class="space-y-3 pt-3 border-t border-neutral-200 dark:border-neutral-800">
+                    <span class="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
                       Sample Test Cases
                     </span>
 
                     <For each={p().sample_tests}>
                       {(tc) => (
-                        <div class="p-3 bg-[#f8f9fa] dark:bg-[#111317] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px] space-y-2">
-                          <div class="flex items-center justify-between text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                        <div class="p-3 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-none space-y-2">
+                          <div class="flex items-center justify-between text-xs font-semibold text-neutral-700 dark:text-neutral-300">
                             <span>Sample Case {tc.ordinal}</span>
                           </div>
-                          <div class="grid grid-cols-2 gap-3">
+                          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                              <div class="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 mb-1">
+                              <div class="text-[11px] font-semibold text-neutral-600 dark:text-neutral-400 mb-1">
                                 Input:
                               </div>
-                              <pre class="bg-white dark:bg-[#060709] p-2 rounded-[2px] border border-[#d4d6dc] dark:border-[#262a32] text-xs font-mono text-zinc-900 dark:text-zinc-200 overflow-x-auto">
+                              <pre class="bg-white dark:bg-black p-2.5 rounded-none border border-neutral-200 dark:border-neutral-800 text-xs font-mono text-neutral-900 dark:text-neutral-200 max-h-48 overflow-y-auto overflow-x-auto whitespace-pre block">
                                 {tc.input_data}
                               </pre>
                             </div>
                             <div>
-                              <div class="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 mb-1">
+                              <div class="text-[11px] font-semibold text-neutral-600 dark:text-neutral-400 mb-1">
                                 Expected Output:
                               </div>
-                              <pre class="bg-white dark:bg-[#060709] p-2 rounded-[2px] border border-[#d4d6dc] dark:border-[#262a32] text-xs font-mono text-emerald-700 dark:text-emerald-400 font-bold overflow-x-auto">
+                              <pre class="bg-white dark:bg-black p-2.5 rounded-none border border-neutral-200 dark:border-neutral-800 text-xs font-mono text-neutral-900 dark:text-neutral-200 font-bold max-h-48 overflow-y-auto overflow-x-auto whitespace-pre block">
                                 {tc.output_data}
                               </pre>
                             </div>
@@ -912,20 +956,20 @@ export default function ContestArena(props: ContestArenaProps) {
 
           {/* Horizontal Splitter Drag Handle between Problem and Code Panels */}
           <div
-            onMouseDown={handleStartDragX}
-            class={`w-1.5 shrink-0 bg-[#d4d6dc] dark:bg-[#262a32] hover:bg-blue-600 dark:hover:bg-blue-500 cursor-col-resize transition-colors items-center justify-center group relative z-10 select-none ${
+            onPointerDown={handleStartDragX}
+            class={`w-2 shrink-0 bg-neutral-200 dark:bg-neutral-800 hover:bg-neutral-400 dark:hover:bg-neutral-600 cursor-col-resize transition-colors items-center justify-center group relative z-20 select-none touch-none ${
               isDesktop() ? 'flex' : 'hidden'
             }`}
             title="Drag horizontally to resize problem description and code editor"
           >
-            <div class="w-0.5 h-8 rounded-none bg-zinc-400 dark:bg-zinc-600 group-hover:bg-white transition-colors" />
+            <div class="w-0.5 h-8 bg-neutral-400 dark:bg-neutral-600 group-hover:bg-black dark:group-hover:bg-white transition-colors" />
           </div>
 
           {/* Right Pane: Code Editor & Results Console */}
           <div
             ref={rightPaneRef}
             style={{ width: isDesktop() ? `${100 - splitX()}%` : '100%' }}
-            class={`flex-col min-w-0 min-h-0 h-full overflow-hidden bg-white dark:bg-[#090a0c] ${
+            class={`flex-col min-w-0 min-h-0 h-full overflow-hidden bg-white dark:bg-black ${
               isDesktop() || mobileView() !== 'statement' ? 'flex' : 'hidden'
             }`}
           >
@@ -937,12 +981,12 @@ export default function ContestArena(props: ContestArenaProps) {
               }`}
             >
               {/* Editor Header Bar */}
-              <div class="h-9 shrink-0 border-b border-[#d4d6dc] dark:border-[#262a32] px-4 flex items-center justify-between bg-[#f0f2f5] dark:bg-[#121419] font-mono text-xs">
+              <div class="h-10 shrink-0 border-b border-neutral-200 dark:border-neutral-800 px-4 flex items-center justify-between bg-neutral-50 dark:bg-neutral-950 text-xs font-sans">
                 <div class="flex items-center gap-3">
                   <select
                     value={language()}
                     onChange={(e) => handleLanguageChange(e.currentTarget.value)}
-                    class="notion-input text-xs font-mono py-0.5 rounded-[2px]"
+                    class="notion-input text-xs font-semibold py-1 rounded-none"
                   >
                     <option value="cpp23-gcc">C++23 (GCC 14)</option>
                     <option value="cpp23-clang">C++23 (Clang 18)</option>
@@ -955,13 +999,13 @@ export default function ContestArena(props: ContestArenaProps) {
 
                   <button
                     onClick={handleResetBoilerplate}
-                    class="text-[11px] text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition"
+                    class="text-[11px] text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white transition font-medium"
                   >
                     Reset Starter
                   </button>
                 </div>
 
-                <span class="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                <span class="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
                   Problem {selectedLabel()}
                 </span>
               </div>
@@ -980,50 +1024,50 @@ export default function ContestArena(props: ContestArenaProps) {
 
             {/* Vertical Splitter Drag Handle between Code Editor and Console */}
             <div
-              onMouseDown={handleStartDragY}
-              class={`h-1.5 shrink-0 bg-[#d4d6dc] dark:bg-[#262a32] hover:bg-blue-600 dark:hover:bg-blue-500 cursor-row-resize transition-colors items-center justify-center group relative z-10 select-none ${
+              onPointerDown={handleStartDragY}
+              class={`h-2 shrink-0 bg-neutral-200 dark:bg-neutral-800 hover:bg-neutral-400 dark:hover:bg-neutral-600 cursor-row-resize transition-colors items-center justify-center group relative z-20 select-none touch-none ${
                 isDesktop() ? 'flex' : 'hidden'
               }`}
-              title="Drag vertically to resize code editor and console"
+              title="Drag vertically to resize code editor and console drawer"
             >
-              <div class="h-0.5 w-10 rounded-none bg-zinc-400 dark:bg-zinc-600 group-hover:bg-white transition-colors" />
+              <div class="h-0.5 w-12 bg-neutral-400 dark:bg-neutral-600 group-hover:bg-black dark:group-hover:bg-white transition-colors" />
             </div>
 
             {/* Bottom Sub-Pane: Console Tabs & Drawer */}
             <div
               style={{ height: isDesktop() ? `${100 - splitY()}%` : (mobileView() === 'console' ? '100%' : '0%') }}
-              class={`flex-col min-h-0 min-w-0 overflow-hidden bg-[#f8f9fa] dark:bg-[#0c0d10] border-t border-[#d4d6dc] dark:border-[#262a32] ${
+              class={`flex-col min-h-0 min-w-0 overflow-hidden bg-white dark:bg-black border-t border-neutral-200 dark:border-neutral-800 ${
                 isDesktop() || mobileView() === 'console' ? 'flex' : 'hidden'
               }`}
             >
               {/* Tab Selector */}
-              <div class="flex items-center gap-1 px-3 py-1 border-b border-[#d4d6dc] dark:border-[#262a32] bg-[#eaedf1] dark:bg-[#121419] text-xs font-medium">
+              <div class="flex items-center gap-1 px-3 py-1 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-950 text-xs font-medium">
                 <button
                   onClick={() => setActiveTab('cases')}
-                  class={`px-3 py-1 rounded-[2px] transition ${
+                  class={`px-3 py-1 rounded-none transition ${
                     activeTab() === 'cases'
-                      ? 'bg-white dark:bg-[#1f232d] text-zinc-900 dark:text-white font-semibold border border-[#d4d6dc] dark:border-[#2e3442] shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
-                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                      ? 'bg-white dark:bg-black text-neutral-900 dark:text-white font-semibold border border-neutral-300 dark:border-neutral-700'
+                      : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
                   }`}
                 >
                   Test Cases
                 </button>
                 <button
                   onClick={() => setActiveTab('output')}
-                  class={`px-3 py-1 rounded-[2px] transition ${
+                  class={`px-3 py-1 rounded-none transition ${
                     activeTab() === 'output'
-                      ? 'bg-white dark:bg-[#1f232d] text-zinc-900 dark:text-white font-semibold border border-[#d4d6dc] dark:border-[#2e3442] shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
-                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                      ? 'bg-white dark:bg-black text-neutral-900 dark:text-white font-semibold border border-neutral-300 dark:border-neutral-700'
+                      : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
                   }`}
                 >
                   Run Output
                 </button>
                 <button
                   onClick={() => setActiveTab('verdict')}
-                  class={`px-3 py-1 rounded-[2px] transition ${
+                  class={`px-3 py-1 rounded-none transition ${
                     activeTab() === 'verdict'
-                      ? 'bg-white dark:bg-[#1f232d] text-zinc-900 dark:text-white font-semibold border border-[#d4d6dc] dark:border-[#2e3442] shadow-[1px_1px_0px_rgba(0,0,0,0.06)]'
-                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                      ? 'bg-white dark:bg-black text-neutral-900 dark:text-white font-semibold border border-neutral-300 dark:border-neutral-700'
+                      : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
                   }`}
                 >
                   Submissions
@@ -1031,10 +1075,10 @@ export default function ContestArena(props: ContestArenaProps) {
               </div>
 
               {/* Tab Content */}
-              <div class="flex-1 p-4 overflow-y-auto text-xs">
+              <div class="flex-1 p-3 sm:p-4 overflow-y-auto min-h-0 text-xs">
                 {/* 1. Testcases Tab */}
                 <Show when={activeTab() === 'cases'}>
-                  <div class="space-y-3 font-mono">
+                  <div class="space-y-3 font-sans">
                     <div class="flex items-center gap-2">
                       <For each={problemDetail()?.sample_tests || []}>
                         {(_tc, idx) => (
@@ -1043,10 +1087,10 @@ export default function ContestArena(props: ContestArenaProps) {
                               setSelectedCaseIndex(idx());
                               setUseCustomInput(false);
                             }}
-                            class={`px-2.5 py-0.5 rounded-[2px] text-xs font-semibold border transition ${
+                            class={`px-3 py-1 rounded-none text-xs font-semibold border transition ${
                               selectedCaseIndex() === idx() && !useCustomInput()
-                                ? 'bg-zinc-900 text-white dark:bg-zinc-200 dark:text-zinc-950 border-zinc-900 dark:border-zinc-200'
-                                : 'bg-white dark:bg-[#16181f] border-[#d4d6dc] dark:border-[#262a32] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                                ? 'bg-black text-white dark:bg-white dark:text-black border-black dark:border-white'
+                                : 'bg-white dark:bg-black border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
                             }`}
                           >
                             Case {idx() + 1}
@@ -1055,10 +1099,10 @@ export default function ContestArena(props: ContestArenaProps) {
                       </For>
                       <button
                         onClick={() => setUseCustomInput(true)}
-                        class={`px-2.5 py-0.5 rounded-[2px] text-xs font-semibold border transition ${
+                        class={`px-3 py-1 rounded-none text-xs font-semibold border transition ${
                           useCustomInput()
-                            ? 'bg-zinc-900 text-white dark:bg-zinc-200 dark:text-zinc-950 border-zinc-900 dark:border-zinc-200'
-                            : 'bg-white dark:bg-[#16181f] border-[#d4d6dc] dark:border-[#262a32] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                            ? 'bg-black text-white dark:bg-white dark:text-black border-black dark:border-white'
+                            : 'bg-white dark:bg-black border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
                         }`}
                       >
                         + Custom Input
@@ -1070,20 +1114,20 @@ export default function ContestArena(props: ContestArenaProps) {
                       fallback={
                         <Show when={problemDetail()?.sample_tests?.[selectedCaseIndex()]}>
                           {(tc) => (
-                            <div class="grid grid-cols-2 gap-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <div>
-                                <span class="font-semibold text-zinc-600 dark:text-zinc-400 mb-1 block text-xs font-sans">
+                                <span class="font-semibold text-neutral-600 dark:text-neutral-400 mb-1 block text-xs font-sans">
                                   Input:
                                 </span>
-                                <pre class="p-2 bg-white dark:bg-[#060709] rounded-[2px] border border-[#d4d6dc] dark:border-[#262a32] font-mono text-xs text-zinc-800 dark:text-zinc-200">
+                                <pre class="p-2.5 bg-neutral-50 dark:bg-neutral-950 rounded-none border border-neutral-200 dark:border-neutral-800 font-mono text-xs text-neutral-800 dark:text-neutral-200 max-h-48 overflow-y-auto overflow-x-auto whitespace-pre block">
                                   {tc().input_data}
                                 </pre>
                               </div>
                               <div>
-                                <span class="font-semibold text-zinc-600 dark:text-zinc-400 mb-1 block text-xs font-sans">
+                                <span class="font-semibold text-neutral-600 dark:text-neutral-400 mb-1 block text-xs font-sans">
                                   Expected Output:
                                 </span>
-                                <pre class="p-2 bg-white dark:bg-[#060709] rounded-[2px] border border-[#d4d6dc] dark:border-[#262a32] font-mono text-xs text-emerald-700 dark:text-emerald-400 font-bold">
+                                <pre class="p-2.5 bg-neutral-50 dark:bg-neutral-950 rounded-none border border-neutral-200 dark:border-neutral-800 font-mono text-xs text-neutral-800 dark:text-neutral-200 font-bold max-h-48 overflow-y-auto overflow-x-auto whitespace-pre block">
                                   {tc().output_data}
                                 </pre>
                               </div>
@@ -1093,13 +1137,13 @@ export default function ContestArena(props: ContestArenaProps) {
                       }
                     >
                       <div>
-                        <span class="font-semibold text-zinc-700 dark:text-zinc-300 mb-1 block text-xs font-sans">Custom Input:</span>
+                        <span class="font-semibold text-neutral-700 dark:text-neutral-300 mb-1 block text-xs font-sans">Custom Input:</span>
                         <textarea
                           rows="3"
                           value={customInputText()}
                           onInput={(e) => setCustomInputText(e.currentTarget.value)}
                           placeholder="Enter custom input to execute against..."
-                          class="notion-input w-full font-mono text-xs"
+                          class="notion-input w-full font-mono text-xs rounded-none"
                         />
                       </div>
                     </Show>
@@ -1115,29 +1159,25 @@ export default function ContestArena(props: ContestArenaProps) {
                     <Show
                       when={sampleRunResult()}
                       fallback={
-                        <div class="py-8 text-center text-zinc-400 dark:text-zinc-500 font-sans text-xs">
+                        <div class="py-8 text-center text-neutral-400 dark:text-neutral-500 font-sans text-xs">
                           Click "Run Code" to compile and execute against sample test vectors.
                         </div>
                       }
                     >
-                    <div class="space-y-3 font-mono">
+                    <div class="space-y-3 font-sans">
                       <div class="flex items-center gap-3">
                         <span
-                          class={`status-chip ${
-                            sampleRunResult().verdict === 'AC'
-                              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
-                              : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800'
-                          }`}
+                          class="status-chip bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 border-neutral-300 dark:border-neutral-700"
                         >
                           {sampleRunResult().verdict}
                         </span>
-                        <span class="text-zinc-600 dark:text-zinc-400 text-xs font-sans">
+                        <span class="text-neutral-600 dark:text-neutral-400 text-xs font-sans">
                           Time: {sampleRunResult().time_ms || 0}ms &bull; Memory: {sampleRunResult().memory_kb || 0}KB
                         </span>
                       </div>
 
                       <Show when={sampleRunResult().compile_output}>
-                        <pre class="p-2.5 rounded-[2px] bg-rose-50 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 font-mono text-xs">
+                        <pre class="p-3 rounded-none bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100 font-mono text-xs">
                           {sampleRunResult().compile_output}
                         </pre>
                       </Show>
@@ -1145,18 +1185,18 @@ export default function ContestArena(props: ContestArenaProps) {
                       <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                         <For each={sampleRunResult().sample_results}>
                           {(sr: any) => (
-                            <div class="p-2.5 bg-white dark:bg-[#12141a] rounded-[2px] border border-[#d4d6dc] dark:border-[#262a32] space-y-1">
+                            <div class="p-3 bg-white dark:bg-black rounded-none border border-neutral-200 dark:border-neutral-800 space-y-1.5 shadow-xs">
                               <div class="flex justify-between font-semibold text-xs">
-                                <span class="text-zinc-800 dark:text-zinc-200">Sample {sr.ordinal}</span>
-                                <span class={sr.verdict === 'AC' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                                <span class="text-neutral-800 dark:text-neutral-200">Sample {sr.ordinal}</span>
+                                <span class="font-bold text-neutral-900 dark:text-neutral-100">
                                   {sr.verdict}
                                 </span>
                               </div>
-                              <div class="text-[11px] text-zinc-500 dark:text-zinc-400">
-                                Output: <code class="text-zinc-800 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 px-1 py-0.2 rounded-[1px]">{sr.actual || '(no output)'}</code>
+                              <div class="text-[11px] text-neutral-500 dark:text-neutral-400">
+                                Output: <code class="text-neutral-800 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-900 px-1 py-0.5 rounded-none border border-neutral-200 dark:border-neutral-800">{sr.actual || '(no output)'}</code>
                               </div>
                               <Show when={sr.verdict !== 'AC'}>
-                                <div class="text-[11px] text-emerald-600 dark:text-emerald-400">
+                                <div class="text-[11px] text-neutral-600 dark:text-neutral-400">
                                   Expected: {sr.expected}
                                 </div>
                               </Show>
@@ -1171,7 +1211,7 @@ export default function ContestArena(props: ContestArenaProps) {
 
                 {/* 3. Submission Verdict Tab */}
                 <Show when={activeTab() === 'verdict'}>
-                  <div class="space-y-3 font-mono">
+                  <div class="space-y-3 font-sans">
                     <Show when={isSubmitting()}>
                       <CrtTerminalLoader
                         mode="submit"
@@ -1183,31 +1223,23 @@ export default function ContestArena(props: ContestArenaProps) {
 
                     <Show when={submissionVerdict()}>
                       {(v) => (
-                        <div class="p-4 bg-white dark:bg-[#12141a] border border-[#d4d6dc] dark:border-[#262a32] rounded-[2px] space-y-3">
+                        <div class="p-4 bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-none space-y-3 shadow-xs">
                           <div class="flex items-center gap-3">
                             <span
-                              class={`status-chip text-sm ${
-                                v().verdict === 'AC'
-                                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
-                                  : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800'
-                              }`}
+                              class="status-chip text-sm bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 border-neutral-300 dark:border-neutral-700"
                             >
                               {v().verdict}
                             </span>
-                            <span class="text-xs text-zinc-600 dark:text-zinc-300 font-sans">
-                              Time: <strong class="text-zinc-900 dark:text-white">{v().total_time_ms || 0}ms</strong> &bull; Memory:{' '}
-                              <strong class="text-zinc-900 dark:text-white">{Math.round((v().peak_memory_kb || 0) / 1024)}MB</strong>
+                            <span class="text-xs text-neutral-600 dark:text-neutral-300 font-sans">
+                              Time: <strong class="text-neutral-900 dark:text-white">{v().total_time_ms || 0}ms</strong> &bull; Memory:{' '}
+                              <strong class="text-neutral-900 dark:text-white">{Math.round((v().peak_memory_kb || 0) / 1024)}MB</strong>
                             </span>
                           </div>
 
                           <Show when={v().complexity_report}>
                             {(cr) => (
                               <div
-                                class={`p-2.5 rounded-[2px] text-xs border ${
-                                  cr().passed
-                                    ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
-                                    : 'bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800'
-                                }`}
+                                class="p-3 rounded-none text-xs border bg-neutral-50 dark:bg-neutral-950 text-neutral-800 dark:text-neutral-200 border-neutral-200 dark:border-neutral-800"
                               >
                                 <div class="font-semibold mb-1">Complexity Analysis ({cr().target_complexity || 'Enforced'})</div>
                                 <div>{cr().diagnostic || 'Passes complexity requirements.'}</div>
@@ -1216,7 +1248,7 @@ export default function ContestArena(props: ContestArenaProps) {
                           </Show>
 
                           <Show when={v().compile_output}>
-                            <pre class="p-2 bg-rose-50 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 rounded-[2px] font-mono text-xs">
+                            <pre class="p-2.5 bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100 rounded-none font-mono text-xs">
                               {v().compile_output}
                             </pre>
                           </Show>
@@ -1229,23 +1261,24 @@ export default function ContestArena(props: ContestArenaProps) {
             </div>
 
             {/* Persistent Sticky Bottom Action Bar */}
-            <div class="sticky-action-bar min-h-12 py-1 sm:py-0 px-3 sm:px-5 flex items-center justify-between border-t border-[#d4d6dc] dark:border-[#262a32] bg-[#eaedf1] dark:bg-[#111316] text-xs gap-2">
-              <div class="hidden sm:block text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
-                <span>Shortcuts: </span>
-                <kbd class="px-1.5 py-0.5 bg-white dark:bg-[#1f2229] border border-[#d4d6dc] dark:border-[#313744] text-zinc-800 dark:text-zinc-200 rounded-[2px] font-mono text-[10px]">Ctrl+Enter</kbd>
-                <span> Run &bull; </span>
-                <kbd class="px-1.5 py-0.5 bg-white dark:bg-[#1f2229] border border-[#d4d6dc] dark:border-[#313744] text-zinc-800 dark:text-zinc-200 rounded-[2px] font-mono text-[10px]">Ctrl+Shift+Enter</kbd>
-                <span> Submit</span>
+            <div class="sticky-action-bar min-h-12 py-2 sm:py-0 px-4 sm:px-6 flex items-center justify-between border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-black text-xs gap-3">
+              <div class="hidden sm:flex items-center gap-2 text-[11px] text-neutral-500 dark:text-neutral-400">
+                <span>Shortcuts:</span>
+                <kbd class="px-2 py-0.5 bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 text-neutral-800 dark:text-neutral-200 rounded-none font-sans font-semibold text-[10px]">Ctrl+Enter</kbd>
+                <span>Run</span>
+                <span class="text-neutral-300 dark:text-neutral-700">&bull;</span>
+                <kbd class="px-2 py-0.5 bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 text-neutral-800 dark:text-neutral-200 rounded-none font-sans font-semibold text-[10px]">Ctrl+Shift+Enter</kbd>
+                <span>Submit</span>
               </div>
 
               <div class="flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto justify-end">
                 <button
                   onClick={handleRunSamples}
                   disabled={isRunning() || isSubmitting()}
-                  class="btn-workstation btn-workstation-secondary text-xs flex items-center gap-1.5 flex-1 sm:flex-none justify-center"
+                  class="btn-workstation-secondary rounded-none px-4 py-2 text-xs font-semibold flex items-center gap-1.5 flex-1 sm:flex-none justify-center"
                 >
-                  <Show when={isRunning()} fallback={<IconPlay class="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />}>
-                    <ButtonSpinner class="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />
+                  <Show when={isRunning()} fallback={<IconPlay class="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-300" />}>
+                    <ButtonSpinner class="w-3.5 h-3.5 text-neutral-900 dark:text-neutral-100" />
                   </Show>
                   <span>{isRunning() ? 'Running...' : 'Run Code'}</span>
                 </button>
@@ -1253,10 +1286,10 @@ export default function ContestArena(props: ContestArenaProps) {
                 <button
                   onClick={handleContestSubmit}
                   disabled={isSubmitting() || isRunning()}
-                  class="btn-workstation btn-workstation-success text-xs font-semibold flex items-center gap-1.5 flex-1 sm:flex-none justify-center"
+                  class="btn-workstation-primary rounded-none px-4 py-2 text-xs font-semibold flex items-center gap-1.5 flex-1 sm:flex-none justify-center"
                 >
                   <Show when={isSubmitting()} fallback={<IconCheck class="w-3.5 h-3.5" />}>
-                    <ButtonSpinner class="w-3.5 h-3.5 text-white" />
+                    <ButtonSpinner class="w-3.5 h-3.5 text-white dark:text-black" />
                   </Show>
                   <span>{isSubmitting() ? 'Evaluating...' : 'Submit Solution'}</span>
                 </button>

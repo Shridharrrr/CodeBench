@@ -22,12 +22,6 @@ A valid BST is defined as follows:
 - The right subtree of a node contains only nodes with keys strictly greater than the node's key.
 - Both the left and right subtrees must also be binary search trees.
 
-### Input Format
-The first line contains `n`.
-The second line contains `n` space-separated elements representing the level-order traversal (`null` for empty child).
-
-### Output Format
-Print `true` if valid BST, otherwise `false`.
 
 ### Constraints
 - 1 <= n <= 10^4

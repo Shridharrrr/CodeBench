@@ -16,12 +16,6 @@ checker_type: token
 
 Given the head of a linked list, remove the `n`-th node from the end of the list and return its head.
 
-### Input Format
-The first line contains two integers `len` and `n`.
-The second line contains `len` space-separated integers.
-
-### Output Format
-Print the remaining linked list values separated by spaces.
 
 ### Constraints
 - 1 <= len <= 30

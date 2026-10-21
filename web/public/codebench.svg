@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+  <style>
+    .icon-stroke { stroke: #09090b; }
+    .icon-fill { fill: #09090b; }
+    @media (prefers-color-scheme: dark) {
+      .icon-stroke { stroke: #fafafa; }
+      .icon-fill { fill: #fafafa; }
+    }
+  </style>
+  <!-- Stickman Head -->
+  <circle cx="10" cy="5.5" r="2.2" class="icon-fill" />
+  <!-- Stickman Torso -->
+  <line x1="10" y1="7.7" x2="10" y2="14" class="icon-stroke" stroke-width="1.8" stroke-linecap="round" />
+  <!-- Arms holding laptop -->
+  <polyline points="10 10.5 12.5 12.5 13.5 12.5" class="icon-stroke" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Laptop on lap -->
+  <path d="M12.5 14 h3.5 l1.2 -2.5" class="icon-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Thighs & Calves -->
+  <polyline points="10 14 14.5 14 14.5 20" class="icon-stroke" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Bench Backrest -->
+  <line x1="5.5" y1="8" x2="7" y2="14" class="icon-stroke" stroke-width="1.8" stroke-linecap="round" />
+  <line x1="4.5" y1="10" x2="7.5" y2="10" class="icon-stroke" stroke-width="1.8" stroke-linecap="round" />
+  <!-- Bench Seat -->
+  <line x1="4" y1="14" x2="19.5" y2="14" class="icon-stroke" stroke-width="2.2" stroke-linecap="round" />
+  <!-- Bench Legs -->
+  <line x1="6.8" y1="14" x2="6" y2="20" class="icon-stroke" stroke-width="1.8" stroke-linecap="round" />
+  <line x1="17.2" y1="14" x2="17.8" y2="20" class="icon-stroke" stroke-width="1.8" stroke-linecap="round" />
+  <!-- Bench Crossbar -->
+  <line x1="6.3" y1="17.5" x2="17.5" y2="17.5" class="icon-stroke" stroke-width="1.2" stroke-linecap="round" />
+</svg>

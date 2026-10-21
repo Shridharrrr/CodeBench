@@ -17,12 +17,6 @@ checker_type: token
 
 Given an `m x n` matrix, return all elements of the matrix in spiral order.
 
-### Input Format
-The first line contains `m` and `n`.
-The next `m` lines contain `n` space-separated integers each.
-
-### Output Format
-Print the elements in spiral order separated by spaces.
 
 ### Constraints
 - 1 <= m, n <= 10

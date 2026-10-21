@@ -18,13 +18,6 @@ checker_type: token
 
 Given two integer arrays `preorder` and `inorder` where `preorder` is the preorder traversal of a binary tree and `inorder` is the inorder traversal of the same tree, construct and return the binary tree's postorder traversal.
 
-### Input Format
-The first line contains `n`.
-The second line contains `n` space-separated integers for `preorder`.
-The third line contains `n` space-separated integers for `inorder`.
-
-### Output Format
-Print the postorder traversal of the reconstructed tree.
 
 ### Constraints
 - 1 <= n <= 3000

@@ -17,16 +17,6 @@ checker_type: token
 
 Implement a first in first out (FIFO) queue using only two stacks. The implemented queue should support all the functions of a normal queue (`push`, `pop`, `peek`, and `empty`).
 
-### Input Format
-The first line contains an integer `q` denoting the number of operations.
-The next `q` lines describe operations:
-- `push x`
-- `pop`
-- `peek`
-- `empty`
-
-### Output Format
-For each `pop`, `peek`, and `empty` operation, print the resulting value on a new line.
 
 ### Constraints
 - 1 <= q <= 100

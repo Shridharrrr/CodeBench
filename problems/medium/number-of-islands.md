@@ -20,12 +20,6 @@ Given an `m x n` 2D binary grid `grid` which represents a map of `'1'`s (land) a
 
 An island is surrounded by water and is formed by connecting adjacent lands horizontally or vertically. You may assume all four edges of the grid are all surrounded by water.
 
-### Input Format
-The first line contains `m` and `n`.
-The next `m` lines contain `n` space-separated characters (`1` or `0`).
-
-### Output Format
-Print the number of islands as an integer.
 
 ### Constraints
 - 1 <= m, n <= 300

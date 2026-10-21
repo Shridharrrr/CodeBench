@@ -21,11 +21,6 @@ You have the following three operations permitted on a word:
 - Delete a character
 - Replace a character
 
-### Input Format
-Two lines: the first contains `word1` and the second contains `word2`.
-
-### Output Format
-Print the minimum edit distance as an integer.
 
 ### Constraints
 - 0 <= word1.length, word2.length <= 500

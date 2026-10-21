@@ -1,34 +1,16 @@
 # Longest Palindromic Substring
 
-Given a string `s`, return the longest palindromic substring in `s`. If there are multiple palindromic substrings of the maximum length, return the one that appears earliest in `s`.
+Given a string `s`, return the longest palindromic substring in `s`.
 
-## Input Format
-The first line contains a single string $s$ consisting of lowercase English letters.
+### Example 1:
+**Input:** s = "babad"  
+**Output:** "bab"  
+**Explanation:** "aba" is also a valid answer.
 
-## Output Format
-Print the longest palindromic substring.
+### Example 2:
+**Input:** s = "cbbd"  
+**Output:** "bb"  
 
-## Constraints
-- $1 \le |s| \le 2000$
-- $s$ consists only of lowercase English letters.
-
-## Sample 1
-### Input
-```text
-babad
-```
-### Output
-```text
-bab
-```
-Note: `aba` is also a valid answer of length 3, but `bab` appears first.
-
-## Sample 2
-### Input
-```text
-cbbd
-```
-### Output
-```text
-bb
-```
+### Constraints:
+- `1 <= s.length <= 1000`
+- `s` consists of only digits and English letters.

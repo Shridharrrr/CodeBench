@@ -18,12 +18,6 @@ Given an array of integers `nums` and an integer `target`, return the 0-based in
 
 You may assume that each input would have exactly one solution, and you may not use the same element twice. Output the smaller index first, followed by the larger index.
 
-### Input Format
-The first line contains two space-separated integers `n` and `target`.
-The second line contains `n` space-separated integers representing the array `nums`.
-
-### Output Format
-Print two space-separated integers denoting the indices of the two numbers in ascending order.
 
 ### Constraints
 - 2 <= n <= 10^4

@@ -20,11 +20,6 @@ Given a string containing digits from `2-9` inclusive, return all possible lette
 A mapping of digits to letters (just like on telephone buttons) is given below:
 2: abc, 3: def, 4: ghi, 5: jkl, 6: mno, 7: pqrs, 8: tuv, 9: wxyz.
 
-### Input Format
-A single line containing the digits string.
-
-### Output Format
-Print space-separated strings of all letter combinations in lexicographical order.
 
 ### Constraints
 - 0 <= digits.length <= 4

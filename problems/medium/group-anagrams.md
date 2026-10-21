@@ -18,12 +18,6 @@ checker_type: token
 
 Given an array of strings `strs`, group the anagrams together. You can return the answer in any order, but words within each group should be sorted alphabetically, and groups should be sorted by the first word.
 
-### Input Format
-The first line contains `n`.
-The second line contains `n` space-separated words.
-
-### Output Format
-Print each group on a new line with space-separated words.
 
 ### Constraints
 - 1 <= n <= 10^4

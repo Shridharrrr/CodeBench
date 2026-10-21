@@ -4,32 +4,32 @@
 
 @layer base {
   :root {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     color-scheme: light;
-    --background: #f4f5f7;
-    --foreground: #18191b;
+    --background: #ffffff;
+    --foreground: #09090b;
     --card: #ffffff;
-    --card-foreground: #18191b;
-    --border: #d4d6dc;
-    --border-subtle: #e5e7eb;
-    --muted: #ebedf1;
-    --muted-foreground: #5a606b;
-    --accent: #2563eb;
+    --card-foreground: #09090b;
+    --border: #e4e4e7;
+    --border-subtle: #f4f4f5;
+    --muted: #f4f4f5;
+    --muted-foreground: #71717a;
+    --accent: #09090b;
     --accent-foreground: #ffffff;
   }
 
   html.dark {
     color-scheme: dark;
-    --background: #090a0c;
-    --foreground: #f0f2f5;
-    --card: #111316;
-    --card-foreground: #f0f2f5;
-    --border: #262a32;
-    --border-subtle: #1c1f26;
-    --muted: #16181e;
-    --muted-foreground: #8b929e;
-    --accent: #3b82f6;
-    --accent-foreground: #ffffff;
+    --background: #000000;
+    --foreground: #fafafa;
+    --card: #09090b;
+    --card-foreground: #fafafa;
+    --border: #27272a;
+    --border-subtle: #18181b;
+    --muted: #121214;
+    --muted-foreground: #a1a1aa;
+    --accent: #ffffff;
+    --accent-foreground: #000000;
   }
 
   body {
@@ -49,89 +49,93 @@
   }
 }
 
+.font-serif-italic {
+  font-family: 'Newsreader', Georgia, Cambria, 'Times New Roman', serif;
+  font-style: italic;
+}
+
 /* =====================================================================
-   Legacy-Modern Architectural Workstation Components
+   Boxed Black & White Shadcn/Vercel/Notion Workstation Components
    ===================================================================== */
 .notion-card {
-  background-color: #ffffff;
-  border: 1px solid #d4d6dc;
-  border-radius: 2px;
-  box-shadow: 1px 1px 0px rgba(0, 0, 0, 0.05);
-  transition: border-color 0.1s ease, box-shadow 0.1s ease, background-color 0.1s ease;
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0px;
+  box-shadow: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
 html.dark .notion-card {
-  background-color: #111316;
-  border-color: #272b34;
-  box-shadow: 1px 1px 0px rgba(0, 0, 0, 0.45);
+  background-color: #09090b;
+  border-color: #27272a;
+  box-shadow: none;
 }
 
 .notion-card-subtle {
-  background-color: #f8f9fa;
-  border: 1px solid #dcdfe4;
-  border-radius: 2px;
+  background-color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 0px;
 }
 
 html.dark .notion-card-subtle {
-  background-color: #15181d;
-  border-color: #272b34;
+  background-color: #121214;
+  border-color: #27272a;
 }
 
 .notion-input {
-  background-color: #ffffff;
-  border: 1px solid #c4c7d0;
-  color: #111317;
-  border-radius: 2px;
-  padding: 6px 10px;
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  border-radius: 0px;
+  padding: 0.5rem 0.75rem;
   font-size: 0.8125rem;
   font-family: inherit;
-  transition: border-color 0.1s ease, box-shadow 0.1s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 html.dark .notion-input {
-  background-color: #0b0c0e;
-  border-color: #2b303a;
-  color: #f0f2f5;
+  background-color: #09090b;
+  border-color: #27272a;
+  color: #fafafa;
 }
 
 html.dark select.notion-input option {
-  background-color: #111316;
-  color: #ffffff;
+  background-color: #09090b;
+  color: #fafafa;
 }
 
 html.dark input::placeholder,
 html.dark textarea::placeholder {
-  color: #6c7380;
+  color: #71717a;
   opacity: 1;
 }
 
 .notion-input:focus {
   outline: none;
-  border-color: #18191b;
-  box-shadow: 0 0 0 1px #18191b;
+  border-color: #09090b;
+  box-shadow: 0 0 0 1px #09090b;
 }
 
 html.dark .notion-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 1px #3b82f6;
+  border-color: #fafafa;
+  box-shadow: 0 0 0 1px #fafafa;
 }
 
-/* Legacy Workstation Status Badges */
-/* Status Badges */
+/* Status Badges - Boxed Crisp Tag */
 .status-chip {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  font-family: inherit;
   font-size: 0.6875rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   padding: 2px 7px;
   border-radius: 2px;
   border-width: 1px;
 }
 
-/* Classic Tactile Buttons */
+/* Modern Boxed Action Buttons */
 .btn-workstation {
   display: inline-flex;
   align-items: center;
@@ -139,95 +143,90 @@ html.dark .notion-input:focus {
   gap: 0.375rem;
   font-family: inherit;
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: -0.01em;
-  padding: 0.45rem 0.85rem;
-  border-radius: 2px;
+  padding: 0.5rem 1rem;
+  border-radius: 0px;
   border-width: 1px;
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
-  transition: background-color 0.08s ease, border-color 0.08s ease, transform 0.05s ease, box-shadow 0.05s ease;
-  box-shadow: 1px 1px 0px rgba(0, 0, 0, 0.15);
+  transition: all 0.15s ease;
 }
 
 .btn-workstation:active:not(:disabled) {
-  transform: translate(1px, 1px);
-  box-shadow: none;
+  transform: scale(0.99);
 }
 
 .btn-workstation:disabled {
-  opacity: 0.45;
+  opacity: 0.4;
   cursor: not-allowed;
   box-shadow: none;
 }
 
 .btn-workstation-primary {
-  background-color: #18191b;
+  background-color: #000000;
   color: #ffffff;
   border-color: #000000;
 }
 
 .btn-workstation-primary:hover:not(:disabled) {
-  background-color: #27282b;
-  border-color: #111214;
+  background-color: #27272a;
+  border-color: #27272a;
 }
 
 html.dark .btn-workstation-primary {
-  background-color: #2563eb;
-  color: #ffffff;
-  border-color: #3b82f6;
-  box-shadow: 1px 1px 0px rgba(0, 0, 0, 0.45);
+  background-color: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
 }
 
 html.dark .btn-workstation-primary:hover:not(:disabled) {
-  background-color: #1d4ed8;
-  border-color: #60a5fa;
+  background-color: #e4e4e7;
+  border-color: #e4e4e7;
 }
 
 .btn-workstation-secondary {
   background-color: #ffffff;
-  color: #18191b;
-  border-color: #c4c7d0;
+  color: #09090b;
+  border-color: #e4e4e7;
 }
 
 .btn-workstation-secondary:hover:not(:disabled) {
-  background-color: #f1f3f6;
-  border-color: #9aa0ac;
+  background-color: #f4f4f5;
+  border-color: #d4d4d8;
 }
 
 html.dark .btn-workstation-secondary {
-  background-color: #14171d;
-  color: #e5e7eb;
-  border-color: #2c313c;
-  box-shadow: 1px 1px 0px rgba(0, 0, 0, 0.45);
+  background-color: #09090b;
+  color: #fafafa;
+  border-color: #27272a;
 }
 
 html.dark .btn-workstation-secondary:hover:not(:disabled) {
-  background-color: #1d212a;
-  border-color: #424958;
+  background-color: #18181b;
+  border-color: #3f3f46;
   color: #ffffff;
 }
 
 .btn-workstation-success {
-  background-color: #059669;
+  background-color: #18181b;
   color: #ffffff;
-  border-color: #047857;
+  border-color: #27272a;
 }
 
 .btn-workstation-success:hover:not(:disabled) {
-  background-color: #047857;
+  background-color: #27272a;
 }
 
 html.dark .btn-workstation-success {
-  background-color: #10b981;
-  color: #032015;
-  border-color: #34d399;
+  background-color: #27272a;
+  color: #ffffff;
+  border-color: #3f3f46;
 }
 
 html.dark .btn-workstation-success:hover:not(:disabled) {
-  background-color: #059669;
-  color: #ffffff;
+  background-color: #3f3f46;
 }
 
 .btn-workstation-danger {
@@ -242,37 +241,35 @@ html.dark .btn-workstation-success:hover:not(:disabled) {
 
 html.dark .btn-workstation-danger {
   background-color: #ef4444;
-  color: #250505;
-  border-color: #f87171;
+  color: #ffffff;
+  border-color: #dc2626;
 }
 
 html.dark .btn-workstation-danger:hover:not(:disabled) {
   background-color: #dc2626;
-  color: #ffffff;
 }
 
-/* Digital clock display */
+/* Digital clock display - Boxed */
 .digital-clock-box {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  gap: 0.4rem;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   padding: 3px 8px;
   border-radius: 2px;
-  background-color: #eaedf2;
-  color: #0f172a;
-  border: 1px solid #c4c7d0;
-  box-shadow: inset 1px 1px 2px rgba(0,0,0,0.06);
+  background-color: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
 }
 
 html.dark .digital-clock-box {
-  background-color: #060709;
-  color: #38bdf8;
-  border-color: #212631;
-  box-shadow: inset 1px 1px 3px rgba(0,0,0,0.8);
+  background-color: #09090b;
+  color: #fafafa;
+  border-color: #27272a;
 }
 
 /* Minimalist scrollbars */
@@ -379,16 +376,16 @@ html.dark .sticky-action-bar {
 }
 .problem-prose code:not(pre code) {
   padding: 0.15rem 0.35rem;
-  border-radius: 4px;
-  background-color: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  color: #0f172a;
+  border-radius: 0px;
+  background-color: #f4f4f5;
+  border: 1px solid #e4e4e7;
+  color: #09090b;
   font-size: 0.75rem;
 }
 .problem-prose pre {
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
+  background-color: #fafafa;
+  border: 1px solid #e4e4e7;
+  border-radius: 0px;
   padding: 0.75rem 1rem;
   overflow-x: auto;
   margin-top: 0.5rem;
@@ -396,15 +393,15 @@ html.dark .sticky-action-bar {
 }
 .problem-prose pre code {
   font-size: 0.75rem;
-  color: #0f172a;
+  color: #09090b;
   background: transparent;
   padding: 0;
   border: none;
 }
 .problem-prose blockquote {
-  border-left: 3px solid #cbd5e1;
+  border-left: 2px solid #09090b;
   padding-left: 0.75rem;
-  color: #64748b;
+  color: #71717a;
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
 }
@@ -420,23 +417,24 @@ html.dark .problem-prose strong { color: #ffffff; }
 html.dark .problem-prose code:not(pre code) {
   background-color: #18181b;
   border-color: #27272a;
-  color: #60a5fa;
-  font-weight: 600;
+  color: #fafafa;
+  font-weight: 500;
 }
 html.dark .problem-prose pre {
-  background-color: #050505;
+  background-color: #09090b;
   border-color: #27272a;
+  border-radius: 0px;
 }
 html.dark .problem-prose pre code {
   color: #f4f4f5;
   font-weight: 500;
 }
 html.dark .problem-prose blockquote {
-  border-left-color: #3b82f6;
-  color: #d4d4d8;
-  background-color: rgba(18, 18, 20, 0.7);
+  border-left-color: #fafafa;
+  color: #a1a1aa;
+  background-color: #09090b;
   padding: 0.5rem 0.75rem;
-  border-radius: 0 4px 4px 0;
+  border-radius: 0px;
 }
 
 /* =====================================================================
@@ -521,43 +519,29 @@ html.dark .code-editor-gutter {
   padding: 1rem;
   margin: 0;
   border: none;
-  background: transparent;
-  color: transparent;
-  caret-color: #0f172a;
+  background: transparent !important;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  caret-color: #2563eb !important;
   white-space: pre;
   overflow-y: auto;
   overflow-x: auto;
   resize: none;
-  font-family: inherit;
-  font-size: inherit;
-  line-height: inherit;
-  tab-size: inherit;
-  z-index: 2;
+  font-family: 'JetBrains Mono', 'IBM Plex Mono', 'Fira Code', monospace;
+  font-size: 13px;
+  line-height: 1.5rem;
+  tab-size: 2;
+  z-index: 10;
   outline: none;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  touch-action: manipulation;
 }
 
 html.dark .code-editor-textarea {
-  caret-color: #ffffff;
-}
-
-.code-editor-highlight {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  padding: 1rem;
-  margin: 0;
-  border: none;
-  background: transparent;
-  pointer-events: none;
-  white-space: pre;
-  overflow: hidden;
-  font-family: inherit;
-  font-size: inherit;
-  line-height: inherit;
-  tab-size: inherit;
-  z-index: 1;
+  color: #f1f5f9 !important;
+  -webkit-text-fill-color: #f1f5f9 !important;
+  caret-color: #60a5fa !important;
 }
 
 /* =====================================================================

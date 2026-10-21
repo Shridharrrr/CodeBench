@@ -18,12 +18,6 @@ Given a binary tree, find the lowest common ancestor (LCA) of two given nodes `p
 
 According to the definition of LCA on Wikipedia: “The lowest common ancestor is defined between two nodes `p` and `q` as the lowest node in `T` that has both `p` and `q` as descendants (where we allow a node to be a descendant of itself).”
 
-### Input Format
-The first line contains `n`, `p`, and `q`.
-The second line contains `n` space-separated level-order tokens.
-
-### Output Format
-Print the integer value of the lowest common ancestor.
 
 ### Constraints
 - 2 <= n <= 10^5

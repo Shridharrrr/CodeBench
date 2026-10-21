@@ -17,11 +17,6 @@ checker_type: token
 
 Given a string `s`, return the longest palindromic substring in `s`. If there are multiple answers with the same maximum length, return the one that appears earliest.
 
-### Input Format
-A single line containing `s`.
-
-### Output Format
-Print the longest palindromic substring.
 
 ### Constraints
 - 1 <= s.length <= 1000

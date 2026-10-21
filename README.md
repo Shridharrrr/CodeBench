@@ -1,130 +1,83 @@
 # CodeBench
 
-> **The modern, self-hosted platform to host live coding competitions, collegiate tournaments, and technical hackathons.**  
-> Built with Go, SolidJS, PostgreSQL, embedded NATS JetStream, and bare-metal Linux cgroups v2 / Seccomp-BPF execution sandboxes.
+> Host offline coding competitions from a single laptop. Zero internet required.
+
+If you've ever tried running a coding contest on campus Wi-Fi or at a local hackathon, you probably know the pain: conference Wi-Fi cuts out, cloud judging platforms rate-limit you, and participants waste half their time debugging `cin >> n` loops instead of actually solving algorithmic problems.
+
+**CodeBench** solves this by running the entire platform locally on your machine. You plug into a local Wi-Fi router or switch, run one command, and contestants can immediately open your local IP in their browser, write LeetCode-style solutions, and watch live scores roll in.
 
 ---
 
-## 1. Why CodeBench?
+## What's Inside
 
-Most competitive programming and online judge systems suffer from one of three fatal architectural flaws:
-1. **Noisy Neighbor Jitter:** Shared VPS hosts cause reference solutions to fluctuate wildly between Accepted (AC) and Time Limit Exceeded (TLE).
-2. **Clock Drift & Client Desync:** Contests relying on participant browser timers suffer from clock skew, giving certain teams extra minutes during freeze windows.
-3. **Flaky Distributed Message Queues:** Complex microservice fleets lose submissions during worker restarts or network partitions.
-
-CodeBench was engineered from first principles to solve these operational problems:
-- **Server-Authoritative Time Engine:** Every submission timestamp, freeze threshold, and penalty calculation is strictly anchored to monotonic server time.
-- **Continuous Timing Canary:** A background benchmark daemon samples reference algorithms every 60 seconds. If host virtualization steal-time causes CPU jitter, linear dilation factors apply dynamically to protect competitors.
-- **Zero Event-Loss Transactional Outbox:** Submissions are committed to PostgreSQL within an ACID transaction alongside an outbox event. The relay daemon flushes to embedded NATS JetStream 2.10 every 50ms, guaranteeing at-least-once delivery across restarts.
-- **Strict Kernel Containment:** Every untrusted binary executes inside disposable Linux namespaces (`CLONE_NEWPID`, `CLONE_NEWNET`, `CLONE_NEWNS`) constrained by cgroups v2 memory/CPU quotas and strict Seccomp-BPF system call filtering.
+- **LeetCode-Style Function Submissions**: Participants write clean `class Solution` methods in C++, Python, Go, or Rust. CodeBench automatically wraps the code with an internal test driver that feeds test cases and checks outputs.
+- **Single-Host Offline Mode**: Everything (API, PostgreSQL, embedded message queue, and sandbox judge) runs self-contained on one computer. Contestants connect directly over local Wi-Fi or Ethernet.
+- **Real-Time Scoreboard**: Standings stream live over Server-Sent Events (SSE). No refreshing needed. Supports end-of-round score freezes to build suspense before the winners are announced.
+- **Container Sandboxing**: Untrusted code is isolated using Linux namespaces, cgroups v2 memory & CPU ceilings, and Seccomp system call filtering.
+- **Squads & Teams**: Built-in support for team rosters, join passcodes, and combined team scores.
+- **60 Built-in Problems**: Ships with 60 problems ranging from Easy to Hard, with support for writing custom problems in plain Markdown.
 
 ---
 
-## 2. Architecture Overview
+## Quick Start (Hosting an Offline Event)
 
-```mermaid
-flowchart TD
-    Client["Browser / Workstation CLI\n(codebench CLI)"]
-    API["Go Modular Monolith (codebench-api)\n• Session Auth & CSRF Guard\n• Standings Engine\n• Transactional Outbox"]
-    PG[("PostgreSQL 17\n• Contest State\n• Submissions & Outbox")]
-    NATS["Embedded NATS JetStream 2.10\n• jobs.submissions Stream\n• jobs.verdicts Stream"]
-    Judge["Rust Sandbox Worker (codebench-judge)\n• Namespaces: PID, NET, NS\n• cgroups v2 Quotas\n• Seccomp-BPF Syscall Filter"]
-    SSE["SSE Real-Time Event Broker\n• Live Scoreboard Push\n• Submission Stage Telemetry"]
-
-    Client -->|HTTPS / POST| API
-    API -->|ACID Transaction| PG
-    API -->|Outbox Relay| NATS
-    NATS -->|Pull Consumer| Judge
-    Judge -->|Verdict Stream| NATS
-    NATS -->|Verdict Consumer| API
-    API -->|SSE Broadcast| SSE
-    SSE -->|Live Push| Client
-```
-
-### Core Components
-
-| Component | Technology | Role |
-| :--- | :--- | :--- |
-| **API Server** | Go 1.24 | HTTP routing, session auth, transactional outbox relay, scoring algorithms (Collegiate Penalty & Points Decay), SSE broker. |
-| **Sandbox Judge** | Rust 1.85 / Linux | High-performance execution runner using `pivot_root`, cgroups v2, and BPF syscall filters. |
-| **Message Queue** | Embedded NATS JetStream | High-throughput in-memory messaging with persistent WAL for queueing judge jobs and verdict events. |
-| **Database** | PostgreSQL 17 | Relational persistence for users, teams, contests, problems, test suites, submissions, and audit logs. |
-| **Web Frontend** | Solid.js + Vite + Tailwind | Zero-overhead, reactive workstation UI with CRT scanline accents, live SSE standings, and Monaco-style editor. |
-| **Contest CLI** | Go 1.24 | Local terminal utility for contestants (`codebench submit`) and operators (`codebench tune`, `codebench backup`). |
-
----
-
-## 3. Kernel Sandbox Security & Defense-in-Depth
-
-Untrusted contestant binaries run under strict defense-in-depth isolation:
-
-```
-+-------------------------------------------------------------------+
-| Host Linux Kernel                                                 |
-|  +-------------------------------------------------------------+  |
-|  | Namespace Isolation: CLONE_NEWPID, CLONE_NEWNET, CLONE_NEWNS|  |
-|  |  +-------------------------------------------------------+  |  |
-|  |  | cgroups v2 Quotas: memory.max=256MB, cpu.max, pids.max |  |  |
-|  |  |  +-------------------------------------------------+  |  |  |
-|  |  |  | Seccomp-BPF Filter (Whitelist Only)             |  |  |  |
-|  |  |  |   Safe: read, write, exit_group, mmap, brk...   |  |  |  |
-|  |  |  |   Blocked: socket, connect, ptrace, execve...   |  |  |  |
-|  |  |  |  +-------------------------------------------+  |  |  |  |
-|  |  |  |  | Untrusted Contestant Binary (UID 10001)   |  |  |  |  |
-|  |  |  |  +-------------------------------------------+  |  |  |  |
-|  |  |  +-------------------------------------------------+  |  |  |
-|  |  +-------------------------------------------------------+  |  |
-|  +-------------------------------------------------------------+  |
-+-------------------------------------------------------------------+
-```
-
-1. **Namespace Isolation:** The binary is placed in its own PID namespace (`PID 1`), Network namespace (`loopback down`), and Mount namespace (`read-only rootfs`).
-2. **Resource Constraints:** `memory.max` enforces memory ceilings with `memory.swap.max = 0`. If the binary attempts to exceed limits, the kernel OOM-killer immediately terminates it with a deterministic Memory Limit Exceeded (MLE) verdict. `pids.max = 64` prevents fork bombs.
-3. **Seccomp-BPF Filters:** Syscalls like `socket()`, `connect()`, `bind()`, `fork()`, and `execve()` are blocked with `SECCOMP_RET_KILL_PROCESS`. The process cannot exfiltrate test cases or access host credentials.
-
----
-
-## 4. Supported Compilers & Exact Flags
-
-| Language | Toolchain | Compilation & Execution Flags |
-| :--- | :--- | :--- |
-| **C++23** | GCC 14.2 | `g++ -O3 -std=c++23 -march=x86-64-v3 -Wall -Wextra -static solution.cpp -o solution` |
-| **C++23** | Clang 18 | `clang++ -O3 -std=c++23 -march=x86-64-v3 -stdlib=libc++ solution.cpp -o solution` |
-| **C23** | GCC 14.2 | `gcc -O3 -std=c2x -march=x86-64-v3 -Wall -static solution.c -o solution` |
-| **Rust** | Rust 1.85 (2024) | `rustc --edition 2024 -C opt-level=3 -C target-cpu=x86-64-v3 solution.rs -o solution` |
-| **Python** | Python 3.12 | `python3 -u -B solution.py` *(2.0x time multiplier, +32MB baseline offset)* |
-| **Go** | Go 1.24 | `go build -ldflags="-s -w" -o solution solution.go` |
-
----
-
-## 5. Quickstart
-
-### Prerequisites
-- Docker Engine 24+ & Docker Compose v2
-- *(Optional for local dev without Docker)* Go 1.24, Node.js 20+, Rust 1.85
-
-### Launch Full Stack with Docker
+### 1. Clone the repository
 ```bash
-# Clone the repository
-git clone https://github.com/codebench/codebench.git
-cd codebench
+git clone https://github.com/Shridharrrr/CodeBench.git
+cd CodeBench
+```
 
-# Spin up Postgres, Embedded NATS API, Rust Judge, and Web Frontend
+### 2. Start the platform
+
+**On Windows (PowerShell):**
+```powershell
+.\codebench.ps1 host
+```
+
+**On Linux or macOS (Bash):**
+```bash
+./codebench host
+```
+
+The script will:
+1. Verify Docker is running.
+2. Detect your computer's local Wi-Fi or Ethernet IPv4 address.
+3. Automatically allow port 8080 through Windows Firewall if prompted.
+4. Start the database, API server, and judge containers.
+5. Print the URL you can share with competitors (e.g. `http://192.168.1.100:8080`).
+
+### 3. Run your contest
+1. Connect your computer to a venue router or switch (internet is completely optional).
+2. Cast `http://<YOUR_IP>:8080/scoreboard` onto a projector or stage display.
+3. Have participants connect to the same Wi-Fi and open `http://<YOUR_IP>:8080`.
+4. Log into the default admin account:
+   - **Email:** `admin@codebench.local`
+   - **Password:** `codebench123`
+5. From the Admin Dashboard, select problems and click **Start Contest**.
+
+---
+
+## Local Development
+
+If you prefer starting services manually using Docker Compose:
+
+```bash
+git clone https://github.com/Shridharrrr/CodeBench.git
+cd CodeBench
+
+# Start all containers in the background
 docker compose up -d
 
-# Verify services
-docker compose ps
+# Open in browser: http://localhost:8080
 ```
-The workstation interface will be accessible at `http://localhost:8080`.
 
-### Local Development (Windows / macOS / Linux)
-On non-Linux hosts where cgroups v2 is unavailable natively, the backend automatically runs in `USE_FAKE_JUDGE=true` mode for vertical-slice testing:
+### Running Frontend & API without Docker
 
 ```bash
-# 1. Start backend services
+# Terminal 1: Run the Go API backend
 go run ./api/cmd/codebench-api
 
-# 2. Start Vite development server
+# Terminal 2: Run the SolidJS frontend dev server
 cd web
 npm install
 npm run dev
@@ -132,97 +85,151 @@ npm run dev
 
 ---
 
-## 6. Contestant & Operator CLI (`codebench`)
+## How Submissions Work
 
-CodeBench provides a unified CLI for both competitors and administrators:
+Unlike old-school competitive programming platforms that force students to write input parsers and `int main()`, CodeBench uses standard function solutions:
 
-```bash
-# Authenticate with the server
-codebench login --host http://localhost:8080 --email participant@example.com
-
-# Test a solution against sample testcases locally
-codebench test -p two-sum -l cpp23-gcc solution.cpp
-
-# Submit official solution to the running contest
-codebench submit -p two-sum -l cpp23-gcc solution.cpp --wait
-
-# View live contest scoreboard
-codebench status
-
-# Operator: Calibrate host timing canary baseline
-codebench tune --samples 20 --tolerance 0.15
-
-# Operator: Create automated database backup
-codebench backup --out ./backups/round1.cbk
+```cpp
+class Solution {
+public:
+    vector<int> twoSum(vector<int>& nums, int target) {
+        unordered_map<int, int> seen;
+        for (int i = 0; i < (int)nums.size(); ++i) {
+            int complement = target - nums[i];
+            if (seen.count(complement)) {
+                return {seen[complement], i};
+            }
+            seen[nums[i]] = i;
+        }
+        return {};
+    }
+};
 ```
+
+When a participant clicks **Run** or **Submit**:
+1. CodeBench wraps their code with a lightweight driver harness for that language.
+2. The code is compiled inside an unprivileged sandbox container.
+3. The runner streams test cases through standard input pipes directly into the binary.
+4. Output is validated against expected test outputs, returning instant verdicts: **Accepted (AC)**, **Wrong Answer (WA)**, **Time Limit Exceeded (TLE)**, or **Compile Error (CE)**.
+
+### Supported Languages
+
+| Language | Toolchain | Invocation |
+| :--- | :--- | :--- |
+| **C++23** | GCC 14.2 / Clang 18 | `g++ -O2 -std=c++23` |
+| **C23** | GCC 14.2 / Clang 18 | `gcc -O2 -std=c23` |
+| **Python** | Python 3.12 | Standard Python 3 interpreter |
+| **Go** | Go 1.24 | Native `go build` |
+| **Rust** | Rust 1.85 | `rustc -O` |
 
 ---
 
-## 7. Problem Package Specification
+## Adding Custom Problems
 
-CodeBench uses self-contained, version-controlled problem packages:
+You can add new problems either as folder packages or as simple Markdown files.
+
+### Option A: Markdown Format (Fastest)
+
+Create a single `.md` file with YAML frontmatter, description, and test blocks:
+
+````markdown
+---
+slug: two-sum
+title: Two Sum
+difficulty: Easy
+tags: [array, hash-table]
+time_limit_ms: 1000
+memory_mb: 256
+---
+
+# Two Sum
+
+Given an array of integers `nums` and an integer `target`, return indices of the two numbers that add up to `target`.
+
+### Example 1:
+**Input:** nums = [2,7,11,15], target = 9  
+**Output:** [0,1]
+
+### Constraints:
+- `2 <= nums.length <= 10^4`
+
+### Sample Test 1
+```input
+4 9
+2 7 11 15
+```
+```output
+0 1
+```
+````
+
+Upload it through the Admin Dashboard or drop it into the `problems/` directory.
+
+### Option B: Package Directory Format
+
+For large test suites with dedicated hidden test files:
 
 ```
 problems/two-sum/
-├── problem.yaml          # Manifest: slug, limits, checker type, metadata
-├── statement.md          # GFM markdown statement with math syntax
+├── problem.yaml          # Limits, tags, and score weights
+├── statement.md          # Description and examples
 ├── solution/
-│   ├── ref.cpp           # Canonical AC reference solution
-│   └── wrong/
-│       ├── wa.cpp        # Known Wrong Answer solution for validation
-│       └── tle.cpp       # Known Time Limit Exceeded solution
+│   └── ref.cpp           # Reference solution
 └── tests/
-    ├── sample/
-    │   ├── 01.in / 01.out
-    │   └── 02.in / 02.out
-    └── hidden/
-        ├── 001.in / 001.out
-        └── 002.in / 002.out
-```
-
-Validate all problem packages via automated preflight tests:
-```bash
-go test -v ./tests -run TestSetupAcceptance_Preflight
+    ├── sample/           # Visible sample test cases (.in / .out)
+    └── hidden/           # Hidden judge test cases (.in / .out)
 ```
 
 ---
 
-## 8. Keyboard Accelerators
+## Command Line Tool (CLI)
 
-Power users can navigate CodeBench without touching the mouse:
+The repository includes a helper CLI for quick testing, backups, and terminal submissions:
 
-| Key | Action |
+```bash
+# Check system readiness (Docker, ports, and cgroups v2 timing grade)
+./codebench doctor
+
+# Take a full snapshot backup (database and problem packages)
+codebench backup --out ./contest-backup.cbk
+
+# Restore from a previous backup
+codebench restore --archive ./contest-backup.cbk
+```
+
+---
+
+## Keyboard Shortcuts
+
+The web interface includes keyboard navigation for fast switching between views:
+
+| Key | Destination |
 | :---: | :--- |
-| `1` | Jump to Home / Platform Overview |
-| `2` | Jump to Competition Arena |
-| `3` | Jump to Squad Management |
-| `4` | Jump to Live Scoreboard |
-| `5` | Jump to Admin Dashboard *(Administrators)* |
-| `D` | Open Technical Specifications & Operator Manual |
-| `T` | Toggle Dark / Light Obsidian Theme |
-| `C` | Toggle Retro CRT Phosphor Scanline Overlay |
-| `?` | Show / Hide Keyboard Shortcuts Modal |
-| `Esc`| Dismiss Active Modals & Flyouts |
+| `1` | Home page |
+| `2` | Contest Arena |
+| `3` | Squads / Team Management |
+| `4` | Live Scoreboard |
+| `0` | Interactive Showcase / Demo Page |
+| `5` | Admin Dashboard *(Organizers only)* |
+| `T` | Toggle Light / Dark theme |
+| `C` | Toggle CRT retro scanline overlay |
+| `?` | Keyboard shortcut cheat sheet |
+| `Esc`| Dismiss dialogs & modals |
 
 ---
 
-## 9. Verification & Test Suite
-
-CodeBench enforces rigorous vertical-slice acceptance testing:
+## Running the Automated Test Suite
 
 ```bash
-# Run all Go unit and integration tests (21 packages)
+# Run all Go tests
 go test ./...
 
-# Run vertical-slice end-to-end integration tests
-go test -v -run TestEndToEndVerticalSlice ./api/internal/integration/...
-
-# Build production web bundle
+# Build web frontend
 cd web && npm run build
 ```
 
 ---
 
-## 10. License
+## License
 
-Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.
+Released under the [Apache 2.0 License](LICENSE).

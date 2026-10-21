@@ -19,11 +19,6 @@ Given `n` pairs of parentheses, write a function to generate all combinations of
 
 Print each combination on a new line in lexicographical order.
 
-### Input Format
-A single line containing the integer `n`.
-
-### Output Format
-Print each valid parenthesis string on a new line.
 
 ### Constraints
 - 1 <= n <= 8

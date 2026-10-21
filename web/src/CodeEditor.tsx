@@ -1,5 +1,4 @@
-import { createMemo } from 'solid-js';
-import { highlightCode } from './syntax';
+import { createMemo, createEffect } from 'solid-js';
 
 interface CodeEditorProps {
   value: string;
@@ -22,52 +21,48 @@ const CLOSING_CHARS = new Set([')', ']', '}', '"', "'", '`']);
 
 export default function CodeEditor(props: CodeEditorProps) {
   let textareaRef: HTMLTextAreaElement | undefined;
-  let highlightRef: HTMLPreElement | undefined;
   let gutterRef: HTMLDivElement | undefined;
 
-  const highlightedHtml = createMemo(() => {
-    const val = props.value || '';
-    const code = val.endsWith('\n') ? val + ' ' : val;
-    return highlightCode(code, props.language);
-  });
-
   const lines = createMemo(() => {
-    const val = props.value || '';
+    const val = props.value ?? '';
     const count = Math.max(1, val.split('\n').length);
     return Array.from({ length: count }, (_, i) => i + 1);
   });
 
+  // Ensure textarea value matches props.value whenever parent state changes
+  createEffect(() => {
+    const val = props.value ?? '';
+    if (textareaRef && textareaRef.value !== val) {
+      textareaRef.value = val;
+    }
+  });
+
   const handleScroll = () => {
+    if (!textareaRef || !gutterRef) return;
+    gutterRef.scrollTop = textareaRef.scrollTop;
+  };
+
+  const updateEditorValueAndCursor = (newVal: string, cursorPos: number, endPos?: number) => {
     if (!textareaRef) return;
-    if (highlightRef) {
-      highlightRef.scrollTop = textareaRef.scrollTop;
-      highlightRef.scrollLeft = textareaRef.scrollLeft;
-    }
-    if (gutterRef) {
-      gutterRef.scrollTop = textareaRef.scrollTop;
-    }
+    textareaRef.value = newVal;
+    textareaRef.selectionStart = cursorPos;
+    textareaRef.selectionEnd = endPos ?? cursorPos;
+    props.onInput(newVal);
+    requestAnimationFrame(() => {
+      if (textareaRef) {
+        textareaRef.selectionStart = cursorPos;
+        textareaRef.selectionEnd = endPos ?? cursorPos;
+      }
+    });
   };
 
   const handleKeyDown = (e: KeyboardEvent) => {
     if (!textareaRef) return;
+    if (e.isComposing || !e.key || e.key === 'Unidentified') return;
 
-    const start = textareaRef.selectionStart;
-    const end = textareaRef.selectionEnd;
-    const val = props.value || '';
-
-    const updateEditorValueAndCursor = (newVal: string, cursorPos: number, endPos?: number) => {
-      if (!textareaRef) return;
-      textareaRef.value = newVal;
-      textareaRef.selectionStart = cursorPos;
-      textareaRef.selectionEnd = endPos ?? cursorPos;
-      props.onInput(newVal);
-      requestAnimationFrame(() => {
-        if (textareaRef) {
-          textareaRef.selectionStart = cursorPos;
-          textareaRef.selectionEnd = endPos ?? cursorPos;
-        }
-      });
-    };
+    const start = textareaRef.selectionStart ?? 0;
+    const end = textareaRef.selectionEnd ?? 0;
+    const val = textareaRef.value;
 
     // 1. Tab Indentation (2 spaces)
     if (e.key === 'Tab') {
@@ -140,7 +135,6 @@ export default function CodeEditor(props: CodeEditorProps) {
 
     // 5. Smart Enter key (auto-indentation & expanding braces)
     if (e.key === 'Enter' && start === end) {
-      // Find current line indentation
       const lastNewline = val.lastIndexOf('\n', start - 1);
       const currentLine = val.substring(lastNewline === -1 ? 0 : lastNewline + 1, start);
       const indentMatch = currentLine.match(/^(\s*)/);
@@ -169,35 +163,37 @@ export default function CodeEditor(props: CodeEditorProps) {
   };
 
   return (
-    <div class={`code-editor-root bg-white dark:bg-black border border-slate-200 dark:border-slate-800 ${props.class || ''}`}>
+    <div class={`code-editor-root bg-white dark:bg-[#07090e] border border-slate-200 dark:border-slate-800 flex h-full w-full relative overflow-hidden ${props.class || ''}`}>
       {/* Line Numbers Gutter */}
-      <div ref={gutterRef} class="code-editor-gutter font-mono overflow-hidden">
+      <div
+        ref={gutterRef}
+        class="code-editor-gutter font-mono select-none overflow-hidden shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0b0e17] text-slate-400 dark:text-slate-500 py-4 px-2 text-right tabular-nums text-xs leading-6"
+        style={{ "min-width": "3rem" }}
+      >
         {lines().map((n) => (
-          <div class="h-6 leading-6 select-none">{n}</div>
+          <div class="h-6 leading-6">{n}</div>
         ))}
       </div>
 
-      {/* Code Surface (Highlight overlay + Transparent textarea) */}
-      <div class="code-editor-surface flex-1 h-full relative overflow-hidden">
-        <pre
-          ref={highlightRef}
-          aria-hidden="true"
-          class={`code-editor-highlight language-${props.language} font-mono`}
-        >
-          <code innerHTML={highlightedHtml()} />
-        </pre>
-
+      {/* Code Textarea Surface */}
+      <div class="code-editor-surface flex-1 h-full relative overflow-hidden bg-white dark:bg-[#0c0d10]">
         <textarea
           ref={textareaRef}
-          value={props.value}
+          value={props.value ?? ''}
           onInput={(e) => props.onInput(e.currentTarget.value)}
           onScroll={handleScroll}
           onKeyDown={handleKeyDown}
-          placeholder={props.placeholder || 'Write your solution here...'}
+          placeholder={props.placeholder || '// Write your solution here...'}
           spellcheck={false}
           autocapitalize="off"
           autocomplete="off"
-          class="code-editor-textarea font-mono"
+          class="code-editor-textarea font-mono w-full h-full p-4 bg-transparent text-zinc-900 dark:text-zinc-100 text-[13px] leading-6 resize-none outline-none border-none overflow-auto whitespace-pre z-10 block"
+          style={{
+            "tab-size": "2",
+            "-moz-tab-size": "2",
+            "line-height": "1.5rem",
+            "font-family": "'JetBrains Mono', 'IBM Plex Mono', 'Fira Code', monospace",
+          }}
         />
       </div>
     </div>

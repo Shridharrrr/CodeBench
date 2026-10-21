@@ -333,3 +333,38 @@ export function IconSliders(props: { class?: string }) {
     </svg>
   );
 }
+
+export function IconBenchLogo(props: { class?: string }) {
+  return (
+    <svg
+      class={props.class || "w-6 h-6"}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      {/* Stickman Head */}
+      <circle cx="10" cy="5.5" r="2.2" fill="currentColor" stroke="none" />
+      {/* Stickman Spine */}
+      <line x1="10" y1="7.7" x2="10" y2="14" stroke-width="1.8" />
+      {/* Arms holding laptop */}
+      <polyline points="10 10.5 12.5 12.5 13.5 12.5" stroke-width="1.8" />
+      {/* Laptop on lap */}
+      <path d="M12.5 14 h3.5 l1.2 -2.5" stroke-width="1.5" />
+      {/* Thighs & Calves */}
+      <polyline points="10 14 14.5 14 14.5 20" stroke-width="1.8" />
+      {/* Bench Backrest */}
+      <line x1="5.5" y1="8" x2="7" y2="14" stroke-width="1.8" />
+      <line x1="4.5" y1="10" x2="7.5" y2="10" stroke-width="1.8" />
+      {/* Bench Seat */}
+      <line x1="4" y1="14" x2="19.5" y2="14" stroke-width="2.2" />
+      {/* Bench Legs */}
+      <line x1="6.8" y1="14" x2="6" y2="20" stroke-width="1.8" />
+      <line x1="17.2" y1="14" x2="17.8" y2="20" stroke-width="1.8" />
+      {/* Bench Crossbar */}
+      <line x1="6.3" y1="17.5" x2="17.5" y2="17.5" stroke-width="1.2" />
+    </svg>
+  );
+}
+

@@ -17,12 +17,6 @@ checker_type: token
 
 Given an integer array `nums`, return `true` if any value appears at least twice in the array, and return `false` if every element is distinct.
 
-### Input Format
-The first line contains `n`.
-The second line contains `n` space-separated integers.
-
-### Output Format
-Print `true` if any value appears at least twice, otherwise print `false`.
 
 ### Constraints
 - 1 <= n <= 10^5

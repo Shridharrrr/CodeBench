@@ -17,12 +17,6 @@ checker_type: token
 
 Given an integer array `nums`, find the subarray with the largest sum, and return its sum.
 
-### Input Format
-The first line contains `n`.
-The second line contains `n` space-separated integers.
-
-### Output Format
-Print the maximum subarray sum.
 
 ### Constraints
 - 1 <= n <= 10^5

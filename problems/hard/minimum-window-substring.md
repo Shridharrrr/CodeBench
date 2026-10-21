@@ -19,11 +19,6 @@ Given two strings `s` and `t` of lengths `m` and `n` respectively, return the mi
 
 The testcases will be generated such that the answer is unique.
 
-### Input Format
-Two lines: the first contains `s` and the second contains `t`.
-
-### Output Format
-Print the minimum window substring (or empty line if none).
 
 ### Constraints
 - 1 <= m, n <= 10^5

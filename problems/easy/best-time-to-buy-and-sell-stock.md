@@ -20,12 +20,6 @@ You want to maximize your profit by choosing a single day to buy one stock and c
 
 Return the maximum profit you can achieve from this transaction. If you cannot achieve any profit, return 0.
 
-### Input Format
-The first line contains an integer `n` denoting the number of days.
-The second line contains `n` space-separated integers representing stock prices.
-
-### Output Format
-Print the maximum profit achievable.
 
 ### Constraints
 - 1 <= n <= 10^5

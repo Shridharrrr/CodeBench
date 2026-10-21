@@ -146,19 +146,20 @@ export default function AdminDashboard(props: AdminDashboardProps) {
   const [probLabel, setProbLabel] = createSignal('K');
   const [probPoints, setProbPoints] = createSignal(100);
   const [probStatement, setProbStatement] = createSignal(
-`### Problem Description
-Given an array of integers, solve the problem as described.
+`Given an integer array \`nums\` and an integer \`target\`, return the required result.
 
-### Input Format
-First line contains integer $N$.
-Second line contains $N$ space-separated integers.
+### Example 1:
+**Input:** nums = [2, 7, 11, 15], target = 9
+**Output:** [0, 1]
+**Explanation:** Because nums[0] + nums[1] == 9, we return [0, 1].
 
-### Output Format
-Print the single integer answer.
+### Example 2:
+**Input:** nums = [3, 2, 4], target = 6
+**Output:** [1, 2]
 
-### Constraints
-- $1 \\le N \\le 10^5$
-- $1 \\le A_i \\le 10^9$
+### Constraints:
+- \`2 <= nums.length <= 10^4\`
+- \`-10^9 <= nums[i] <= 10^9\`
 `
   );
   // Multi-testcase authoring state
@@ -984,11 +985,7 @@ Print the single integer answer.
             <Show when={eventMsg()}>
               {(msg) => (
                 <div
-                  class={`p-4 rounded-lg text-xs font-medium flex items-center justify-between ${
-                    msg().type === 'success'
-                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-                      : 'bg-rose-50 text-rose-800 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
-                  }`}
+                  class="p-4 rounded-none border border-neutral-300 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 text-xs font-medium flex items-center justify-between"
                 >
                   <span>{msg().text}</span>
                   <button onClick={() => setEventMsg(null)} class="text-current opacity-70 hover:opacity-100">
@@ -1076,11 +1073,11 @@ Print the single integer answer.
                     </select>
                   </div>
 
-                  <div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 space-y-3">
+                  <div class="p-4 bg-neutral-50 dark:bg-neutral-900/50 rounded-none border border-neutral-200 dark:border-neutral-800 space-y-3">
                     <div class="flex items-center justify-between">
                       <div>
-                        <span class="text-xs font-bold text-slate-900 dark:text-slate-100">Team Competition Mode</span>
-                        <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                        <span class="text-xs font-bold text-neutral-900 dark:text-neutral-100">Team Competition Mode</span>
+                        <p class="text-[11px] text-neutral-500 dark:text-neutral-400">
                           Allow contestants to form squads and register via invite codes
                         </p>
                       </div>
@@ -1088,13 +1085,13 @@ Print the single integer answer.
                         type="checkbox"
                         checked={isTeamContest()}
                         onChange={(e) => setIsTeamContest(e.currentTarget.checked)}
-                        class="w-4 h-4 text-slate-900 rounded"
+                        class="w-4 h-4 text-black rounded-none"
                       />
                     </div>
 
                     <Show when={isTeamContest()}>
-                      <div class="pt-3 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                        <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      <div class="pt-3 border-t border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
+                        <label class="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
                           Maximum Members per Squad:
                         </label>
                         <input
@@ -1103,7 +1100,7 @@ Print the single integer answer.
                           max="10"
                           value={maxTeamSize()}
                           onInput={(e) => setMaxTeamSize(Number(e.currentTarget.value))}
-                          class="notion-input w-24 text-center font-bold"
+                          class="notion-input w-24 text-center font-bold rounded-none"
                         />
                       </div>
                     </Show>
@@ -1113,33 +1110,33 @@ Print the single integer answer.
             </div>
 
             {/* Save Action Footer */}
-            <div class="flex items-center justify-between p-4 notion-card bg-slate-50/60 dark:bg-slate-900">
-              <span class="text-xs text-slate-500 dark:text-slate-400">
+            <div class="flex items-center justify-between p-4 notion-card bg-neutral-50 dark:bg-neutral-900">
+              <span class="text-xs text-neutral-500 dark:text-neutral-400">
                 Changes to schedule or scoring are broadcast instantly to active contestant sessions.
               </span>
               <button
                 onClick={handleSaveContestState}
                 disabled={eventSubmitting()}
-                class="px-6 py-2.5 rounded-md text-xs font-bold bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white transition shadow-xs flex items-center gap-2"
+                class="btn-workstation-primary px-6 py-2.5 rounded-none text-xs font-bold transition flex items-center gap-2"
               >
                 <Show when={eventSubmitting()}>
-                  <ButtonSpinner class="w-3.5 h-3.5 text-white" />
+                  <ButtonSpinner class="w-3.5 h-3.5 text-white dark:text-black" />
                 </Show>
                 <span>{eventSubmitting() ? 'Broadcasting...' : 'Save & Broadcast Settings'}</span>
               </button>
             </div>
 
             {/* Separated Danger Zone */}
-            <div class="p-6 rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50/30 dark:bg-rose-950/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="p-6 rounded-none border border-neutral-300 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h4 class="text-xs font-bold text-rose-800 dark:text-rose-400">Delete This Competition</h4>
-                <p class="text-[11px] text-rose-600 dark:text-rose-500 mt-0.5">
+                <h4 class="text-xs font-bold text-neutral-900 dark:text-neutral-100">Delete This Competition</h4>
+                <p class="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
                   Permanently remove this competition, its leaderboard entries, and associated submissions.
                 </p>
               </div>
               <button
                 onClick={handleDeleteContest}
-                class="px-4 py-2 rounded-md text-xs font-semibold bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition shrink-0"
+                class="btn-workstation btn-workstation-danger rounded-none px-4 py-2 text-xs font-semibold shrink-0"
               >
                 Delete Competition
               </button>
@@ -1173,29 +1170,29 @@ Print the single integer answer.
               <button
                 type="button"
                 onClick={() => fileInputRef?.click()}
-                class="px-3 py-1.5 rounded-md text-xs font-semibold bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition shadow-2xs flex items-center gap-1.5"
+                class="btn-workstation-secondary px-3 py-1.5 rounded-none text-xs font-semibold flex items-center gap-1.5"
                 title="Upload Markdown Problem File"
               >
-                <IconUpload class="w-3.5 h-3.5 text-blue-500" />
+                <IconUpload class="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-300" />
                 <span>Upload .md Problem</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleDownloadTemplate}
-                class="px-3 py-1.5 rounded-md text-xs font-semibold bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition flex items-center gap-1.5"
+                class="btn-workstation-secondary px-3 py-1.5 rounded-none text-xs font-semibold flex items-center gap-1.5"
                 title="Download Sample .md Template File"
               >
-                <IconDownload class="w-3.5 h-3.5 text-slate-500" />
+                <IconDownload class="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-300" />
                 <span>Download Template</span>
               </button>
             </div>
           </div>
 
           <Show when={sampleCases().length > 1 || hiddenCases().length > 1}>
-            <div class="flex items-center justify-between p-3 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-lg text-xs text-blue-800 dark:text-blue-300">
+            <div class="flex items-center justify-between p-3 bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-none text-xs text-neutral-900 dark:text-neutral-100">
               <div class="flex items-center gap-2">
-                <IconCheck class="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <IconCheck class="w-4 h-4 text-neutral-900 dark:text-neutral-100" />
                 <span>Multi-testcase suite active: <strong>{sampleCases().length}</strong> visible sample tests and <strong>{hiddenCases().length}</strong> hidden tests configured.</span>
               </div>
             </div>
@@ -1204,11 +1201,7 @@ Print the single integer answer.
           <Show when={probMsg()}>
             {(msg) => (
               <div
-                class={`p-3 rounded-md text-xs font-medium flex items-center justify-between ${
-                  msg().type === 'success'
-                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-                    : 'bg-rose-50 text-rose-800 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
-                }`}
+                class="p-3 rounded-none text-xs font-medium flex items-center justify-between bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100"
               >
                 <span>{msg().text}</span>
                 <button onClick={() => setProbMsg(null)} class="text-current opacity-70 hover:opacity-100">
@@ -1220,8 +1213,8 @@ Print the single integer answer.
 
           <form onSubmit={handleCreateDynamicProblem} class="space-y-6">
             {/* Identity & Limits Grid */}
-            <div class="p-5 bg-slate-50/70 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/80 space-y-4">
-              <h3 class="text-xs font-bold text-zinc-900 dark:text-zinc-100">
+            <div class="p-5 bg-neutral-50/70 dark:bg-neutral-900/40 rounded-none border border-neutral-200 dark:border-neutral-800 space-y-4">
+              <h3 class="text-xs font-bold text-neutral-900 dark:text-neutral-100">
                 1. Metadata & Limits
               </h3>
 
@@ -1343,14 +1336,14 @@ Print the single integer answer.
                 <label class="text-xs font-bold text-zinc-900 dark:text-zinc-100">
                   2. Problem Statement
                 </label>
-                <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-md border border-slate-200 dark:border-slate-700">
+                <div class="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-900 p-0.5 rounded-none border border-neutral-300 dark:border-neutral-800">
                   <button
                     type="button"
                     onClick={() => setProblemTab('write')}
-                    class={`px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5 transition ${
+                    class={`px-3 py-1 rounded-none text-xs font-medium flex items-center gap-1.5 transition ${
                       problemTab() === 'write'
-                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-xs'
-                        : 'text-slate-600 dark:text-slate-400'
+                        ? 'bg-black text-white dark:bg-white dark:text-black font-semibold'
+                        : 'text-neutral-600 dark:text-neutral-400'
                     }`}
                   >
                     <IconFileText class="w-3.5 h-3.5" />
@@ -1359,10 +1352,10 @@ Print the single integer answer.
                   <button
                     type="button"
                     onClick={() => setProblemTab('preview')}
-                    class={`px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5 transition ${
+                    class={`px-3 py-1 rounded-none text-xs font-medium flex items-center gap-1.5 transition ${
                       problemTab() === 'preview'
-                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-xs'
-                        : 'text-slate-600 dark:text-slate-400'
+                        ? 'bg-black text-white dark:bg-white dark:text-black font-semibold'
+                        : 'text-neutral-600 dark:text-neutral-400'
                     }`}
                   >
                     <IconEye class="w-3.5 h-3.5" />
@@ -1376,14 +1369,14 @@ Print the single integer answer.
                   rows="9"
                   value={probStatement()}
                   onInput={(e) => setProbStatement(e.currentTarget.value)}
-                  class="notion-input w-full font-mono text-xs leading-relaxed"
+                  class="notion-input w-full font-mono text-xs leading-relaxed rounded-none"
                   placeholder="Write statement in Markdown. Supports inline LaTeX math like $O(N)$ or $1 \le N \le 10^5$."
                   required
                 />
               </Show>
 
               <Show when={problemTab() === 'preview'}>
-                <div class="p-5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 min-h-[180px]">
+                <div class="p-5 rounded-none border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-black min-h-[180px]">
                   <MarkdownView content={probStatement()} />
                 </div>
               </Show>
@@ -1393,10 +1386,10 @@ Print the single integer answer.
             <div class="space-y-4">
               <div class="flex items-center justify-between">
                 <div>
-                  <label class="text-xs font-bold text-zinc-900 dark:text-zinc-100 block">
+                  <label class="text-xs font-bold text-neutral-900 dark:text-neutral-100 block">
                     3. Test Cases (Visible & Hidden)
                   </label>
-                  <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  <p class="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
                     Define multiple public sample test cases (visible in contest arena) and multiple secret hidden test cases (for automated judging).
                   </p>
                 </div>
@@ -1404,11 +1397,11 @@ Print the single integer answer.
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                 {/* Public Sample Test Cases Column */}
-                <div class="p-5 bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-xl space-y-4">
-                  <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700/80">
+                <div class="p-5 bg-neutral-50/70 dark:bg-neutral-900/40 border border-neutral-200 dark:border-neutral-800 rounded-none space-y-4">
+                  <div class="flex items-center justify-between pb-2 border-b border-neutral-200 dark:border-neutral-800">
                     <div class="flex items-center gap-2">
-                      <span class="text-xs font-bold text-slate-900 dark:text-slate-100">Visible Sample Cases</span>
-                      <span class="text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                      <span class="text-xs font-bold text-neutral-900 dark:text-neutral-100">Visible Sample Cases</span>
+                      <span class="text-[10px] font-semibold text-neutral-800 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-none border border-neutral-300 dark:border-neutral-700">
                         {sampleCases().length} Visible
                       </span>
                     </div>
@@ -1416,7 +1409,7 @@ Print the single integer answer.
                     <button
                       type="button"
                       onClick={handleAddSampleCase}
-                      class="px-2.5 py-1 rounded text-xs font-semibold bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/80 transition flex items-center gap-1 shadow-2xs"
+                      class="btn-workstation-secondary px-2.5 py-1 rounded-none text-xs font-semibold flex items-center gap-1"
                     >
                       <IconPlus class="w-3 h-3" />
                       <span>Add Sample</span>
@@ -1426,16 +1419,16 @@ Print the single integer answer.
                   <div class="space-y-4 max-h-[500px] overflow-y-auto pr-1">
                     <For each={sampleCases()}>
                       {(tc, idx) => (
-                        <div class="p-3.5 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-750 shadow-2xs space-y-2.5">
+                        <div class="p-3.5 bg-white dark:bg-black rounded-none border border-neutral-200 dark:border-neutral-800 space-y-2.5">
                           <div class="flex items-center justify-between text-xs">
-                            <span class="font-bold text-slate-800 dark:text-slate-200">
+                            <span class="font-bold text-neutral-800 dark:text-neutral-200">
                               Sample #{idx() + 1}
                             </span>
                             <Show when={sampleCases().length > 1}>
                               <button
                                 type="button"
                                 onClick={() => handleRemoveSampleCase(tc.id)}
-                                class="text-rose-500 hover:text-rose-700 text-xs font-semibold flex items-center gap-1 transition"
+                                class="text-neutral-500 hover:text-black dark:hover:text-white text-xs font-semibold flex items-center gap-1 transition"
                                 title="Remove test case"
                               >
                                 <IconTrash class="w-3 h-3" />
@@ -1446,7 +1439,7 @@ Print the single integer answer.
 
                           <div class="space-y-2">
                             <div>
-                              <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                              <label class="block text-[10px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-1">
                                 Standard Input
                               </label>
                               <textarea
@@ -1454,11 +1447,11 @@ Print the single integer answer.
                                 value={tc.input}
                                 onInput={(e) => handleUpdateSampleCase(tc.id, 'input', e.currentTarget.value)}
                                 placeholder="Sample input..."
-                                class="notion-input w-full font-mono text-xs"
+                                class="notion-input w-full font-mono text-xs rounded-none"
                               />
                             </div>
                             <div>
-                              <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                              <label class="block text-[10px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-1">
                                 Expected Output
                               </label>
                               <textarea
@@ -1466,7 +1459,7 @@ Print the single integer answer.
                                 value={tc.output}
                                 onInput={(e) => handleUpdateSampleCase(tc.id, 'output', e.currentTarget.value)}
                                 placeholder="Expected stdout..."
-                                class="notion-input w-full font-mono text-xs"
+                                class="notion-input w-full font-mono text-xs rounded-none"
                               />
                             </div>
                           </div>
@@ -1477,11 +1470,11 @@ Print the single integer answer.
                 </div>
 
                 {/* Quarantined Hidden Test Cases Column */}
-                <div class="p-5 bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-xl space-y-4">
-                  <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700/80">
+                <div class="p-5 bg-neutral-50/70 dark:bg-neutral-900/40 border border-neutral-200 dark:border-neutral-800 rounded-none space-y-4">
+                  <div class="flex items-center justify-between pb-2 border-b border-neutral-200 dark:border-neutral-800">
                     <div class="flex items-center gap-2">
-                      <span class="text-xs font-bold text-slate-900 dark:text-slate-100">Hidden Test Cases</span>
-                      <span class="text-[10px] font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded border border-rose-200 dark:border-rose-800">
+                      <span class="text-xs font-bold text-neutral-900 dark:text-neutral-100">Hidden Test Cases</span>
+                      <span class="text-[10px] font-semibold text-neutral-800 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-none border border-neutral-300 dark:border-neutral-700">
                         {hiddenCases().length} Quarantined
                       </span>
                     </div>
@@ -1489,7 +1482,7 @@ Print the single integer answer.
                     <button
                       type="button"
                       onClick={handleAddHiddenCase}
-                      class="px-2.5 py-1 rounded text-xs font-semibold bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/80 transition flex items-center gap-1 shadow-2xs"
+                      class="btn-workstation-secondary px-2.5 py-1 rounded-none text-xs font-semibold flex items-center gap-1"
                     >
                       <IconPlus class="w-3 h-3" />
                       <span>Add Hidden</span>
@@ -1499,16 +1492,16 @@ Print the single integer answer.
                   <div class="space-y-4 max-h-[500px] overflow-y-auto pr-1">
                     <For each={hiddenCases()}>
                       {(tc, idx) => (
-                        <div class="p-3.5 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-750 shadow-2xs space-y-2.5">
+                        <div class="p-3.5 bg-white dark:bg-black rounded-none border border-neutral-200 dark:border-neutral-800 space-y-2.5">
                           <div class="flex items-center justify-between text-xs">
-                            <span class="font-bold text-slate-800 dark:text-slate-200">
+                            <span class="font-bold text-neutral-800 dark:text-neutral-200">
                               Hidden Case #{idx() + 1}
                             </span>
                             <Show when={hiddenCases().length > 1}>
                               <button
                                 type="button"
                                 onClick={() => handleRemoveHiddenCase(tc.id)}
-                                class="text-rose-500 hover:text-rose-700 text-xs font-semibold flex items-center gap-1 transition"
+                                class="text-neutral-500 hover:text-black dark:hover:text-white text-xs font-semibold flex items-center gap-1 transition"
                                 title="Remove test case"
                               >
                                 <IconTrash class="w-3 h-3" />
@@ -1519,7 +1512,7 @@ Print the single integer answer.
 
                           <div class="space-y-2">
                             <div>
-                              <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                              <label class="block text-[10px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-1">
                                 Hidden Input
                               </label>
                               <textarea
@@ -1527,11 +1520,11 @@ Print the single integer answer.
                                 value={tc.input}
                                 onInput={(e) => handleUpdateHiddenCase(tc.id, 'input', e.currentTarget.value)}
                                 placeholder="Hidden test input..."
-                                class="notion-input w-full font-mono text-xs"
+                                class="notion-input w-full font-mono text-xs rounded-none"
                               />
                             </div>
                             <div>
-                              <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                              <label class="block text-[10px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-1">
                                 Expected Output
                               </label>
                               <textarea
@@ -1539,7 +1532,7 @@ Print the single integer answer.
                                 value={tc.output}
                                 onInput={(e) => handleUpdateHiddenCase(tc.id, 'output', e.currentTarget.value)}
                                 placeholder="Expected stdout..."
-                                class="notion-input w-full font-mono text-xs"
+                                class="notion-input w-full font-mono text-xs rounded-none"
                               />
                             </div>
                           </div>
@@ -1552,13 +1545,13 @@ Print the single integer answer.
             </div>
 
             {/* Submit Action */}
-            <div class="flex justify-end pt-4 border-t border-slate-200 dark:border-slate-800">
+            <div class="flex justify-end pt-4 border-t border-neutral-200 dark:border-neutral-800">
               <button
                 type="submit"
                 disabled={probSubmitting()}
-                class="px-6 py-2.5 rounded-md text-xs font-bold bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white transition shadow-xs disabled:opacity-50 flex items-center gap-2"
+                class="btn-workstation-primary px-6 py-2.5 rounded-none text-xs font-bold transition disabled:opacity-50 flex items-center gap-2"
               >
-                <IconCheck class="w-3.5 h-3.5 text-white" />
+                <IconCheck class="w-3.5 h-3.5 text-white dark:text-black" />
                 <span>{probSubmitting() ? 'Publishing...' : 'Publish Problem to Contest'}</span>
               </button>
             </div>
@@ -1647,7 +1640,7 @@ Print the single integer answer.
                   <button
                     type="button"
                     onClick={() => setAdjPoints(-100)}
-                    class="px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800"
+                    class="px-2 py-0.5 rounded-none text-[11px] font-semibold bg-neutral-100 text-neutral-800 border border-neutral-300 dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700"
                   >
                     -100
                   </button>
@@ -1655,7 +1648,7 @@ Print the single integer answer.
               </div>
 
               <div>
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label class="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
                   Reason (Audit Trail)
                 </label>
                 <textarea
@@ -1663,7 +1656,7 @@ Print the single integer answer.
                   placeholder="e.g. Penalty for confirmed code sharing on Problem B"
                   value={adjReason()}
                   onInput={(e) => setAdjReason(e.currentTarget.value)}
-                  class="notion-input w-full text-xs"
+                  class="notion-input w-full text-xs rounded-none"
                   required
                 />
               </div>
@@ -1671,7 +1664,7 @@ Print the single integer answer.
               <button
                 type="submit"
                 disabled={adjSubmitting()}
-                class="w-full py-2.5 rounded-md text-xs font-semibold bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white transition shadow-xs disabled:opacity-50"
+                class="w-full py-2.5 rounded-none text-xs font-semibold btn-workstation-primary disabled:opacity-50"
               >
                 {adjSubmitting() ? 'Applying...' : 'Apply Score Adjustment'}
               </button>
@@ -1681,8 +1674,8 @@ Print the single integer answer.
           {/* Audit Log Table */}
           <div class="md:col-span-2 notion-card p-6 space-y-4">
             <div>
-              <h2 class="text-sm font-bold text-slate-900 dark:text-slate-100">Adjustment Audit Log</h2>
-              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <h2 class="text-sm font-bold text-neutral-900 dark:text-neutral-100">Adjustment Audit Log</h2>
+              <p class="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
                 Every manual score modification is audited with admin identity and timestamp.
               </p>
             </div>
@@ -1690,14 +1683,14 @@ Print the single integer answer.
             <Show
               when={adjustments().length > 0}
               fallback={
-                <div class="py-16 text-center text-xs text-slate-400 dark:text-slate-500">
+                <div class="py-16 text-center text-xs text-neutral-400 dark:text-neutral-500">
                   No manual score adjustments recorded for this contest yet.
                 </div>
               }
             >
               <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
-                  <thead class="border-b border-slate-200 dark:border-slate-800 text-slate-400 uppercase tracking-wider font-semibold">
+                  <thead class="border-b border-neutral-200 dark:border-neutral-800 text-neutral-400 uppercase tracking-wider font-semibold">
                     <tr>
                       <th class="py-2.5 px-3">Participant</th>
                       <th class="py-2.5 px-3">Points</th>
@@ -1706,29 +1699,25 @@ Print the single integer answer.
                       <th class="py-2.5 px-3">Time</th>
                     </tr>
                   </thead>
-                  <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                  <tbody class="divide-y divide-neutral-100 dark:divide-neutral-800">
                     <For each={adjustments()}>
                       {(adj) => (
-                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
-                          <td class="py-2.5 px-3 font-semibold text-slate-900 dark:text-slate-100">
+                        <tr class="hover:bg-neutral-50 dark:hover:bg-neutral-900/40 transition">
+                          <td class="py-2.5 px-3 font-semibold text-neutral-900 dark:text-neutral-100">
                             {adj.user_name || 'Participant'}
                           </td>
                           <td class="py-2.5 px-3">
                             <span
-                              class={`px-2 py-0.5 rounded font-bold ${
-                                adj.points > 0
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800'
-                                  : 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800'
-                              }`}
+                              class="px-2 py-0.5 rounded-none font-bold text-neutral-900 dark:text-neutral-100 bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700"
                             >
                               {adj.points > 0 ? `+${adj.points}` : adj.points} pts
                             </span>
                           </td>
-                          <td class="py-2.5 px-3 text-slate-600 dark:text-slate-300 max-w-xs truncate">
+                          <td class="py-2.5 px-3 text-neutral-600 dark:text-neutral-300 max-w-xs truncate">
                             {adj.reason}
                           </td>
-                          <td class="py-2.5 px-3 text-slate-500 dark:text-slate-400">{adj.admin_name || 'Admin'}</td>
-                          <td class="py-2.5 px-3 text-slate-400">
+                          <td class="py-2.5 px-3 text-neutral-500 dark:text-neutral-400">{adj.admin_name || 'Admin'}</td>
+                          <td class="py-2.5 px-3 text-neutral-400">
                             {new Date(adj.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </td>
                         </tr>
@@ -1755,11 +1744,7 @@ Print the single integer answer.
           <Show when={rejudgeMsg()}>
             {(msg) => (
               <div
-                class={`p-3 rounded-[2px] text-xs font-medium flex items-center justify-between ${
-                  msg().type === 'success'
-                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-                    : 'bg-rose-50 text-rose-800 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
-                }`}
+                class="p-3 rounded-none text-xs font-medium flex items-center justify-between border bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 border-neutral-300 dark:border-neutral-700"
               >
                 <span>{msg().text}</span>
                 <button onClick={() => setRejudgeMsg(null)} class="text-current opacity-70 hover:opacity-100">
@@ -1769,15 +1754,15 @@ Print the single integer answer.
             )}
           </Show>
 
-          <div class="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-[2px] border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-600 dark:text-zinc-300 space-y-1">
-            <span class="font-bold text-zinc-900 dark:text-zinc-100">Target Competition:</span>{' '}
+          <div class="p-4 bg-neutral-50 dark:bg-neutral-900 rounded-none border border-neutral-200 dark:border-neutral-800 text-xs text-neutral-600 dark:text-neutral-300 space-y-1">
+            <span class="font-bold text-neutral-900 dark:text-neutral-100">Target Competition:</span>{' '}
             <span>{selectedContest()?.title || 'None Selected'}</span>
           </div>
 
           <button
             onClick={handleTriggerRejudge}
             disabled={rejudgeRunning() || !selectedContestId()}
-            class="btn-workstation btn-workstation-primary text-xs flex items-center gap-2"
+            class="btn-workstation btn-workstation-primary text-xs flex items-center gap-2 rounded-none"
           >
             <IconRefresh class={`w-3.5 h-3.5 ${rejudgeRunning() ? 'animate-spin' : ''}`} />
             <span>{rejudgeRunning() ? 'Dispatching Batch...' : 'Dispatch Contest Rejudge'}</span>
@@ -1790,8 +1775,8 @@ Print the single integer answer.
         <div class="space-y-6">
           <div class="notion-card p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h2 class="text-base font-bold text-slate-900 dark:text-slate-100">Squad & Roster Management</h2>
-              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <h2 class="text-base font-bold text-neutral-900 dark:text-neutral-100">Squad & Roster Management</h2>
+              <p class="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
                 Monitor registered participant teams, examine memberships, and delete squads. Teams are also automatically deleted if all members leave.
               </p>
             </div>
@@ -1801,12 +1786,12 @@ Print the single integer answer.
                 placeholder="Search squad or member..."
                 value={teamSearchQuery()}
                 onInput={(e) => setTeamSearchQuery(e.currentTarget.value)}
-                class="notion-input text-xs w-60"
+                class="notion-input text-xs w-60 rounded-none"
               />
               <button
                 onClick={fetchTeams}
                 disabled={teamsLoading()}
-                class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium flex items-center gap-1.5 transition disabled:opacity-50"
+                class="btn-workstation-secondary px-3 py-2 rounded-none text-xs font-medium flex items-center gap-1.5 transition disabled:opacity-50"
               >
                 <IconRefresh class={`w-3.5 h-3.5 ${teamsLoading() ? 'animate-spin' : ''}`} />
                 <span>Refresh</span>
@@ -1817,11 +1802,7 @@ Print the single integer answer.
           <Show when={teamMsg()}>
             {(msg) => (
               <div
-                class={`p-3 rounded-md text-xs font-medium flex items-center justify-between ${
-                  msg().type === 'success'
-                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-                    : 'bg-rose-50 text-rose-800 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
-                }`}
+                class="p-3 rounded-none text-xs font-medium flex items-center justify-between border bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 border-neutral-300 dark:border-neutral-700"
               >
                 <span>{msg().text}</span>
                 <button onClick={() => setTeamMsg(null)} class="text-current opacity-70 hover:opacity-100">
@@ -1834,7 +1815,7 @@ Print the single integer answer.
           <Show
             when={!teamsLoading()}
             fallback={
-              <div class="p-12 text-center text-xs text-slate-500">Loading squads...</div>
+              <div class="p-12 text-center text-xs text-neutral-500">Loading squads...</div>
             }
           >
             {(() => {
@@ -1852,9 +1833,9 @@ Print the single integer answer.
                   when={list.length > 0}
                   fallback={
                     <div class="notion-card p-12 text-center">
-                      <IconUsers class="w-10 h-10 mx-auto text-slate-400 mb-3" />
-                      <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">No squads found</h3>
-                      <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      <IconUsers class="w-10 h-10 mx-auto text-neutral-400 mb-3" />
+                      <h3 class="text-sm font-bold text-neutral-900 dark:text-neutral-100">No squads found</h3>
+                      <p class="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
                         {teamSearchQuery() ? 'No teams matched your query filter.' : 'No participant teams have been registered yet.'}
                       </p>
                     </div>
@@ -1863,16 +1844,16 @@ Print the single integer answer.
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <For each={list}>
                       {(team) => (
-                        <div class="notion-card p-5 flex flex-col justify-between space-y-4 hover:border-slate-300 dark:hover:border-slate-700 transition">
+                        <div class="notion-card p-5 flex flex-col justify-between space-y-4 hover:border-neutral-400 dark:hover:border-neutral-600 transition">
                           <div class="space-y-3">
                             <div class="flex items-start justify-between gap-2">
                               <div>
-                                <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">{team.name}</h3>
+                                <h3 class="text-sm font-bold text-neutral-900 dark:text-neutral-100">{team.name}</h3>
                                 <div class="flex items-center gap-2 mt-1">
-                                  <span class="text-[11px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                                  <span class="text-[11px] font-semibold bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 px-2.5 py-0.5 rounded-none border border-neutral-300 dark:border-neutral-700">
                                     Code: {team.join_code}
                                   </span>
-                                  <span class="text-[11px] text-slate-500 dark:text-slate-400">
+                                  <span class="text-[11px] text-neutral-500 dark:text-neutral-400">
                                     {team.members?.length || 0} members
                                   </span>
                                 </div>
@@ -1881,33 +1862,33 @@ Print the single integer answer.
                                 onClick={() => handleDeleteTeam(team.id, team.name)}
                                 disabled={deletingTeamId() === team.id}
                                 title="Delete Squad permanently"
-                                class="px-2.5 py-1.5 rounded text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 flex items-center gap-1.5 transition disabled:opacity-50"
+                                class="btn-workstation btn-workstation-danger rounded-none px-2.5 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-50"
                               >
                                 <IconTrash class="w-3.5 h-3.5" />
                                 <span>{deletingTeamId() === team.id ? 'Deleting...' : 'Delete Squad'}</span>
                               </button>
                             </div>
 
-                            <div class="pt-2 border-t border-slate-100 dark:border-slate-800/80">
-                              <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block mb-1.5">
+                            <div class="pt-2 border-t border-neutral-200 dark:border-neutral-800">
+                              <span class="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 block mb-1.5">
                                 Squad Roster:
                               </span>
                               <div class="space-y-1.5">
                                 <For each={team.members || []}>
                                   {(member) => (
-                                    <div class="flex items-center justify-between text-xs py-1 px-2 rounded bg-slate-50 dark:bg-slate-800/50">
+                                    <div class="flex items-center justify-between text-xs py-1 px-2 rounded-none bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
                                       <div class="flex items-center gap-2 min-w-0">
-                                        <span class="font-medium text-slate-800 dark:text-slate-200 truncate">
+                                        <span class="font-medium text-neutral-800 dark:text-neutral-200 truncate">
                                           {member.user_name}
                                         </span>
                                         <Show when={member.user_email}>
-                                          <span class="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                                          <span class="text-[10px] text-neutral-500 dark:text-neutral-400 truncate">
                                             ({member.user_email})
                                           </span>
                                         </Show>
                                       </div>
                                       <Show when={member.user_id === team.captain_id}>
-                                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                                        <span class="px-1.5 py-0.5 rounded-none text-[10px] font-bold bg-neutral-900 dark:bg-neutral-100 text-white dark:text-black">
                                           Captain
                                         </span>
                                       </Show>
@@ -1918,7 +1899,7 @@ Print the single integer answer.
                             </div>
                           </div>
 
-                          <div class="text-[10px] text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                          <div class="text-[10px] text-neutral-500 dark:text-neutral-400 pt-2 border-t border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
                             <span>ID: {team.id.slice(0, 8)}...</span>
                             <span>Created {new Date(team.created_at).toLocaleDateString()}</span>
                           </div>
@@ -1935,13 +1916,13 @@ Print the single integer answer.
 
       {/* Create Competition Modal */}
       <Show when={isCreateContestOpen()}>
-        <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div class="notion-card w-full max-w-lg p-6 bg-white dark:bg-slate-900 shadow-xl space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <h2 class="text-base font-bold text-slate-900 dark:text-slate-100">Create New Competition</h2>
+        <div class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div class="notion-card w-full max-w-lg p-6 bg-white dark:bg-black shadow-xl space-y-4 rounded-none border border-neutral-300 dark:border-neutral-800">
+            <div class="flex items-center justify-between pb-3 border-b border-neutral-200 dark:border-neutral-800">
+              <h2 class="text-base font-bold text-neutral-900 dark:text-neutral-100">Create New Competition</h2>
               <button
                 onClick={() => setIsCreateContestOpen(false)}
-                class="text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 p-1"
+                class="text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 p-1"
               >
                 <IconX class="w-4 h-4" />
               </button>
@@ -1949,7 +1930,7 @@ Print the single integer answer.
 
             <form onSubmit={handleCreateNewContest} class="space-y-4">
               <div>
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label class="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
                   Competition Title
                 </label>
                 <input
@@ -1958,26 +1939,26 @@ Print the single integer answer.
                   placeholder="e.g. CodeBench Grand Prix #1"
                   value={newTitle()}
                   onInput={(e) => setNewTitle(e.currentTarget.value)}
-                  class="notion-input w-full"
+                  class="notion-input w-full rounded-none"
                 />
               </div>
 
               <div class="grid grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label class="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
                     Scoring Mode
                   </label>
                   <select
                     value={newScoring()}
                     onChange={(e) => setNewScoring(e.currentTarget.value)}
-                    class="notion-input w-full text-xs"
+                    class="notion-input w-full text-xs rounded-none"
                   >
                     <option value="icpc">Standard Penalty (Solved + 20m Penalty)</option>
                     <option value="points">Points (Flat Points)</option>
                   </select>
                 </div>
                 <div>
-                  <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label class="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
                     Duration (Minutes)
                   </label>
                   <input
@@ -1986,56 +1967,56 @@ Print the single integer answer.
                     max="1440"
                     value={newDurationMin()}
                     onInput={(e) => setNewDurationMin(Number(e.currentTarget.value))}
-                    class="notion-input w-full"
+                    class="notion-input w-full rounded-none"
                   />
                 </div>
               </div>
 
-              <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 space-y-3">
+              <div class="p-3 bg-neutral-50 dark:bg-neutral-900 rounded-none border border-neutral-200 dark:border-neutral-800 space-y-3">
                 <div class="flex items-center justify-between">
                   <div>
-                    <span class="text-xs font-bold text-slate-900 dark:text-slate-100">Team Competition Mode</span>
-                    <p class="text-[11px] text-slate-500 dark:text-slate-400">Allow participants to form squads with invite codes</p>
+                    <span class="text-xs font-bold text-neutral-900 dark:text-neutral-100">Team Competition Mode</span>
+                    <p class="text-[11px] text-neutral-500 dark:text-neutral-400">Allow participants to form squads with invite codes</p>
                   </div>
                   <input
                     type="checkbox"
                     checked={newIsTeam()}
                     onChange={(e) => setNewIsTeam(e.currentTarget.checked)}
-                    class="w-4 h-4 text-slate-900 rounded"
+                    class="w-4 h-4 text-black rounded-none"
                   />
                 </div>
 
                 <Show when={newIsTeam()}>
-                  <div class="pt-2 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                    <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Max Team Size:</label>
+                  <div class="pt-2 border-t border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
+                    <label class="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Max Team Size:</label>
                     <input
                       type="number"
                       min="1"
                       max="10"
                       value={newMaxTeamSize()}
                       onInput={(e) => setNewMaxTeamSize(Number(e.currentTarget.value))}
-                      class="notion-input w-20 text-center font-bold"
+                      class="notion-input w-20 text-center font-bold rounded-none"
                     />
                   </div>
                 </Show>
               </div>
 
-              <div class="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs">
+              <div class="p-3 bg-neutral-100 dark:bg-neutral-900 rounded-none border border-neutral-300 dark:border-neutral-700 text-neutral-800 dark:text-neutral-300 text-xs">
                 <strong>Contest Lifecycle Notice:</strong> The competition will initialize in the <strong>UPCOMING</strong> state. The arena will unlock strictly when you click <em>"Start Contest Immediately"</em> in the admin dashboard.
               </div>
 
-              <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <div class="flex items-center justify-end gap-3 pt-3 border-t border-neutral-200 dark:border-neutral-800">
                 <button
                   type="button"
                   onClick={() => setIsCreateContestOpen(false)}
-                  class="px-4 py-2 rounded-md text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                  class="btn-workstation-secondary rounded-none px-4 py-2 text-xs font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creatingContest() || !newTitle().trim()}
-                  class="px-5 py-2 rounded-md text-xs font-bold bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white transition shadow-xs disabled:opacity-50"
+                  class="btn-workstation-primary rounded-none px-5 py-2 text-xs font-bold"
                 >
                   {creatingContest() ? 'Creating...' : 'Create Competition'}
                 </button>
@@ -2044,19 +2025,20 @@ Print the single integer answer.
           </div>
         </div>
       </Show>
+
       {/* Markdown Problem Template Upload & Preview Modal */}
       <Show when={isUploadMDModalOpen()}>
-        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div class="notion-card w-full max-w-3xl max-h-[90vh] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden">
+        <div class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div class="notion-card w-full max-w-3xl max-h-[90vh] flex flex-col bg-white dark:bg-black border border-neutral-300 dark:border-neutral-800 shadow-2xl overflow-hidden rounded-none">
             {/* Modal Header */}
-            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-neutral-200 dark:border-neutral-800">
               <div class="flex items-center gap-2">
-                <IconUpload class="w-4 h-4 text-blue-500" />
-                <h2 class="text-base font-bold text-slate-900 dark:text-white">Import Problem from Markdown (.md)</h2>
+                <IconUpload class="w-4 h-4 text-neutral-800 dark:text-neutral-200" />
+                <h2 class="text-base font-bold text-neutral-900 dark:text-white">Import Problem from Markdown (.md)</h2>
               </div>
               <button
                 onClick={() => setIsUploadMDModalOpen(false)}
-                class="p-1 text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
+                class="p-1 text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition"
               >
                 <IconX class="w-4 h-4" />
               </button>
@@ -2065,13 +2047,13 @@ Print the single integer answer.
             {/* Modal Content */}
             <div class="p-6 space-y-4 overflow-y-auto flex-1">
               <div class="flex items-center justify-between text-xs">
-                <span class="text-slate-500 dark:text-slate-400">
-                  Paste raw Markdown with YAML frontmatter or upload a file. Test cases in <code class="font-mono bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">```input</code> and <code class="font-mono bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">```output</code> blocks will be parsed automatically.
+                <span class="text-neutral-500 dark:text-neutral-400">
+                  Paste raw Markdown with YAML frontmatter or upload a file. Test cases in <code class="font-mono bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5 rounded-none border border-neutral-200 dark:border-neutral-700">```input</code> and <code class="font-mono bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5 rounded-none border border-neutral-200 dark:border-neutral-700">```output</code> blocks will be parsed automatically.
                 </span>
                 <button
                   type="button"
                   onClick={handleDownloadTemplate}
-                  class="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 font-semibold"
+                  class="text-neutral-900 dark:text-neutral-100 hover:underline flex items-center gap-1 font-semibold"
                 >
                   <IconDownload class="w-3.5 h-3.5" />
                   <span>Download Sample .md</span>
@@ -2089,45 +2071,41 @@ Print the single integer answer.
                     setParsedMDPreview(parseProblemMarkdown(val));
                   }}
                   placeholder="Paste problem markdown with YAML frontmatter..."
-                  class="notion-input w-full font-mono text-xs leading-relaxed"
+                  class="notion-input w-full font-mono text-xs leading-relaxed rounded-none"
                 />
               </div>
 
               {/* Real-Time Parsed Validation Summary */}
               <Show when={parsedMDPreview()}>
                 {(p) => (
-                  <div class="p-4 bg-slate-50 dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
+                  <div class="p-4 bg-neutral-50 dark:bg-neutral-900 rounded-none border border-neutral-200 dark:border-neutral-800 space-y-3">
                     <div class="flex items-center justify-between">
-                      <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      <span class="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
                         Template Parsing Analysis
                       </span>
                       <span
-                        class={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                          p().errors.length === 0
-                            ? 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
-                            : 'bg-rose-50 dark:bg-rose-950/70 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
-                        }`}
+                        class="px-2 py-0.5 rounded-none text-[11px] font-bold border border-neutral-300 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200"
                       >
                         {p().errors.length === 0 ? 'Valid Template' : `${p().errors.length} Errors Found`}
                       </span>
                     </div>
 
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                      <div class="p-2 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800">
-                        <span class="text-[10px] text-slate-400 block">Title</span>
-                        <span class="font-bold text-slate-900 dark:text-white truncate block">{p().title || 'Untitled'}</span>
+                      <div class="p-2 bg-white dark:bg-black rounded-none border border-neutral-200 dark:border-neutral-800">
+                        <span class="text-[10px] text-neutral-400 block">Title</span>
+                        <span class="font-bold text-neutral-900 dark:text-white truncate block">{p().title || 'Untitled'}</span>
                       </div>
-                      <div class="p-2 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800">
-                        <span class="text-[10px] text-slate-400 block">Slug / Label</span>
-                        <span class="font-mono text-slate-800 dark:text-slate-200 truncate block">{p().contest_label} : {p().slug}</span>
+                      <div class="p-2 bg-white dark:bg-black rounded-none border border-neutral-200 dark:border-neutral-800">
+                        <span class="text-[10px] text-neutral-400 block">Slug / Label</span>
+                        <span class="font-semibold text-neutral-800 dark:text-neutral-200 truncate block">{p().contest_label} : {p().slug}</span>
                       </div>
-                      <div class="p-2 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800">
-                        <span class="text-[10px] text-slate-400 block">Limits</span>
-                        <span class="font-mono text-slate-800 dark:text-slate-200 block">{p().time_limit_ms}ms / {p().memory_mb}MB</span>
+                      <div class="p-2 bg-white dark:bg-black rounded-none border border-neutral-200 dark:border-neutral-800">
+                        <span class="text-[10px] text-neutral-400 block">Limits</span>
+                        <span class="font-semibold text-neutral-800 dark:text-neutral-200 block">{p().time_limit_ms}ms / {p().memory_mb}MB</span>
                       </div>
-                      <div class="p-2 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800">
-                        <span class="text-[10px] text-slate-400 block">Test Cases</span>
-                        <span class="font-bold text-emerald-600 dark:text-emerald-400 block">
+                      <div class="p-2 bg-white dark:bg-black rounded-none border border-neutral-200 dark:border-neutral-800">
+                        <span class="text-[10px] text-neutral-400 block">Test Cases</span>
+                        <span class="font-bold text-neutral-900 dark:text-neutral-100 block">
                           {p().sample_tests.length} Sample / {p().hidden_tests.length} Hidden
                         </span>
                       </div>
@@ -2135,7 +2113,7 @@ Print the single integer answer.
 
                     {/* Warnings & Errors */}
                     <Show when={p().errors.length > 0}>
-                      <div class="p-2.5 rounded bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs space-y-1">
+                      <div class="p-2.5 rounded-none bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100 text-xs space-y-1">
                         <For each={p().errors}>
                           {(err) => <div>&bull; {err}</div>}
                         </For>
@@ -2143,7 +2121,7 @@ Print the single integer answer.
                     </Show>
 
                     <Show when={p().warnings.length > 0}>
-                      <div class="p-2.5 rounded bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300 text-xs space-y-1">
+                      <div class="p-2.5 rounded-none bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 text-neutral-800 dark:text-neutral-200 text-xs space-y-1">
                         <For each={p().warnings}>
                           {(warn) => <div>&bull; {warn}</div>}
                         </For>
@@ -2155,11 +2133,11 @@ Print the single integer answer.
             </div>
 
             {/* Modal Actions */}
-            <div class="flex items-center justify-between px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+            <div class="flex items-center justify-between px-6 py-4 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950">
               <button
                 type="button"
                 onClick={() => setIsUploadMDModalOpen(false)}
-                class="px-4 py-2 rounded-md text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
+                class="btn-workstation-secondary rounded-none px-4 py-2 text-xs font-semibold"
               >
                 Cancel
               </button>
@@ -2172,7 +2150,7 @@ Print the single integer answer.
                     const p = parsedMDPreview();
                     if (p) handleApplyParsedProblem(p);
                   }}
-                  class="px-4 py-2 rounded-md text-xs font-semibold bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition shadow-xs disabled:opacity-50"
+                  class="btn-workstation-secondary rounded-none px-4 py-2 text-xs font-semibold disabled:opacity-50"
                 >
                   Load into Studio Form
                 </button>
@@ -2184,9 +2162,9 @@ Print the single integer answer.
                     const p = parsedMDPreview();
                     if (p) handleDirectPublishParsed(p);
                   }}
-                  class="px-5 py-2 rounded-md text-xs font-bold bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white transition shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+                  class="btn-workstation-primary rounded-none px-5 py-2 text-xs font-bold disabled:opacity-50 flex items-center gap-1.5"
                 >
-                  <IconCheck class="w-3.5 h-3.5 text-white" />
+                  <IconCheck class="w-3.5 h-3.5 text-white dark:text-black" />
                   <span>{probSubmitting() ? 'Publishing...' : 'Publish to Contest Directly'}</span>
                 </button>
               </div>

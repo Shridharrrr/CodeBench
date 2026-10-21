@@ -18,13 +18,6 @@ You are given the heads of two sorted lists of integers, `list1` and `list2`.
 
 Merge the two lists into one sorted list. The list should be made by splicing together the nodes of the first two lists.
 
-### Input Format
-The first line contains two integers `n` and `m` representing the lengths of `list1` and `list2`.
-The second line contains `n` space-separated integers for `list1` (empty if n = 0).
-The third line contains `m` space-separated integers for `list2` (empty if m = 0).
-
-### Output Format
-Print the merged sorted integers separated by spaces.
 
 ### Constraints
 - 0 <= n, m <= 100

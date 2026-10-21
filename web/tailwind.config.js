@@ -8,19 +8,30 @@ export default {
   theme: {
     extend: {
       colors: {
-        slate: {
-          650: '#27272a',
-          700: '#27272a', // crisp borders
-          750: '#1f1f23',
-          800: '#121214', // elevated cards / button hovers
-          850: '#0c0c0e', // inset areas / inputs
-          900: '#09090b', // main card surface
-          950: '#000000', // pure deep obsidian black canvas
+        neutral: {
+          50: '#fafafa',
+          100: '#f4f4f5',
+          200: '#e4e4e7',
+          300: '#d4d4d8',
+          400: '#a1a1aa',
+          500: '#71717a',
+          600: '#52525b',
+          700: '#3f3f46',
+          800: '#27272a',
+          900: '#18181b',
+          950: '#09090b',
         },
       },
       fontFamily: {
-        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
-        mono: ['"JetBrains Mono"', '"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        serif: ['Newsreader', 'Georgia', 'serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'Menlo', 'monospace'],
+      },
+      borderRadius: {
+        none: '0px',
+        sm: '2px',
+        md: '4px',
+        DEFAULT: '0px',
       },
     },
   },

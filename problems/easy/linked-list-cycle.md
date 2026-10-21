@@ -19,12 +19,6 @@ Given `head`, the head of a linked list, determine if the linked list has a cycl
 
 There is a cycle in a linked list if there is some node in the list that can be reached again by continuously following the `next` pointer.
 
-### Input Format
-The first line contains two integers `n` and `pos`, where `pos` is the 0-based index of the node that the tail connects to (-1 if no cycle).
-The second line contains `n` space-separated node values.
-
-### Output Format
-Print `true` if there is a cycle in the linked list, otherwise print `false`.
 
 ### Constraints
 - 0 <= n <= 10^4

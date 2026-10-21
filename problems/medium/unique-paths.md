@@ -19,11 +19,6 @@ There is a robot on an `m x n` grid. The robot is initially located at the top-l
 
 Given the two integers `m` and `n`, return the number of possible unique paths that the robot can take to reach the bottom-right corner.
 
-### Input Format
-A single line containing two integers `m` and `n`.
-
-### Output Format
-Print the number of unique paths.
 
 ### Constraints
 - 1 <= m, n <= 100

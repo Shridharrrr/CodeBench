@@ -19,12 +19,6 @@ Given an integer array nums, return all the triplets `[nums[i], nums[j], nums[k]
 
 Notice that the solution set must not contain duplicate triplets. Print each triplet on a new line sorted in ascending order.
 
-### Input Format
-The first line contains `n`.
-The second line contains `n` space-separated integers.
-
-### Output Format
-Print each unique triplet on a new line with space-separated values. Triplets should be printed in lexicographical order.
 
 ### Constraints
 - 3 <= n <= 3000

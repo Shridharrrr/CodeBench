@@ -20,12 +20,6 @@ There are a total of `numCourses` courses you have to take, labeled from `0` to 
 
 Return `true` if you can finish all courses. Otherwise, return `false`.
 
-### Input Format
-The first line contains `numCourses` and `m` (number of prerequisite pairs).
-The next `m` lines contain two integers each: `a_i b_i`.
-
-### Output Format
-Print `true` if you can finish all courses, otherwise `false`.
 
 ### Constraints
 - 1 <= numCourses <= 2000

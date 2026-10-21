@@ -250,7 +250,7 @@ title: Sample Problem Title
 difficulty: Medium
 tags:
   - array
-  - algorithms
+  - hash-table
 time_limit_ms: 1000
 memory_mb: 256
 contest_label: A
@@ -260,47 +260,47 @@ checker_type: token
 
 # Sample Problem Title
 
-Write the problem description here. You can use markdown and inline math like $1 \\le N \\le 10^5$.
+Given an array of integers \`nums\` and an integer \`target\`, return the answer according to the problem requirements.
 
-### Input Format
-- The first line contains an integer $T$, the number of test cases.
-- Each test case consists of space-separated integers.
+### Example 1:
+**Input:** nums = [2, 7, 11, 15], target = 9
+**Output:** [0, 1]
+**Explanation:** Because nums[0] + nums[1] == 9, we return [0, 1].
 
-### Output Format
-- Output the answer for each test case on a new line.
+### Example 2:
+**Input:** nums = [3, 2, 4], target = 6
+**Output:** [1, 2]
 
-### Constraints
-- $1 \\le T \\le 100$
-- $1 \\le N \\le 10^5$
+### Constraints:
+- \`2 <= nums.length <= 10^4\`
+- \`-10^9 <= nums[i] <= 10^9\`
+- \`-10^9 <= target <= 10^9\`
 
 ### Sample Test 1
 \`\`\`input
-2
-3
-1 2 3
+4 9
+2 7 11 15
 \`\`\`
 \`\`\`output
-6
+0 1
 \`\`\`
 
 ### Sample Test 2
 \`\`\`input
-1
-4
-2 4 6 8
+3 6
+3 2 4
 \`\`\`
 \`\`\`output
-20
+1 2
 \`\`\`
 
 ### Hidden Test 1
 \`\`\`input
-1
-5
-10 20 30 40 50
+2 6
+3 3
 \`\`\`
 \`\`\`output
-150
+0 1
 \`\`\`
 `;
 }

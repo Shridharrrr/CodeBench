@@ -21,11 +21,6 @@ Given an input string `s` and a pattern `p`, implement regular expression matchi
 
 The matching should cover the entire input string (not partial).
 
-### Input Format
-Two lines: the first contains `s` and the second contains `p`.
-
-### Output Format
-Print `true` if `s` matches `p`, otherwise `false`.
 
 ### Constraints
 - 1 <= s.length <= 20

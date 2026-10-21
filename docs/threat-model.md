@@ -1,52 +1,65 @@
-# Codebench Threat Model
+# CodeBench Security & Threat Model
 
-## 1. System Overview & Assets
-Codebench is a local and contest-grade judge platform designed to execute untrusted, potentially adversarial C/C++ submissions.
+This document outlines how CodeBench isolates untrusted code submissions and protects host infrastructure.
 
-### Critical Assets
-1. **Host Integrity**: The judge host OS, kernel, root filesystem, system daemons, and host resources.
-2. **Confidential Test Cases**: Hidden inputs, jury outputs, and reference solutions.
-3. **Evaluation Integrity**: Accurate CPU/memory accounting, tamper-proof verdicts, deterministic outcomes.
-4. **Platform Availability**: Web API, database, and message broker service availability during contests.
-5. **Participant Data**: User credentials, sessions, and non-public submission source code.
+---
 
-## 2. Threat Actors & Attack Vectors
-- **Adversarial Participant**: Submits malicious C/C++ code designed to escape sandboxes, exhaust resources, read hidden tests, tamper with other sandboxes, or forge verdicts.
-- **Malicious Problem Author**: Imports malformed problem packages with path traversal, malicious testlib generators, or bloated test files.
-- **Network Attacker (LAN)**: Attempts denial of service, session hijacking, or eavesdropping on unencrypted internal communications.
+## 1. Overview & Trust Boundaries
 
-## 3. Trust Boundaries
+CodeBench accepts and executes untrusted code submitted by participants (in C++, Python, Go, and Rust). The system must run this code safely without compromising the host machine or leaking hidden test cases.
+
 ```
 +-------------------------------------------------------------+
-| Browser (Untrusted)                                         |
+| Participant Browser / CLI (Untrusted)                       |
 +-------------------------------------------------------------+
-                            | HTTPS / Session Cookie
+                            │ HTTP / WebSockets / SSE
 +-------------------------------------------------------------+
-| Edge / Reverse Proxy (Caddy) & API (Go Modular Monolith)    |
-| - Authenticates users, validates requests                   |
-| - Manages PostgreSQL & Transactional Outbox                 |
+| API Server (Go)                                             |
+| - Authenticates requests and applies rate limits            |
+| - Wraps function submissions with test harness drivers      |
+| - Persists state in PostgreSQL                              |
 +-------------------------------------------------------------+
-                            | NATS JetStream (Work Queues)
+                            │ Work Queue (NATS JetStream)
 +-------------------------------------------------------------+
-| Judge Host Daemon (Rust)                                    |
-| - Receives authenticated jobs by cryptographic hash         |
-| - Spawns sandboxed processes via native Linux primitives   |
+| Judge Runner (Rust Sandbox)                                 |
+| - Compiles code under CPU & memory limits                   |
+| - Executes binaries in isolated Linux sandboxes             |
 +-------------------------------------------------------------+
-                            | clone3 / namespaces / cgroups / seccomp / landlock
+                            │ Linux Namespaces & cgroups v2
 +-------------------------------------------------------------+
-| Sandbox Environment (Untrusted execution)                   |
-| - Read-only root tmpfs, zero network, isolated PID/IPC/MNT  |
-| - Pinned isolated CPU core, strict cgroup v2 limits         |
+| Sandbox Process (Untrusted Binary)                          |
+| - No network access                                         |
+| - Read-only filesystem                                      |
+| - Enforced memory ceiling & CPU time limit                  |
 +-------------------------------------------------------------+
 ```
 
-## 4. Mitigations
-- **Kernel-level Sandboxing**: cgroups v2 (`memory.max`, `memory.swap.max=0`, `pids.max=1`), Landlock filesystem rules, Seccomp-BPF strict allowlist, `no_new_privs`, dropped capabilities (`CAP_*`).
-- **Compilation Sandboxing**: Dedicated compilation sandbox with 10s CPU limit, 512MB RAM limit, read-only system headers, preventing `#include "/etc/shadow"` or fork bombs during compilation.
-- **Hidden Test Isolation**: Hidden tests never enter the participant sandbox filesystem; they are streamed directly via `memfd` or pipe to `stdin`. Output is captured via capped buffers.
-- **Timing & CPU Protection**: Dedicated isolated cores (`isolcpus`), reading CPU accounting directly from `cpu.stat` (cgroup v2), measuring user+sys CPU time, and instruction counts via `perf_event_open`.
-- **Database & Queue Resilience**: Transactional outbox prevents lost jobs; idempotent consumer deduplicates duplicate verdicts; Argon2id protects passwords; CSRF tokens and HttpOnly SameSite cookies protect sessions.
+---
 
-## 5. Residual Risks & Accepted Constraints
-- Docker Desktop on Windows/macOS runs inside a lightweight Linux VM with virtualized hypervisor timers; timing grade is classified as Grade C (Development/Practice only, not contest-grade).
-- Non-deterministic microarchitectural side-channels are minimized through core pinning and cache isolation, but absolute microarchitectural zero-noise requires tuned bare-metal (Grade A).
+## 2. Threat Scenarios & Defenses
+
+### Malicious Code Execution (Host Escape)
+- **Risk**: A submitted solution tries to access the host filesystem, spawn background daemons, or run unauthorized binaries.
+- **Defense**: Submissions run inside dedicated Linux namespaces (Mount, PID, Network) with a read-only root filesystem. System calls like `fork`, `execve`, and socket calls are restricted via Seccomp filters.
+
+### Resource Exhaustion (Denial of Service)
+- **Risk**: A submission enters an infinite loop, attempts a fork bomb, or allocates gigabytes of memory to crash the host.
+- **Defense**:
+  - Memory is capped with cgroups v2 (`memory.max`). Exceeding the limit results in an immediate Memory Limit Exceeded (MLE) verdict.
+  - CPU runtime is bounded by a timer; processes exceeding the problem limit are terminated with Time Limit Exceeded (TLE).
+  - Maximum process count is constrained (`pids.max`) to stop fork bombs.
+
+### Test Case Tampering & Leakage
+- **Risk**: A contestant attempts to inspect hidden test cases by reading disk directories or dumping environment variables.
+- **Defense**: Hidden tests are never written to the contestant's sandbox disk. They are fed directly through standard input pipes and discarded from memory after evaluation.
+
+### Network Attacks
+- **Risk**: A submission attempts to scan local networks, access internal services (e.g. database ports), or make outbound internet calls.
+- **Defense**: The network namespace has no external network interfaces (`loopback down`). All network communication from the sandbox is blocked at the kernel level.
+
+---
+
+## 3. Practical Environment Notes
+
+- **Linux Bare-Metal**: Full cgroups v2, Seccomp, and instruction-counter support are available for maximum precision.
+- **Windows / macOS (Docker Desktop)**: Runs inside a Linux VM. System calls and memory limits are still enforced by the Linux kernel inside the VM, with minor timing variance due to hypervisor scheduling.

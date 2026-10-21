@@ -16,12 +16,6 @@ checker_type: token
 
 Given an array of `intervals` where `intervals[i] = [start_i, end_i]`, merge all overlapping intervals, and return an array of the non-overlapping intervals that cover all the intervals in the input.
 
-### Input Format
-The first line contains `n`.
-The next `n` lines contain two space-separated integers each: `start_i end_i`.
-
-### Output Format
-Print each merged interval on a new line as two space-separated integers sorted by start time.
 
 ### Constraints
 - 1 <= n <= 10^4

@@ -20,12 +20,6 @@ Given an array `nums` of size `n`, return the majority element.
 
 The majority element is the element that appears more than $\lfloor n / 2 \rfloor$ times. You may assume that the majority element always exists in the array.
 
-### Input Format
-The first line contains `n`.
-The second line contains `n` space-separated integers.
-
-### Output Format
-Print the majority element.
 
 ### Constraints
 - 1 <= n <= 5 * 10^4

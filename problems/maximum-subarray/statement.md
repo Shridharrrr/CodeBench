@@ -4,36 +4,21 @@ Given an integer array `nums`, find the subarray with the largest sum, and retur
 
 A **subarray** is a contiguous non-empty sequence of elements within an array.
 
-## Input Format
-The first line contains an integer $n$.
-The second line contains $n$ space-separated integers representing `nums`.
+### Example 1:
+**Input:** nums = [-2,1,-3,4,-1,2,1,-5,4]  
+**Output:** 6  
+**Explanation:** The subarray `[4,-1,2,1]` has the largest sum 6.
 
-## Output Format
-Print the largest sum among all non-empty contiguous subarrays.
+### Example 2:
+**Input:** nums = [1]  
+**Output:** 1  
+**Explanation:** The subarray `[1]` has the largest sum 1.
 
-## Constraints
-- $1 \le n \le 10^5$
-- $-10^4 \le nums[i] \le 10^4$
+### Example 3:
+**Input:** nums = [5,4,-1,7,8]  
+**Output:** 23  
+**Explanation:** The subarray `[5,4,-1,7,8]` has the largest sum 23.
 
-## Sample 1
-### Input
-```text
-9
--2 1 -3 4 -1 2 1 -5 4
-```
-### Output
-```text
-6
-```
-Explanation: The subarray `[4, -1, 2, 1]` has the largest sum `6`.
-
-## Sample 2
-### Input
-```text
-5
-5 4 -1 7 8
-```
-### Output
-```text
-23
-```
+### Constraints:
+- `1 <= nums.length <= 10^5`
+- `-10^4 <= nums[i] <= 10^4`

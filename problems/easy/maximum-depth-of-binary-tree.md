@@ -19,12 +19,6 @@ Given the root of a binary tree, return its maximum depth.
 
 A binary tree's maximum depth is the number of nodes along the longest path from the root node down to the farthest leaf node.
 
-### Input Format
-The first line contains `n`, the number of elements in level-order representation.
-The second line contains `n` space-separated tokens (`null` for absent nodes).
-
-### Output Format
-Print the maximum depth as an integer.
 
 ### Constraints
 - 0 <= n <= 10^4

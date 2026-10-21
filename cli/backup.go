@@ -70,13 +70,20 @@ func runBackup(targetFile string) {
 	fmt.Println("[2/3] Archiving problem packages from ./problems...")
 	problemCount := 0
 	problemsDir := "./problems"
+	baseDir := "."
+	if _, err := os.Stat(problemsDir); err != nil {
+		if _, err := os.Stat("../problems"); err == nil {
+			problemsDir = "../problems"
+			baseDir = ".."
+		}
+	}
 	if fi, err := os.Stat(problemsDir); err == nil && fi.IsDir() {
 		_ = filepath.Walk(problemsDir, func(path string, info os.FileInfo, walkErr error) error {
 			if walkErr != nil || info == nil {
 				return nil
 			}
 
-			relPath, err := filepath.Rel(".", path)
+			relPath, err := filepath.Rel(baseDir, path)
 			if err != nil {
 				return nil
 			}

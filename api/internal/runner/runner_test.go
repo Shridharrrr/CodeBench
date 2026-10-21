@@ -2,6 +2,7 @@ package runner
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -109,5 +110,32 @@ int main() {
 	}
 	if resp.SampleResults[0].GroupName != "custom" {
 		t.Fatalf("Expected group 'custom', got %s", resp.SampleResults[0].GroupName)
+	}
+}
+
+func TestWrapWithDriver_FunctionBased(t *testing.T) {
+	leetcodeFunc := `class Solution {
+public:
+    vector<int> twoSum(vector<int>& nums, int target) {
+        return {0, 1};
+    }
+};`
+
+	wrapped := WrapWithDriver("two-sum", "cpp23-gcc", leetcodeFunc)
+	if !strings.Contains(wrapped, "class Solution") {
+		t.Fatalf("Expected wrapped code to contain class Solution")
+	}
+	if !strings.Contains(wrapped, "int main()") {
+		t.Fatalf("Expected wrapped code to contain int main() driver")
+	}
+	if !strings.Contains(wrapped, "sol.twoSum(nums, target)") {
+		t.Fatalf("Expected driver to call sol.twoSum")
+	}
+
+	// Code with main should NOT be wrapped
+	codeWithMain := "int main() { return 0; }"
+	notWrapped := WrapWithDriver("two-sum", "cpp23-gcc", codeWithMain)
+	if notWrapped != codeWithMain {
+		t.Fatalf("Expected code with main to remain unchanged")
 	}
 }

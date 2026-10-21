@@ -8,8 +8,8 @@
 
 param (
     [Parameter(Position=0)]
-    [ValidateSet("up", "doctor", "dev", "down", "problems")]
-    [string]$Command = "up",
+    [ValidateSet("up", "host", "offline", "doctor", "dev", "down", "problems", "seed")]
+    [string]$Command = "host",
 
     [Parameter(Position=1)]
     [string]$SubCommand = "",
@@ -59,6 +59,41 @@ function Test-PortAvailable([int]$Port) {
     } catch {
         return $true
     }
+}
+
+function Get-HostLanAddresses {
+    $addresses = @()
+    try {
+        $ips = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object {
+            $_.IPAddress -notlike "127.*" -and 
+            $_.IPAddress -notlike "169.254.*" -and 
+            $_.InterfaceAlias -notmatch "vEthernet|VirtualBox|VMware|Loopback|Host-Only"
+        }
+        foreach ($ip in $ips) {
+            $addresses += [PSCustomObject]@{
+                IP = $ip.IPAddress
+                Interface = $ip.InterfaceAlias
+            }
+        }
+    } catch {}
+    return $addresses
+}
+
+function Ensure-FirewallPort([int]$Port = 8080) {
+    try {
+        $rule = Get-NetFirewallRule -DisplayName "CodeBench Inbound (Port $Port)" -ErrorAction SilentlyContinue
+        if (-not $rule) {
+            $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+            if ($isAdmin) {
+                New-NetFirewallRule -DisplayName "CodeBench Inbound (Port $Port)" -Direction Inbound -LocalPort $Port -Protocol TCP -Action Allow -Profile Any -ErrorAction SilentlyContinue | Out-Null
+                Write-Host "  [FIREWALL] Inbound TCP rule automatically added for port $Port." -ForegroundColor Green
+            } else {
+                Write-Host "  [FIREWALL] Tip: If contestants cannot open the page, allow Codebench/port $Port when prompted by Windows Firewall." -ForegroundColor Yellow
+            }
+        } else {
+            Write-Host "  [FIREWALL] Inbound rule verified for port $Port." -ForegroundColor Green
+        }
+    } catch {}
 }
 
 function Invoke-Doctor {
@@ -122,11 +157,123 @@ function Invoke-Doctor {
     Write-Host ">> Host environment: Windows (Docker Desktop / WSL2)" -ForegroundColor Yellow
     Write-Host ">> TIMING GRADE: Grade C (Development & Practice)" -ForegroundColor Yellow
     Write-Host "   Notice: Hypervisor virtualization adds timing jitter."
-    Write-Host "   Docker Desktop on Windows is fully supported for testing and practice,"
-    Write-Host "   while contest-grade timing requires tuned Linux bare-metal (Grade A)."
+    Write-Host "   Docker Desktop on Windows is fully supported for testing and offline hosting."
     Write-Host ""
     Write-Host "Doctor check complete." -ForegroundColor Green
     return $true
+}
+
+function Invoke-Seed {
+    Write-Host "Seeding problem bank into unified database..." -ForegroundColor Cyan
+    try {
+        $body = @{ path = "./problems" } | ConvertTo-Json
+        $resp = Invoke-RestMethod -Uri "http://localhost:8080/api/problems/import" -Method Post -Body $body -ContentType "application/json" -TimeoutSec 20
+        Write-Host "[OK] Problems successfully imported into unified database." -ForegroundColor Green
+    } catch {
+        Write-Host "[INFO] Running CLI problem loader..." -ForegroundColor Gray
+        & go run ./cli/main.go problems import ./problems
+    }
+}
+
+function Invoke-Host {
+    Init-Env
+    $ready = Invoke-Doctor
+    if (-not $ready) {
+        Write-Host "Preflight check failed. Please resolve the issue above." -ForegroundColor Red
+        return
+    }
+
+    Write-Host ""
+    Write-Host "==========================================================" -ForegroundColor Cyan
+    Write-Host "    CodeBench Single-Host Offline Competition Launcher     " -ForegroundColor Cyan
+    Write-Host "==========================================================" -ForegroundColor Cyan
+
+    $lanIps = Get-HostLanAddresses
+    $wifi = $lanIps | Where-Object { $_.Interface -match "Wi-Fi|Wireless|WLAN" } | Select-Object -First 1
+    $eth = $lanIps | Where-Object { $_.Interface -match "^Ethernet$" } | Select-Object -First 1
+    
+    $primaryIp = "127.0.0.1"
+    if ($wifi) {
+        $primaryIp = $wifi.IP
+    } elseif ($eth) {
+        $primaryIp = $eth.IP
+    } elseif ($lanIps.Count -gt 0) {
+        $primaryIp = $lanIps[0].IP
+    }
+
+    Ensure-FirewallPort 8080
+
+    Write-Host ""
+    Write-Host "Starting unified competition containers (API, Judge, PostgreSQL)..." -ForegroundColor Cyan
+    & docker compose up -d
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Failed to start containers." -ForegroundColor Red
+        return
+    }
+
+    Write-Host "Waiting for unified database and API server readiness..." -ForegroundColor Cyan
+    $maxWait = 25
+    $isReady = $false
+    for ($i = 0; $i -lt $maxWait; $i++) {
+        Start-Sleep -Seconds 1
+        try {
+            $resp = Invoke-RestMethod -Uri "http://localhost:8080/healthz" -TimeoutSec 2 -ErrorAction SilentlyContinue
+            if ($resp.status -eq "ok") {
+                $isReady = $true
+                break
+            }
+        } catch {}
+    }
+
+    if (-not $isReady) {
+        Write-Host "[WARN] Host server startup is taking longer than usual. Check 'docker compose logs api'." -ForegroundColor Yellow
+    }
+
+    # Auto-seed problem bank if empty
+    try {
+        $existing = Invoke-RestMethod -Uri "http://localhost:8080/api/problems" -TimeoutSec 3 -ErrorAction SilentlyContinue
+        if (-not $existing -or $existing.Count -eq 0) {
+            Write-Host "Pre-seeding standard problem bank into database..." -ForegroundColor Cyan
+            Invoke-Seed
+        }
+    } catch {}
+
+    Write-Host ""
+    Write-Host "================================================================================" -ForegroundColor Green
+    Write-Host "  CODEBENCH OFFLINE COMPETITION HOST IS LIVE!                                   " -ForegroundColor Green
+    Write-Host "================================================================================" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "  PARTICIPANT ACCESS INSTRUCTIONS (Share with all contestants):" -ForegroundColor Cyan
+    Write-Host "  1. Connect participant laptops/phones to this host machine's Wi-Fi or switch."
+    Write-Host "  2. Contestants open browser (Chrome / Edge / Safari / Firefox) and go to:"
+    Write-Host ""
+    if ($wifi) {
+        Write-Host "       [WI-FI NETWORK] ===>  http://$($wifi.IP):8080  <===" -ForegroundColor Yellow -BackgroundColor Black
+    }
+    if ($eth) {
+        Write-Host "       [LAN CABLE / ETHERNET] ===>  http://$($eth.IP):8080  <===" -ForegroundColor Cyan
+    }
+    if (-not $wifi -and -not $eth) {
+        Write-Host "       ===>  http://$($primaryIp):8080  <===" -ForegroundColor Yellow -BackgroundColor Black
+    }
+    Write-Host ""
+    Write-Host "  FIREWALL NOTICE:" -ForegroundColor Yellow
+    Write-Host "  If other devices cannot load the page, open PowerShell as Administrator and run:" -ForegroundColor Gray
+    Write-Host "  netsh advfirewall firewall add rule name=""CodeBench"" dir=in action=allow protocol=TCP localport=8080" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "  ORGANIZER & SCOREBOARD SCREENS:" -ForegroundColor Cyan
+    Write-Host "  - Host Machine Local URL:       http://localhost:8080"
+    Write-Host "  - Venue Projector / Scoreboard: http://$($primaryIp):8080/scoreboard"
+    Write-Host "  - Default Admin Account:        admin@codebench.local"
+    Write-Host "  - Default Admin Password:       codebench123"
+    Write-Host ""
+    Write-Host "  UNIFIED DATABASE & REAL-TIME SYNC:" -ForegroundColor Cyan
+    Write-Host "  - Submissions from ANY participant update the central PostgreSQL DB."
+    Write-Host "  - Live standings stream instantly via Server-Sent Events (SSE) to all screens."
+    Write-Host "  - 100% OFFLINE: ZERO external internet connection required."
+    Write-Host "================================================================================" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "To stop the host server when the contest ends, run: .\codebench.ps1 down" -ForegroundColor Gray
 }
 
 function Invoke-Up {
@@ -169,10 +316,13 @@ function Invoke-Down {
 }
 
 switch ($Command) {
+    "host"     { Invoke-Host }
+    "offline"  { Invoke-Host }
     "up"       { Invoke-Up }
     "doctor"   { Invoke-Doctor }
     "dev"      { Invoke-Dev }
     "down"     { Invoke-Down }
+    "seed"     { Invoke-Seed }
     "problems" {
         & go run ./cli/main.go problems $SubCommand $Path
     }

@@ -21,11 +21,6 @@ An input string is valid if:
 2. Open brackets must be closed in the correct order.
 3. Every close bracket has a corresponding open bracket of the same type.
 
-### Input Format
-A single line containing the string `s`.
-
-### Output Format
-Print `true` if the string is valid, or `false` otherwise.
 
 ### Constraints
 - 1 <= s.length <= 10^4

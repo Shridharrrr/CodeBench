@@ -20,12 +20,6 @@ You are given an array of integers `nums`, there is a sliding window of size `k`
 
 Return the max sliding window as an array of integers.
 
-### Input Format
-The first line contains `n` and `k`.
-The second line contains `n` space-separated integers.
-
-### Output Format
-Print the maximum values for each window position separated by spaces.
 
 ### Constraints
 - 1 <= n <= 10^5
